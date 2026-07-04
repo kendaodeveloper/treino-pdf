@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor de PDF de Treino - Preciso e Dinâmico</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+        .actions {
+            margin: 20px 0;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px dashed #bdc3c7;
+            border-radius: 5px;
+            background: #fafafa;
+            cursor: pointer;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .btn-success {
+            background-color: #2ecc71;
+        }
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        #file-name {
+            font-style: italic;
+            color: #7f8c8d;
+        }
+.workout-section {
+            margin-top: 30px;
+            padding: 15px;
+            background: #fdfefe;
+            border-left: 5px solid #3498db;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Conversor de Protocolo de Treino</h1>
+
+    <div id="browser-warning" style="display: none; background: #fff3cd; color: #856404; padding: 12px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #ffc107;">
+        <strong>Aviso:</strong> Para funcionar corretamente, abra esta pagina no <strong>Safari</strong> ou <strong>Chrome</strong>.
+        No iPhone: toque no icone de compartilhar (quadrado com seta) e selecione "Abrir no Safari".
+    </div>
+
+    <p>Selecione o PDF do protocolo de treino para visualizar o conteudo completo.</p>
+
+    <div class="actions" style="flex-direction: column; align-items: stretch; gap: 10px;">
+        <input type="file" id="pdf-file" accept=".pdf,application/pdf">
+        <button id="btn-convert" class="btn btn-success" style="padding: 15px; font-size: 18px; -webkit-appearance: none; cursor: pointer;" ontouchstart="" onclick="iniciarConversao()">Converter</button>
+    </div>
+
+    <div id="status-msg" style="margin: 10px 0; padding: 10px; border-radius: 5px;"></div>
+    <div id="visual-output"></div>
+</div>
+
+<script>
+    // Detecta WebView (WhatsApp, Instagram, Facebook, etc.)
+    var ua = navigator.userAgent || '';
+    var isWebView = /FBAN|FBAV|Instagram|Line\/|WhatsApp|wv\)/i.test(ua);
+    if (isWebView) {
+        document.getElementById('browser-warning').style.display = 'block';
+    }
+
+    // Verifica se PDF.js carregou
+    var statusMsg = document.getElementById('status-msg');
+    if (typeof pdfjsLib === 'undefined') {
+        statusMsg.textContent = "Erro: biblioteca PDF.js nao carregou. Abra no Safari ou Chrome.";
+        statusMsg.style.display = 'block';
+        statusMsg.style.background = '#fdecea';
+        statusMsg.style.color = '#e74c3c';
+    } else {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        statusMsg.textContent = "Pronto! Selecione um PDF acima.";
+        statusMsg.style.display = 'block';
+        statusMsg.style.background = '#e8f5e9';
+        statusMsg.style.color = '#2e7d32';
+    }
+
+    var fileInput = document.getElementById('pdf-file');
+    var visualOutput = document.getElementById('visual-output');
+
+    function showStatus(msg, color) {
+        statusMsg.textContent = msg;
+        statusMsg.style.display = 'block';
+        statusMsg.style.background = color === 'error' ? '#fdecea' : '#e8f5e9';
+        statusMsg.style.color = color === 'error' ? '#e74c3c' : '#2e7d32';
+    }
+
+    function hideStatus() {
+        statusMsg.style.display = 'none';
+    }
+
+    async function iniciarConversao() {
+        try {
+            showStatus("Verificando arquivo...", "ok");
+
+            var file = fileInput.files[0];
+            if (!file) {
+                showStatus("Selecione um arquivo PDF primeiro.", "error");
+                return;
+            }
+
+            showStatus("Lendo " + file.name + "...", "ok");
+            visualOutput.innerHTML = "";
+
+            var arrayBuffer = await new Promise(function(resolve, reject) {
+                var reader = new FileReader();
+                reader.onload = function(evt) { resolve(evt.target.result); };
+                reader.onerror = function() { reject(new Error("Falha ao ler arquivo")); };
+                reader.readAsArrayBuffer(file);
+            });
+
+            showStatus("Processando PDF (" + file.name + ")...", "ok");
+            var pdfData = new Uint8Array(arrayBuffer);
+            await processarPDF(pdfData);
+            hideStatus();
+
+        } catch (err) {
+            showStatus("Erro: " + (err.message || err), "error");
+        }
+    }
+
+    async function processarPDF(pdfData) {
+        try {
+            const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+            let fullText = "";
+            // pageData[pageNum] = { textItems: [{str, y}], links: [{url, y}] }
+            let pageData = {};
+
+            // Une o texto por página e coleta links + posições Y dos itens de texto
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join("\n");
+                fullText += `\n--- SECAO_PAGINA_${i} ---\n` + pageText + "\n";
+
+                // Guarda itens de texto com posição Y
+                let textItems = textContent.items
+                    .filter(item => item.str.trim().length > 0)
+                    .map(item => ({ str: item.str.trim(), y: item.transform[5] }));
+
+                // Extrai annotations de link (apenas vídeos) com posição Y central
+                let links = [];
+                const annotations = await page.getAnnotations();
+                for (const ann of annotations) {
+                    if (ann.subtype === "Link" && ann.url && isVideoUrl(ann.url)) {
+                        let centerY = (ann.rect[1] + ann.rect[3]) / 2;
+                        links.push({ url: ann.url, y: centerY });
+                    }
+                }
+
+                pageData[i] = { textItems, links };
+            }
+
+            // Invoca o parser baseado em blocos isolados
+            const parsedTrainingData = parseWorkoutTextByBlocks(fullText, pageData);
+            
+            console.log(JSON.stringify(parsedTrainingData, null, 2));
+
+            renderWorkoutVisual(parsedTrainingData);
+
+        } catch (error) {
+            console.error(error);
+            showError("Erro ao processar o PDF: " + error.message);
+        }
+    }
+
+    function isVideoUrl(url) {
+        return /drive\.google\.com|youtube\.com|youtu\.be|vimeo\.com|streamable\.com|loom\.com/i.test(url);
+    }
+
+    /**
+     * Encontra a posição Y de um texto na página.
+     * Retorna o Y do primeiro item cujo str contém o início do texto buscado.
+     */
+    function findTextY(textItems, searchText) {
+        if (!searchText || !textItems) { return null; }
+        let searchLower = searchText.toLowerCase().substring(0, 15);
+        for (const item of textItems) {
+            if (item.str.toLowerCase().includes(searchLower)) {
+                return item.y;
+            }
+        }
+        // Tenta com palavras individuais (>4 chars)
+        let palavras = searchText.split(/\s+/).filter(p => p.length > 4);
+        for (const p of palavras) {
+            let pLower = p.toLowerCase();
+            for (const item of textItems) {
+                if (item.str.toLowerCase().includes(pLower)) {
+                    return item.y;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Busca o link de vídeo mais próximo (por posição Y) de um exercício na página.
+     * Cada link só pode ser usado uma vez (removido do array após uso).
+     */
+    function findVideoByPosition(exercicioNome, pageNum, pageData) {
+        if (!pageData || !pageData[pageNum]) { return null; }
+        let pd = pageData[pageNum];
+        if (!pd.links || pd.links.length === 0) { return null; }
+
+        let textY = findTextY(pd.textItems, exercicioNome);
+        if (textY === null) { return null; }
+
+        // Encontra o link mais próximo por Y (tolerância máxima de 30 unidades)
+        let bestIdx = -1;
+        let bestDist = Infinity;
+        for (let i = 0; i < pd.links.length; i++) {
+            let dist = Math.abs(pd.links[i].y - textY);
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestIdx = i;
+            }
+        }
+        if (bestIdx !== -1 && bestDist < 50) {
+            let url = pd.links[bestIdx].url;
+            pd.links.splice(bestIdx, 1); // Remove para não reusar
+            return url;
+        }
+        return null;
+    }
+
+    /**
+     * PARSER GENÉRICO — extrai dados dinamicamente do PDF sem depender de exercícios hardcoded.
+     * Funciona para qualquer aluno/protocolo que siga o mesmo layout.
+     */
+    function parseWorkoutTextByBlocks(text, pageData) {
+        const data = {
+            aluno: "",
+            objetivo: "",
+            frequencia: "",
+            duracao_total: "",
+            descanso: "",
+            alongamentos: [],
+            manobras: [],
+            treinos: []
+        };
+
+        // Normaliza quebras de linha consecutivas e espaços extras para facilitar regex
+        const norm = text.replace(/\r/g, '');
+
+        // 1. Metadados do cabeçalho
+        const matchAluno = norm.match(/ALUNA?\s*\n\s*([^\n]+)/i);
+        if (matchAluno) { data.aluno = matchAluno[1].split("|")[0].trim(); }
+
+        // Objetivo — captura múltiplas linhas até encontrar próximo campo
+        const matchObjetivo = norm.match(/OBJETIVO\s*\n([\s\S]*?)(?=\nPERÍODO|\nFREQUÊNCIA|\nDURAÇÃO|\nCARGA|\nDESCANSO|\n---)/i);
+        if (matchObjetivo) { data.objetivo = matchObjetivo[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim(); }
+
+        const matchFreq = norm.match(/FREQUÊNCIA\s*\n\s*([^\n]+)/i);
+        if (matchFreq) { data.frequencia = matchFreq[1].trim(); }
+
+        const matchDuracao = norm.match(/DURAÇÃO TOTAL\s*\n\s*([^\n]+)/i);
+        if (matchDuracao) { data.duracao_total = matchDuracao[1].trim(); }
+
+        const matchDescanso = norm.match(/DESCANSO ENTRE\s*\n\s*OS EXERCÍCIOS\s*\n\s*([^\n]+)/i);
+        if (matchDescanso) { data.descanso = matchDescanso[1].trim(); }
+
+        // Divide por páginas uma vez (usado por alongamentos e treinos)
+        const paginas = norm.split(/--- SECAO_PAGINA_\d+ ---/);
+
+        // 2. Alongamentos e Manobras — na página 4, os dados aparecem ANTES dos rótulos
+        // Estrutura PDF.js: "1\n \n1 x 20"\n \nSóleo\n\n2\n \n..." seguido por "ALONGAMENTOS\n \nE MOBILIDADES"
+        // Estratégia: pegar a página que contém "ALONGAMENTOS" e parsear sequencialmente
+        const pageAlong = paginas.find(pg => /ALONGAMENTOS/i.test(pg));
+        if (pageAlong) {
+            const aLines = pageAlong.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+            let i = 0;
+            let phase = "along"; // começa em alongamentos
+            while (i < aLines.length) {
+                let line = aLines[i];
+                // Detecta fim das seções de interesse
+                if (/^CONSULTORIA/i.test(line) || /^ALONGAMENTOS/i.test(line)) { break; }
+                // Detecta seq: número isolado ou "Mobilidade"
+                if (/^\d+$/.test(line) || /^Mobilidade$/i.test(line)) {
+                    let seq = line;
+                    // Próxima linha: tempo/séries (contém "x" e número)
+                    if (i + 1 < aLines.length && /\d+\s*[xX]\s*\d+/i.test(aLines[i + 1])) {
+                        let tempo = aLines[i + 1];
+                        // Coleta linhas do exercício até próxima seq ou seção
+                        let exLines = [];
+                        let j = i + 2;
+                        while (j < aLines.length) {
+                            let next = aLines[j];
+                            if (/^\d+$/.test(next) || /^Mobilidade$/i.test(next) || /^CONSULTORIA|^ALONGAMENTOS|^MANOBRAS/i.test(next)) { break; }
+                            exLines.push(next);
+                            j++;
+                        }
+                        let exercicio = exLines.join(" ").trim();
+                        if (exercicio) {
+                            // Determina fase: se tempo contém aspas típicas de alongamento (20") → along;
+                            // se é série maior (4x20", 2x40") e estamos após mobilidade → manobras
+                            if (phase === "along") {
+                                data.alongamentos.push({ seq, tempo, exercicio });
+                                if (/^Mobilidade$/i.test(seq)) { phase = "manobras"; }
+                            } else {
+                                data.manobras.push({ seq, series: tempo, exercicio });
+                            }
+                        }
+                        i = j;
+                    } else {
+                        i++;
+                    }
+                } else {
+                    i++;
+                }
+            }
+        }
+
+        // 3. Treinos — extração genérica por página
+
+        paginas.forEach((p, pageIdx) => {
+            // Identifica páginas de treino pela presença de "EXERCÍCIOS" (tabela de exercícios)
+            if (!p.toUpperCase().includes("EXERCÍCIOS")) { return; }
+
+            // Identifica qual treino — lida com quebras de linha do PDF.js
+            // Ex: "TREINO 1\n \nE 5" ou "TREINO\n \n3"
+            let idMatch = p.match(/TREINO\s*\n?\s*(\d+)\s*\n?\s*(?:[Ee]\s*\n?\s*(\d+))?/i);
+            if (!idMatch) { return; }
+            let identificador = idMatch[2]
+                ? `TREINO ${idMatch[1]} E ${idMatch[2]}`
+                : `TREINO ${idMatch[1]}`;
+
+            let linhas = p.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+
+            // Dias/foco — texto próximo ao identificador do treino (ex: "Segunda e Sexta-Feira (...)")
+            let diasFoco = "";
+            const diasRegex = p.match(/(?:Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)[^\n]*/i);
+            if (diasRegex) { diasFoco = diasRegex[0].trim(); }
+
+            // Warm Up
+            let aquecimento = "";
+            let idxWarm = linhas.findIndex(l => l.toUpperCase().includes("WARM UP"));
+            if (idxWarm !== -1) {
+                // Coleta linhas após "WARM UP" / "REPETIÇÕES" até encontrar outra seção
+                let warmLines = [];
+                for (let i = idxWarm + 1; i < linhas.length && i < idxWarm + 5; i++) {
+                    let l = linhas[i];
+                    if (/^(SQ|EXERCÍCIOS|AERÓBIO|RELAXAMENTO|TREINO)/i.test(l)) { break; }
+                    if (l === "REPETIÇÕES" || /^\d+°$/.test(l)) { continue; }
+                    warmLines.push(l);
+                }
+                aquecimento = warmLines.join(" | ");
+            }
+
+            // Aeróbio
+            let aerobio = "";
+            let idxAero = linhas.findIndex(l => l.toUpperCase() === "AERÓBIO");
+            if (idxAero !== -1) {
+                let aeroLines = [];
+                for (let i = idxAero + 1; i < linhas.length && i < idxAero + 5; i++) {
+                    let l = linhas[i];
+                    if (/^(SQ|EXERCÍCIOS|RELAXAMENTO|TREINO|WARM)/i.test(l)) { break; }
+                    if (l === "DURAÇÃO" || /^\d+°$/.test(l)) { continue; }
+                    aeroLines.push(l);
+                }
+                aerobio = aeroLines.join(" - ");
+            }
+
+            // Relaxamento — busca o bloco "SQ RELAXAMENTO REPETIÇÕES" (não o rótulo "RELAXAMENTO AERÓBIO")
+            let relaxamento = "";
+            for (let ri = 0; ri < linhas.length - 1; ri++) {
+                // Padrão: "SQ" seguido por "RELAXAMENTO" seguido por "REPETIÇÕES"
+                if (linhas[ri] === "SQ" && linhas[ri + 1] === "RELAXAMENTO" && ri + 2 < linhas.length && linhas[ri + 2] === "REPETIÇÕES") {
+                    let relaxLines = [];
+                    for (let j = ri + 3; j < linhas.length && j < ri + 8; j++) {
+                        let l = linhas[j];
+                        if (/^(SQ|EXERCÍCIOS|AERÓBIO|TREINO|WARM|RELAXAMENTO)/i.test(l)) { break; }
+                        if (/(?:Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)/i.test(l)) { break; }
+                        if (/^\d+°$/.test(l)) { continue; }
+                        relaxLines.push(l);
+                    }
+                    relaxamento = relaxLines.join(" | ");
+                    break;
+                }
+            }
+
+            // Exercícios — extrai do bloco entre "EXERCÍCIOS" e próxima seção (WARM UP/AERÓBIO/RELAXAMENTO)
+            let exercicios = [];
+            let idxExerc = linhas.findIndex(l => l.toUpperCase() === "EXERCÍCIOS");
+            if (idxExerc !== -1) {
+                // Pula cabeçalho de colunas (REPS, etc.)
+                let startIdx = idxExerc + 1;
+                // Avança pelas linhas de cabeçalho (15 REPS, 12 REPS, etc.)
+                while (startIdx < linhas.length && /^\d+\s*$/.test(linhas[startIdx])) { startIdx++; }
+                while (startIdx < linhas.length && /^REPS$/i.test(linhas[startIdx])) { startIdx++; }
+                // Repete para múltiplas colunas de REPS
+                while (startIdx < linhas.length && (/^\d+\s*$/.test(linhas[startIdx]) || /^REPS$/i.test(linhas[startIdx]))) { startIdx++; }
+
+                let currentExercise = null;
+                for (let i = startIdx; i < linhas.length; i++) {
+                    let l = linhas[i];
+                    // Para ao encontrar outra seção
+                    if (/^(SQ|WARM UP|AERÓBIO|RELAXAMENTO|TREINO)/i.test(l)) { break; }
+                    // Marcador de sequência (1°, 2°, etc.) — inicia novo exercício
+                    if (/^\d+°$/.test(l)) {
+                        if (currentExercise) { exercicios.push(currentExercise.trim()); }
+                        currentExercise = "";
+                        continue;
+                    }
+                    // Ignora colunas de REPS residuais
+                    if (/^\d{2}\s*$/.test(l) || /^REPS$/i.test(l)) { continue; }
+                    // Acumula texto do exercício atual
+                    if (currentExercise !== null) {
+                        currentExercise += (currentExercise ? " " : "") + l;
+                    }
+                }
+                if (currentExercise) { exercicios.push(currentExercise.trim()); }
+            }
+
+            if (exercicios.length > 0) {
+                // Associa links de vídeo aos exercícios pela posição Y na página
+                let exerciciosComVideo = exercicios.map(nome => {
+                    let video = findVideoByPosition(nome, pageIdx, pageData);
+                    return video ? { nome, video } : { nome };
+                });
+
+                let treino = {
+                    identificador: identificador,
+                    dias_e_foco: diasFoco,
+                    aquecimento: aquecimento,
+                    exercicios: exerciciosComVideo,
+                    aerobio: aerobio
+                };
+                if (relaxamento) { treino.relaxamento = relaxamento; }
+                data.treinos.push(treino);
+            }
+        });
+
+        // Associa links de vídeo aos alongamentos e manobras (procura na página que contém ALONGAMENTOS)
+        let alongPageNum = paginas.findIndex(pg => /ALONGAMENTOS/i.test(pg));
+        if (alongPageNum > 0) {
+            data.alongamentos = data.alongamentos.map(item => {
+                let video = findVideoByPosition(item.exercicio, alongPageNum, pageData);
+                return video ? { ...item, video } : item;
+            });
+            data.manobras = data.manobras.map(item => {
+                let video = findVideoByPosition(item.exercicio, alongPageNum, pageData);
+                return video ? { ...item, video } : item;
+            });
+        }
+
+        return data;
+    }
+
+    /**
+     * RENDERIZADOR VISUAL
+     */
+    function renderWorkoutVisual(jsonData) {
+        let html = `
+            <div style="background: #e1f5fe; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <strong>Aluno(a):</strong> ${jsonData.aluno || "Não identificado"} <br>
+                <strong>Duração do Protocolo:</strong> ${jsonData.duracao_total || "Não identificada"} |
+                <strong>Frequência Semanal:</strong> ${jsonData.frequencia || "Não identificada"} <br>
+                ${jsonData.descanso ? `<strong>Descanso entre exercícios:</strong> ${jsonData.descanso} <br>` : ""}
+                <strong>Objetivos:</strong> ${jsonData.objetivo || "Não especificado"}
+            </div>
+        `;
+
+        if(jsonData.alongamentos.length > 0) {
+            html += `
+                <div class="workout-section">
+                    <h3>Alongamentos e Mobilidade</h3>
+                    <table>
+                        <thead><tr><th>Seq</th><th>Tempo/Reps</th><th>Exercício</th></tr></thead>
+                        <tbody>
+            `;
+            jsonData.alongamentos.forEach(item => {
+                let videoLink = item.video ? ` <a href="${item.video}" target="_blank" style="color: #e74c3c; text-decoration: none;" title="Ver vídeo">&#9654;</a>` : "";
+                html += `<tr><td>${item.seq}</td><td>${item.tempo}</td><td>${item.exercicio}${videoLink}</td></tr>`;
+            });
+            html += `</tbody></table></div>`;
+        }
+
+        if(jsonData.manobras.length > 0) {
+            html += `
+                <div class="workout-section">
+                    <h3>Manobras Respiratórias e Abdominais</h3>
+                    <table>
+                        <thead><tr><th>Seq</th><th>Séries x Tempo</th><th>Exercício</th></tr></thead>
+                        <tbody>
+            `;
+            jsonData.manobras.forEach(item => {
+                let videoLink = item.video ? ` <a href="${item.video}" target="_blank" style="color: #e74c3c; text-decoration: none;" title="Ver vídeo">&#9654;</a>` : "";
+                html += `<tr><td>${item.seq}</td><td>${item.series}</td><td>${item.exercicio}${videoLink}</td></tr>`;
+            });
+            html += `</tbody></table></div>`;
+        }
+
+        jsonData.treinos.forEach(treino => {
+            html += `
+                <div class="workout-section" style="border-left-color: #2ecc71;">
+                    <h3>${treino.identificador}</h3>
+                    <p><strong>Foco / Dias:</strong> ${treino.dias_e_foco}</p>
+                    <p><strong>Aquecimento (Warm Up):</strong> ${treino.aquecimento || "Padrão"}</p>
+                    <h4>Exercícios:</h4>
+                    <ul>
+            `;
+            treino.exercicios.forEach(ex => {
+                let nome = typeof ex === "object" ? ex.nome : ex;
+                let videoLink = (typeof ex === "object" && ex.video) ? ` <a href="${ex.video}" target="_blank" style="color: #e74c3c; text-decoration: none;" title="Ver vídeo">&#9654;</a>` : "";
+                html += `<li>${nome}${videoLink}</li>`;
+            });
+            html += `
+                    </ul>
+                    <p><strong>Cardio/Aeróbio:</strong> ${treino.aerobio || "Não informado"}</p>
+                    ${treino.relaxamento ? `<p><strong>Relaxamento:</strong> ${treino.relaxamento}</p>` : ""}
+                </div>
+            `;
+        });
+
+        visualOutput.innerHTML = html;
+    }
+</script>
+
+</body>
+</html>
