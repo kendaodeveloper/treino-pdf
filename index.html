@@ -73,7 +73,10 @@
         .btn-success:hover {
             background-color: #27ae60;
         }
-.workout-section {
+.workout-section h3 {
+            margin-top: 0;
+        }
+        .workout-section {
             margin-top: 30px;
             padding: 15px;
             background: #fdfefe;
@@ -381,17 +384,37 @@
                             exLines.push(next);
                             j++;
                         }
-                        let exercicio = exLines.join(" ").trim();
-                        if (exercicio) {
-                            // Determina fase: se tempo contém aspas típicas de alongamento (20") → along;
-                            // se é série maior (4x20", 2x40") e estamos após mobilidade → manobras
+                        // Separa sub-exercícios por palavras-chave
+                        let subExercicios = [{ lines: [], tipo: "" }];
+                        let cur = subExercicios[0];
+                        for (let el = 0; el < exLines.length; el++) {
+                            let eline = exLines[el];
+                            let matchPfx = eline.match(/^(Supersérie|Pós exaustão)\s*(.*)/i);
+                            if (matchPfx) {
+                                cur = { lines: [], tipo: matchPfx[1] };
+                                if (matchPfx[2].trim()) { cur.lines.push(matchPfx[2].trim()); }
+                                subExercicios.push(cur);
+                                continue;
+                            }
+                            if (/^\(após\s/i.test(eline)) {
+                                cur = { lines: [eline], tipo: "" };
+                                subExercicios.push(cur);
+                                continue;
+                            }
+                            cur.lines.push(eline);
+                        }
+
+                        subExercicios.forEach((sub, si) => {
+                            let nome = sub.lines.join(" ").trim();
+                            if (!nome) return;
+                            let exercicio = sub.tipo ? sub.tipo + " " + nome : nome;
                             if (phase === "along") {
-                                data.alongamentos.push({ seq, tempo, exercicio });
+                                data.alongamentos.push({ seq: si === 0 ? seq : "", tempo: si === 0 ? tempo : "", exercicio, isSubExercise: si > 0 });
                                 if (/^Mobilidade$/i.test(seq)) { phase = "manobras"; }
                             } else {
-                                data.manobras.push({ seq, series: tempo, exercicio });
+                                data.manobras.push({ seq: si === 0 ? seq : "", series: si === 0 ? tempo : "", exercicio, isSubExercise: si > 0 });
                             }
-                        }
+                        });
                         i = j;
                     } else {
                         i++;
@@ -507,44 +530,79 @@
                 }
             }
 
-            // Exercícios — extrai do bloco entre "EXERCÍCIOS" e próxima seção (WARM UP/AERÓBIO/RELAXAMENTO)
+            // Exercícios — extrai do bloco entre "EXERCÍCIOS" e próxima seção
+            // Cada sequência (1°, 2°...) pode conter sub-exercícios separados por "Supersérie" ou "Pós exaustão"
             let exercicios = [];
             let idxExerc = linhas.findIndex(l => l.toUpperCase() === "EXERCÍCIOS");
             if (idxExerc !== -1) {
-                // Pula cabeçalho de colunas (REPS, etc.)
                 let startIdx = idxExerc + 1;
-                // Avança pelas linhas de cabeçalho (15 REPS, 12 REPS, etc.)
                 while (startIdx < linhas.length && /^\d+\s*$/.test(linhas[startIdx])) { startIdx++; }
                 while (startIdx < linhas.length && /^REPS$/i.test(linhas[startIdx])) { startIdx++; }
-                // Repete para múltiplas colunas de REPS
                 while (startIdx < linhas.length && (/^\d+\s*$/.test(linhas[startIdx]) || /^REPS$/i.test(linhas[startIdx]))) { startIdx++; }
 
-                let currentExercise = null;
+                // Coleta linhas brutas por sequência
+                let currentLines = null;
+                let seqGroups = [];
                 for (let i = startIdx; i < linhas.length; i++) {
                     let l = linhas[i];
-                    // Para ao encontrar outra seção
                     if (/^(SQ|WARM UP|AERÓBIO|RELAXAMENTO|TREINO)/i.test(l)) { break; }
-                    // Marcador de sequência (1°, 2°, etc.) — inicia novo exercício
                     if (/^\d+°$/.test(l)) {
-                        if (currentExercise) { exercicios.push(currentExercise.trim()); }
-                        currentExercise = "";
+                        if (currentLines) { seqGroups.push(currentLines); }
+                        currentLines = [];
                         continue;
                     }
-                    // Ignora colunas de REPS residuais
                     if (/^\d{2}\s*$/.test(l) || /^REPS$/i.test(l)) { continue; }
-                    // Acumula texto do exercício atual
-                    if (currentExercise !== null) {
-                        currentExercise += (currentExercise ? " " : "") + l;
-                    }
+                    if (currentLines !== null) { currentLines.push(l); }
                 }
-                if (currentExercise) { exercicios.push(currentExercise.trim()); }
+                if (currentLines) { seqGroups.push(currentLines); }
+
+                // Separa sub-exercícios dentro de cada grupo linha por linha
+                seqGroups.forEach((group, gIdx) => {
+                    let seq = (gIdx + 1) + "°";
+                    let exercises = []; // array de { lines: [], tipo: "" }
+                    let current = { lines: [], tipo: "" };
+                    exercises.push(current);
+
+                    for (let li = 0; li < group.length; li++) {
+                        let line = group[li];
+                        // "Supersérie ..." ou "Pós exaustão ..." inicia novo sub-exercício
+                        let matchPrefix = line.match(/^(Supersérie|Pós exaustão)\s*(.*)/i);
+                        if (matchPrefix) {
+                            current = { lines: [], tipo: matchPrefix[1] };
+                            if (matchPrefix[2].trim()) { current.lines.push(matchPrefix[2].trim()); }
+                            exercises.push(current);
+                            continue;
+                        }
+                        // "(após X semanas ...)" inicia novo sub-exercício (alternativa)
+                        if (/^\(após\s/i.test(line)) {
+                            current = { lines: [line], tipo: "" };
+                            exercises.push(current);
+                            continue;
+                        }
+                        // Continuação de linha (ex: "invertido)" após "(após ... Hack angular")
+                        current.lines.push(line);
+                    }
+
+                    exercises.forEach((ex, exIdx) => {
+                        let nome = ex.lines.join(" ").trim();
+                        if (!nome) return;
+                        let fullNome = ex.tipo ? ex.tipo + " " + nome : nome;
+                        exercicios.push({ seq, nome: fullNome, isSubExercise: exIdx > 0 });
+                    });
+                });
             }
 
             if (exercicios.length > 0) {
-                // Associa links de vídeo aos exercícios pela posição Y na página
-                let exerciciosComVideo = exercicios.map(nome => {
-                    let video = findVideoByPosition(nome, pageIdx, pageData);
-                    return video ? { nome, video } : { nome };
+                // Associa links de vídeo a cada exercício/sub-exercício individualmente
+                let exerciciosComVideo = exercicios.map(ex => {
+                    // Para buscar vídeo, limpa prefixos e parênteses
+                    let searchName = ex.nome
+                        .replace(/^(Supersérie|Pós exaustão)\s*/i, '')
+                        .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
+                        .replace(/\)$/, '')
+                        .trim();
+                    let video = findVideoByPosition(searchName, pageIdx, pageData);
+                    return video ? { ...ex, video } : ex;
                 });
 
                 let treino = {
@@ -563,11 +621,19 @@
         let alongPageNum = paginas.findIndex(pg => /ALONGAMENTOS/i.test(pg));
         if (alongPageNum > 0) {
             data.alongamentos = data.alongamentos.map(item => {
-                let video = findVideoByPosition(item.exercicio, alongPageNum, pageData);
+                let searchName = item.exercicio
+                    .replace(/^(Supersérie|Pós exaustão)\s*/i, '')
+                    .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
+                    .replace(/\)$/, '').trim();
+                let video = findVideoByPosition(searchName, alongPageNum, pageData);
                 return video ? { ...item, video } : item;
             });
             data.manobras = data.manobras.map(item => {
-                let video = findVideoByPosition(item.exercicio, alongPageNum, pageData);
+                let searchName = item.exercicio
+                    .replace(/^(Supersérie|Pós exaustão)\s*/i, '')
+                    .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
+                    .replace(/\)$/, '').trim();
+                let video = findVideoByPosition(searchName, alongPageNum, pageData);
                 return video ? { ...item, video } : item;
             });
         }
@@ -595,13 +661,24 @@
                 <div class="workout-section">
                     <h3>Alongamentos e Mobilidade</h3>
                     <table>
-                        <thead><tr><th>Seq</th><th>Tempo/Reps</th><th>Exercício</th><th style="width:40px; text-align:center;">Video</th></tr></thead>
+                        <thead><tr><th>Ordem</th><th>Tempo/Reps</th><th>Exercício</th><th style="width:40px; text-align:center;">Vídeo</th></tr></thead>
                         <tbody>
             `;
-            jsonData.alongamentos.forEach(item => {
+            let ai = 0;
+            while (ai < jsonData.alongamentos.length) {
+                let item = jsonData.alongamentos[ai];
                 let videoBtn = item.video ? `<a href="${item.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
-                html += `<tr><td>${item.seq}</td><td>${item.tempo}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
-            });
+                let subCount = 0;
+                while (ai + 1 + subCount < jsonData.alongamentos.length && jsonData.alongamentos[ai + 1 + subCount].isSubExercise) { subCount++; }
+                let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
+                html += `<tr><td${rowspan}>${item.seq}</td><td${rowspan}>${item.tempo}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
+                for (let si = 0; si < subCount; si++) {
+                    let sub = jsonData.alongamentos[ai + 1 + si];
+                    let subBtn = sub.video ? `<a href="${sub.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+                    html += `<tr><td>${sub.exercicio}</td><td style="text-align:center;">${subBtn}</td></tr>`;
+                }
+                ai += 1 + subCount;
+            }
             html += `</tbody></table></div>`;
         }
 
@@ -610,13 +687,24 @@
                 <div class="workout-section">
                     <h3>Manobras Respiratórias e Abdominais</h3>
                     <table>
-                        <thead><tr><th>Seq</th><th>Séries x Tempo</th><th>Exercício</th><th style="width:40px; text-align:center;">Video</th></tr></thead>
+                        <thead><tr><th>Ordem</th><th>Séries x Tempo</th><th>Exercício</th><th style="width:40px; text-align:center;">Vídeo</th></tr></thead>
                         <tbody>
             `;
-            jsonData.manobras.forEach(item => {
+            let mi = 0;
+            while (mi < jsonData.manobras.length) {
+                let item = jsonData.manobras[mi];
                 let videoBtn = item.video ? `<a href="${item.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
-                html += `<tr><td>${item.seq}</td><td>${item.series}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
-            });
+                let subCount = 0;
+                while (mi + 1 + subCount < jsonData.manobras.length && jsonData.manobras[mi + 1 + subCount].isSubExercise) { subCount++; }
+                let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
+                html += `<tr><td${rowspan}>${item.seq}</td><td${rowspan}>${item.series}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
+                for (let si = 0; si < subCount; si++) {
+                    let sub = jsonData.manobras[mi + 1 + si];
+                    let subBtn = sub.video ? `<a href="${sub.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+                    html += `<tr><td>${sub.exercicio}</td><td style="text-align:center;">${subBtn}</td></tr>`;
+                }
+                mi += 1 + subCount;
+            }
             html += `</tbody></table></div>`;
         }
 
@@ -633,7 +721,7 @@
                     <h3>${treino.identificador}</h3>
                     <p><strong>Foco / Dias:</strong> ${treino.dias_e_foco}</p>
                     <table>
-                        <thead><tr><th>Seq</th><th>Exercício</th><th style="width:40px; text-align:center;">Video</th></tr></thead>
+                        <thead><tr><th>Ordem</th><th>Exercício</th><th style="width:40px; text-align:center;">Vídeo</th></tr></thead>
                         <tbody>
             `;
 
@@ -648,13 +736,30 @@
                 });
             }
 
-            // Exercícios
+            // Exercícios — agrupa principal + sub-exercícios com rowspan
             html += `<tr><td colspan="3" style="background:#eaf2f8; font-weight:bold;">Exercícios</td></tr>`;
-            treino.exercicios.forEach((ex, idx) => {
+            let ei = 0;
+            while (ei < treino.exercicios.length) {
+                let ex = treino.exercicios[ei];
                 let nome = typeof ex === "object" ? ex.nome : ex;
                 let video = (typeof ex === "object") ? ex.video : null;
-                html += treinoRow(idx + 1 + "°", nome, "", video);
-            });
+                let seq = (typeof ex === "object" && ex.seq) ? ex.seq : "";
+                let videoBtn = video ? `<a href="${video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+                // Conta sub-exercícios seguintes
+                let subCount = 0;
+                while (ei + 1 + subCount < treino.exercicios.length && treino.exercicios[ei + 1 + subCount].isSubExercise) { subCount++; }
+                let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
+                html += `<tr><td${rowspan}>${seq}</td><td>${nome}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
+                // Sub-exercícios (sem célula de ordem)
+                for (let si = 0; si < subCount; si++) {
+                    let sub = treino.exercicios[ei + 1 + si];
+                    let subNome = typeof sub === "object" ? sub.nome : sub;
+                    let subVideo = (typeof sub === "object") ? sub.video : null;
+                    let subBtn = subVideo ? `<a href="${subVideo}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+                    html += `<tr><td>${subNome}</td><td style="text-align:center;">${subBtn}</td></tr>`;
+                }
+                ei += 1 + subCount;
+            }
 
             // Aeróbio
             if (Array.isArray(treino.aerobio) && treino.aerobio.length > 0) {
