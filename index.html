@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversor de PDF de Treino - Preciso e Dinâmico</title>
+    <title>Conversor de PDF de Treino</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
         body {
@@ -90,11 +90,11 @@
     <h1>Conversor de Protocolo de Treino</h1>
 
     <div id="browser-warning" style="display: none; background: #fff3cd; color: #856404; padding: 12px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #ffc107;">
-        <strong>Aviso:</strong> Para funcionar corretamente, abra esta pagina no <strong>Safari</strong> ou <strong>Chrome</strong>.
-        No iPhone: toque no icone de compartilhar (quadrado com seta) e selecione "Abrir no Safari".
+        <strong>Aviso:</strong> Para funcionar corretamente, abra esta página no <strong>Safari</strong> ou <strong>Chrome</strong>.
+        No iPhone: toque no ícone de compartilhar (quadrado com seta) e selecione "Abrir no Safari".
     </div>
 
-    <p>Selecione o PDF do protocolo de treino para visualizar o conteudo completo.</p>
+    <p>Selecione o PDF do protocolo de treino para visualizar o conteúdo completo.</p>
 
     <div class="actions" style="flex-direction: column; align-items: stretch; gap: 10px;">
         <input type="file" id="pdf-file" accept=".pdf,application/pdf">
@@ -116,13 +116,13 @@
     // Verifica se PDF.js carregou
     var statusMsg = document.getElementById('status-msg');
     if (typeof pdfjsLib === 'undefined') {
-        statusMsg.textContent = "Erro: biblioteca PDF.js nao carregou. Abra no Safari ou Chrome.";
+        statusMsg.textContent = "Erro: biblioteca PDF.js não carregou. Abra no Safari ou no Chrome.";
         statusMsg.style.display = 'block';
         statusMsg.style.background = '#fdecea';
         statusMsg.style.color = '#e74c3c';
     } else {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-        statusMsg.textContent = "Pronto! Selecione um PDF acima.";
+        statusMsg.textContent = "Selecione um PDF acima.";
         statusMsg.style.display = 'block';
         statusMsg.style.background = '#e8f5e9';
         statusMsg.style.color = '#2e7d32';
