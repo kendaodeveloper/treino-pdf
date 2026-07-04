@@ -106,7 +106,7 @@
         No iPhone: toque no ícone de compartilhar (quadrado com seta) e selecione "Abrir no Safari".
     </div>
 
-    <p>Selecione o PDF do protocolo de treino para visualizar o conteúdo completo:</p>
+    <p>Selecione o PDF do seu treino para visualizar o conteúdo completo:</p>
 
     <div class="actions" style="flex-direction: column; align-items: stretch; gap: 10px;">
         <input type="file" id="pdf-file" accept=".pdf,application/pdf">
@@ -140,6 +140,20 @@
     var fileInput = document.getElementById('pdf-file');
     var convertBtn = document.getElementById('btn-convert');
     var visualOutput = document.getElementById('visual-output');
+
+    // Carrega dados do localStorage se existirem
+    (function() {
+        var saved = localStorage.getItem('treino-pdf-data');
+        if (saved) {
+            try {
+                var jsonData = JSON.parse(saved);
+                renderWorkoutVisual(jsonData);
+                showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
+            } catch(e) {
+                localStorage.removeItem('treino-pdf-data');
+            }
+        }
+    })();
 
     fileInput.addEventListener('change', function() {
         if (fileInput.files[0]) {
@@ -183,7 +197,7 @@
             showStatus("Processando PDF (" + file.name + ")...", "ok");
             var pdfData = new Uint8Array(arrayBuffer);
             await processarPDF(pdfData);
-            hideStatus();
+            showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
 
         } catch (err) {
             showStatus("Erro: " + (err.message || err), "error");
@@ -226,6 +240,9 @@
             const parsedTrainingData = parseWorkoutTextByBlocks(fullText, pageData);
             
             console.log(JSON.stringify(parsedTrainingData, null, 2));
+
+            // Salva no localStorage para persistir entre recarregamentos
+            localStorage.setItem('treino-pdf-data', JSON.stringify(parsedTrainingData));
 
             renderWorkoutVisual(parsedTrainingData);
 
@@ -300,6 +317,7 @@
      */
     function parseWorkoutTextByBlocks(text, pageData) {
         const data = {
+            treinador: "",
             aluno: "",
             objetivo: "",
             frequencia: "",
@@ -314,6 +332,9 @@
         const norm = text.replace(/\r/g, '');
 
         // 1. Metadados do cabeçalho
+        const matchTreinador = norm.match(/TREINADOR\s*\n\s*([^\n]+)/i);
+        if (matchTreinador) { data.treinador = matchTreinador[1].trim(); }
+
         const matchAluno = norm.match(/ALUNA?\s*\n\s*([^\n]+)/i);
         if (matchAluno) { data.aluno = matchAluno[1].split("|")[0].trim(); }
 
@@ -402,37 +423,64 @@
             const diasRegex = p.match(/(?:Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)[^\n]*/i);
             if (diasRegex) { diasFoco = diasRegex[0].trim(); }
 
-            // Warm Up
-            let aquecimento = "";
+            // Warm Up — extrai como array de exercícios com vídeo
+            let aquecimento = [];
             let idxWarm = linhas.findIndex(l => l.toUpperCase().includes("WARM UP"));
             if (idxWarm !== -1) {
-                // Coleta linhas após "WARM UP" / "REPETIÇÕES" até encontrar outra seção
                 let warmLines = [];
-                for (let i = idxWarm + 1; i < linhas.length && i < idxWarm + 5; i++) {
+                for (let i = idxWarm + 1; i < linhas.length && i < idxWarm + 10; i++) {
                     let l = linhas[i];
                     if (/^(SQ|EXERCÍCIOS|AERÓBIO|RELAXAMENTO|TREINO)/i.test(l)) { break; }
                     if (l === "REPETIÇÕES" || /^\d+°$/.test(l)) { continue; }
-                    warmLines.push(l);
+                    // Captura info de reps/cadência (ex: "2 x 15 REPS | Cadência 3:3")
+                    if (/^\d+\s*x\s*\d+\s*REPS/i.test(l)) {
+                        // Junta com próxima linha se for continuação de cadência
+                        let repsInfo = l;
+                        if (i + 1 < linhas.length && /^Cadência/i.test(linhas[i + 1])) {
+                            repsInfo += " | " + linhas[i + 1];
+                            i++;
+                        }
+                        // Associa reps ao último exercício adicionado
+                        if (warmLines.length > 0) {
+                            warmLines[warmLines.length - 1].reps = repsInfo;
+                        }
+                        continue;
+                    }
+                    warmLines.push({ nome: l });
                 }
-                aquecimento = warmLines.join(" | ");
+                // Associa vídeos aos exercícios de aquecimento
+                aquecimento = warmLines.map(item => {
+                    let video = findVideoByPosition(item.nome, pageIdx, pageData);
+                    return video ? { ...item, video } : item;
+                });
             }
 
-            // Aeróbio
-            let aerobio = "";
+            // Aeróbio — extrai como array de exercícios com vídeo
+            let aerobio = [];
             let idxAero = linhas.findIndex(l => l.toUpperCase() === "AERÓBIO");
             if (idxAero !== -1) {
                 let aeroLines = [];
-                for (let i = idxAero + 1; i < linhas.length && i < idxAero + 5; i++) {
+                for (let i = idxAero + 1; i < linhas.length && i < idxAero + 8; i++) {
                     let l = linhas[i];
                     if (/^(SQ|EXERCÍCIOS|RELAXAMENTO|TREINO|WARM)/i.test(l)) { break; }
                     if (l === "DURAÇÃO" || /^\d+°$/.test(l)) { continue; }
-                    aeroLines.push(l);
+                    // Duração (ex: "15 a 20'", "15'")
+                    if (/^\d+.*'$/.test(l)) {
+                        if (aeroLines.length > 0) {
+                            aeroLines[aeroLines.length - 1].duracao = l;
+                        }
+                        continue;
+                    }
+                    aeroLines.push({ nome: l });
                 }
-                aerobio = aeroLines.join(" - ");
+                aerobio = aeroLines.map(item => {
+                    let video = findVideoByPosition(item.nome, pageIdx, pageData);
+                    return video ? { ...item, video } : item;
+                });
             }
 
             // Relaxamento — busca o bloco "SQ RELAXAMENTO REPETIÇÕES" (não o rótulo "RELAXAMENTO AERÓBIO")
-            let relaxamento = "";
+            let relaxamento = [];
             for (let ri = 0; ri < linhas.length - 1; ri++) {
                 // Padrão: "SQ" seguido por "RELAXAMENTO" seguido por "REPETIÇÕES"
                 if (linhas[ri] === "SQ" && linhas[ri + 1] === "RELAXAMENTO" && ri + 2 < linhas.length && linhas[ri + 2] === "REPETIÇÕES") {
@@ -442,9 +490,19 @@
                         if (/^(SQ|EXERCÍCIOS|AERÓBIO|TREINO|WARM|RELAXAMENTO)/i.test(l)) { break; }
                         if (/(?:Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)/i.test(l)) { break; }
                         if (/^\d+°$/.test(l)) { continue; }
-                        relaxLines.push(l);
+                        // Reps info (ex: "1 x 40"")
+                        if (/^\d+\s*x\s*\d+/i.test(l)) {
+                            if (relaxLines.length > 0) {
+                                relaxLines[relaxLines.length - 1].reps = l;
+                            }
+                            continue;
+                        }
+                        relaxLines.push({ nome: l });
                     }
-                    relaxamento = relaxLines.join(" | ");
+                    relaxamento = relaxLines.map(item => {
+                        let video = findVideoByPosition(item.nome, pageIdx, pageData);
+                        return video ? { ...item, video } : item;
+                    });
                     break;
                 }
             }
@@ -496,7 +554,7 @@
                     exercicios: exerciciosComVideo,
                     aerobio: aerobio
                 };
-                if (relaxamento) { treino.relaxamento = relaxamento; }
+                if (relaxamento.length > 0) { treino.relaxamento = relaxamento; }
                 data.treinos.push(treino);
             }
         });
@@ -523,6 +581,7 @@
     function renderWorkoutVisual(jsonData) {
         let html = `
             <div style="background: #e1f5fe; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                ${jsonData.treinador ? `<strong>Treinador(a):</strong> ${jsonData.treinador} <br>` : ""}
                 <strong>Aluno(a):</strong> ${jsonData.aluno || "Não identificado"} <br>
                 <strong>Duração do Protocolo:</strong> ${jsonData.duracao_total || "Não identificada"} <br>
                 <strong>Frequência Semanal:</strong> ${jsonData.frequencia || "Não identificada"} <br>
@@ -536,12 +595,12 @@
                 <div class="workout-section">
                     <h3>Alongamentos e Mobilidade</h3>
                     <table>
-                        <thead><tr><th>Seq</th><th>Tempo/Reps</th><th>Exercício</th></tr></thead>
+                        <thead><tr><th>Seq</th><th>Tempo/Reps</th><th>Exercício</th><th style="width:40px; text-align:center;">Video</th></tr></thead>
                         <tbody>
             `;
             jsonData.alongamentos.forEach(item => {
-                let videoLink = item.video ? ` <a href="${item.video}" target="_blank" style="color: #e74c3c; text-decoration: none;" title="Ver vídeo">&#9654;</a>` : "";
-                html += `<tr><td>${item.seq}</td><td>${item.tempo}</td><td>${item.exercicio}${videoLink}</td></tr>`;
+                let videoBtn = item.video ? `<a href="${item.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+                html += `<tr><td>${item.seq}</td><td>${item.tempo}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
             });
             html += `</tbody></table></div>`;
         }
@@ -551,14 +610,21 @@
                 <div class="workout-section">
                     <h3>Manobras Respiratórias e Abdominais</h3>
                     <table>
-                        <thead><tr><th>Seq</th><th>Séries x Tempo</th><th>Exercício</th></tr></thead>
+                        <thead><tr><th>Seq</th><th>Séries x Tempo</th><th>Exercício</th><th style="width:40px; text-align:center;">Video</th></tr></thead>
                         <tbody>
             `;
             jsonData.manobras.forEach(item => {
-                let videoLink = item.video ? ` <a href="${item.video}" target="_blank" style="color: #e74c3c; text-decoration: none;" title="Ver vídeo">&#9654;</a>` : "";
-                html += `<tr><td>${item.seq}</td><td>${item.series}</td><td>${item.exercicio}${videoLink}</td></tr>`;
+                let videoBtn = item.video ? `<a href="${item.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+                html += `<tr><td>${item.seq}</td><td>${item.series}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
             });
             html += `</tbody></table></div>`;
+        }
+
+        // Helper para gerar linha de tabela
+        function treinoRow(seq, nome, info, video) {
+            let videoBtn = video ? `<a href="${video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+            let infoSuffix = info ? ` <small style="color:#7f8c8d;">(${info})</small>` : "";
+            return `<tr><td>${seq}</td><td>${nome}${infoSuffix}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
         }
 
         jsonData.treinos.forEach(treino => {
@@ -566,24 +632,64 @@
                 <div class="workout-section" style="border-left-color: #2ecc71;">
                     <h3>${treino.identificador}</h3>
                     <p><strong>Foco / Dias:</strong> ${treino.dias_e_foco}</p>
-                    <p><strong>Aquecimento (Warm Up):</strong> ${treino.aquecimento || "Padrão"}</p>
-                    <h4>Exercícios:</h4>
-                    <ul>
+                    <table>
+                        <thead><tr><th>Seq</th><th>Exercício</th><th style="width:40px; text-align:center;">Video</th></tr></thead>
+                        <tbody>
             `;
-            treino.exercicios.forEach(ex => {
+
+            // Aquecimento
+            if (Array.isArray(treino.aquecimento) && treino.aquecimento.length > 0) {
+                html += `<tr><td colspan="3" style="background:#e8f8f5; font-weight:bold;">Aquecimento (Warm Up)</td></tr>`;
+                treino.aquecimento.forEach((w, idx) => {
+                    let nome = typeof w === "object" ? w.nome : w;
+                    let reps = (typeof w === "object" && w.reps) ? w.reps : "";
+                    let video = (typeof w === "object") ? w.video : null;
+                    html += treinoRow(idx + 1, nome, reps, video);
+                });
+            }
+
+            // Exercícios
+            html += `<tr><td colspan="3" style="background:#eaf2f8; font-weight:bold;">Exercícios</td></tr>`;
+            treino.exercicios.forEach((ex, idx) => {
                 let nome = typeof ex === "object" ? ex.nome : ex;
-                let videoLink = (typeof ex === "object" && ex.video) ? ` <a href="${ex.video}" target="_blank" style="color: #e74c3c; text-decoration: none;" title="Ver vídeo">&#9654;</a>` : "";
-                html += `<li>${nome}${videoLink}</li>`;
+                let video = (typeof ex === "object") ? ex.video : null;
+                html += treinoRow(idx + 1 + "°", nome, "", video);
             });
-            html += `
-                    </ul>
-                    <p><strong>Cardio/Aeróbio:</strong> ${treino.aerobio || "Não informado"}</p>
-                    ${treino.relaxamento ? `<p><strong>Relaxamento:</strong> ${treino.relaxamento}</p>` : ""}
-                </div>
-            `;
+
+            // Aeróbio
+            if (Array.isArray(treino.aerobio) && treino.aerobio.length > 0) {
+                html += `<tr><td colspan="3" style="background:#fef9e7; font-weight:bold;">Cardio/Aeróbio</td></tr>`;
+                treino.aerobio.forEach((a, idx) => {
+                    let nome = typeof a === "object" ? a.nome : a;
+                    let duracao = (typeof a === "object" && a.duracao) ? a.duracao : "";
+                    let video = (typeof a === "object") ? a.video : null;
+                    html += treinoRow(idx + 1, nome, duracao, video);
+                });
+            } else if (typeof treino.aerobio === "string" && treino.aerobio) {
+                html += `<tr><td colspan="3" style="background:#fef9e7; font-weight:bold;">Cardio/Aeróbio</td></tr>`;
+                html += `<tr><td>1</td><td>${treino.aerobio}</td><td></td></tr>`;
+            }
+
+            // Relaxamento
+            if (treino.relaxamento) {
+                html += `<tr><td colspan="3" style="background:#f5eef8; font-weight:bold;">Relaxamento</td></tr>`;
+                if (Array.isArray(treino.relaxamento)) {
+                    treino.relaxamento.forEach((r, idx) => {
+                        let nome = typeof r === "object" ? r.nome : r;
+                        let reps = (typeof r === "object" && r.reps) ? r.reps : "";
+                        let video = (typeof r === "object") ? r.video : null;
+                        html += treinoRow(idx + 1, nome, reps, video);
+                    });
+                } else {
+                    html += `<tr><td>1</td><td>${treino.relaxamento}</td><td></td></tr>`;
+                }
+            }
+
+            html += `</tbody></table></div>`;
+
         });
 
-        visualOutput.innerHTML = html;
+        visualOutput.innerHTML = (html + '<br>');
     }
 </script>
 
