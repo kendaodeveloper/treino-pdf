@@ -150,6 +150,7 @@
         if (saved) {
             try {
                 var jsonData = JSON.parse(saved);
+                console.log(JSON.stringify(jsonData, null, 2));
                 renderWorkoutVisual(jsonData);
                 showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
             } catch(e) {
@@ -322,6 +323,7 @@
         const data = {
             treinador: "",
             aluno: "",
+            idade: "",
             objetivo: "",
             frequencia: "",
             duracao_total: "",
@@ -335,11 +337,16 @@
         const norm = text.replace(/\r/g, '');
 
         // 1. Metadados do cabeçalho
-        const matchTreinador = norm.match(/TREINADOR\s*\n\s*([^\n]+)/i);
+        const matchTreinador = norm.match(/TREINADORA?\s*\n[\s\n]*([^\n]+)/i);
         if (matchTreinador) { data.treinador = matchTreinador[1].trim(); }
 
-        const matchAluno = norm.match(/ALUNA?\s*\n\s*([^\n]+)/i);
-        if (matchAluno) { data.aluno = matchAluno[1].split("|")[0].trim(); }
+        const matchAluno = norm.match(/ALUN[OA]\s*\n([\s\S]*?)(?=\nOBJETIVO|\nPERÍODO|\nFREQUÊNCIA|\nDURAÇÃO|\nCARGA|\nDESCANSO|\n---)/i);
+        if (matchAluno) {
+            let alunoText = matchAluno[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+            let parts = alunoText.split("|");
+            data.aluno = parts[0].trim();
+            if (parts[1]) { data.idade = parts[1].trim(); }
+        }
 
         // Objetivo — captura múltiplas linhas até encontrar próximo campo
         const matchObjetivo = norm.match(/OBJETIVO\s*\n([\s\S]*?)(?=\nPERÍODO|\nFREQUÊNCIA|\nDURAÇÃO|\nCARGA|\nDESCANSO|\n---)/i);
@@ -649,6 +656,7 @@
             <div style="background: #e1f5fe; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
                 ${jsonData.treinador ? `<strong>Treinador(a):</strong> ${jsonData.treinador} <br>` : ""}
                 <strong>Aluno(a):</strong> ${jsonData.aluno || "Não identificado"} <br>
+                ${jsonData.idade ? `<strong>Idade:</strong> ${jsonData.idade} <br>` : ""}
                 <strong>Duração do Protocolo:</strong> ${jsonData.duracao_total || "Não identificada"} <br>
                 <strong>Frequência Semanal:</strong> ${jsonData.frequencia || "Não identificada"} <br>
                 ${jsonData.descanso ? `<strong>Descanso entre exercícios:</strong> ${jsonData.descanso} <br>` : ""}
