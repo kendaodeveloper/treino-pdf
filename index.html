@@ -106,6 +106,53 @@
         .col-seq { width: 30px; text-align: center; }
         .col-tempo { width: 65px; }
         .col-video { width: 35px; text-align: center; }
+
+        .section-card {
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            background: #ecf0f1;
+            border: none;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 1em;
+            font-weight: bold;
+            color: #2c3e50;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .section-header:active {
+            background: #dfe6e9;
+        }
+        .section-header .chevron {
+            margin-left: auto;
+            font-size: 16px;
+            line-height: 1;
+            transition: transform 0.3s ease;
+            transform: rotate(90deg);
+            opacity: 0.5;
+        }
+        .section-card.collapsed .section-header .chevron {
+            transform: rotate(0deg);
+        }
+        .section-body {
+            overflow: hidden;
+        }
+        .section-card.collapsed .section-body {
+            max-height: 0 !important;
+            overflow: hidden;
+            padding: 0 !important;
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -113,19 +160,28 @@
 <div class="container">
     <h1>Conversor de Protocolo de Treino</h1>
 
-    <div id="browser-warning" style="display: none; background: #fff3cd; color: #856404; padding: 12px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #ffc107;">
-        <strong>Aviso:</strong> Para funcionar corretamente, abra esta página no <strong>Safari</strong> ou <strong>Chrome</strong>.
-        No iPhone: toque no ícone de compartilhar (quadrado com seta) e selecione "Abrir no Safari".
+    <div id="section-converter" class="section-card">
+        <div class="section-header" onclick="toggleSection('section-converter')">
+            <span>Converter PDF em Treino</span>
+            <span class="chevron">❯</span>
+        </div>
+        <div class="section-body" style="padding: 15px;">
+            <div id="browser-warning" style="display: none; background: #fff3cd; color: #856404; padding: 12px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #ffc107;">
+                <strong>Aviso:</strong> Para funcionar corretamente, abra esta página no <strong>Safari</strong> ou <strong>Chrome</strong>.
+                No iPhone: toque no ícone de compartilhar (quadrado com seta) e selecione "Abrir no Safari".
+            </div>
+
+            <p style="margin-top:0;">Selecione o PDF do seu treino para visualizar o conteúdo completo:</p>
+
+            <div class="actions" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                <input type="file" id="pdf-file" accept=".pdf,application/pdf">
+                <button id="btn-convert" class="btn" style="padding: 15px; font-size: 18px; -webkit-appearance: none; background-color: #bdc3c7; cursor: not-allowed;" disabled ontouchstart="" onclick="iniciarConversao()">Converter</button>
+            </div>
+
+            <div id="status-msg" style="margin: 10px 0; padding: 10px; border-radius: 5px;"></div>
+        </div>
     </div>
 
-    <p>Selecione o PDF do seu treino para visualizar o conteúdo completo:</p>
-
-    <div class="actions" style="flex-direction: column; align-items: stretch; gap: 10px;">
-        <input type="file" id="pdf-file" accept=".pdf,application/pdf">
-        <button id="btn-convert" class="btn" style="padding: 15px; font-size: 18px; -webkit-appearance: none; background-color: #bdc3c7; cursor: not-allowed;" disabled ontouchstart="" onclick="iniciarConversao()">Converter</button>
-    </div>
-
-    <div id="status-msg" style="margin: 10px 0; padding: 10px; border-radius: 5px;"></div>
     <div id="visual-output"></div>
 </div>
 
@@ -160,7 +216,7 @@
             try {
                 var jsonData = JSON.parse(saved);
                 console.log(JSON.stringify(jsonData, null, 2));
-                renderWorkoutVisual(jsonData);
+                renderWorkoutVisual(jsonData, true);
                 showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
             } catch(e) {
                 localStorage.removeItem('treino-pdf-data');
@@ -257,7 +313,8 @@
             // Salva no localStorage para persistir entre recarregamentos
             localStorage.setItem('treino-pdf-data', JSON.stringify(parsedTrainingData));
 
-            renderWorkoutVisual(parsedTrainingData);
+            renderWorkoutVisual(parsedTrainingData, false);
+
 
         } catch (error) {
             console.error(error);
@@ -657,12 +714,56 @@
         return data;
     }
 
+    function toggleSection(id) {
+        var card = document.getElementById(id);
+        if (card) { card.classList.toggle('collapsed'); }
+    }
+
+    function getDayOfWeek() {
+        var days = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+        return days[new Date().getDay()];
+    }
+
+    function treinoMatchesToday(diasFoco) {
+        if (!diasFoco) return false;
+        var today = getDayOfWeek();
+        var normalized = diasFoco.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return normalized.includes(today);
+    }
+
+    function applySectionVisibility(isFromStorage) {
+        if (isFromStorage) {
+            // Veio do localStorage: esconde converter, mostra tudo, treinos só o do dia
+            document.getElementById('section-converter').classList.add('collapsed');
+
+            var treinoCards = document.querySelectorAll('.section-card[data-dias-foco]');
+            treinoCards.forEach(function(card) {
+                var dias = card.getAttribute('data-dias-foco');
+                if (!treinoMatchesToday(dias)) {
+                    card.classList.add('collapsed');
+                }
+            });
+        } else {
+            // Acabou de converter: esconde converter, mostra tudo (sem filtro por dia)
+            document.getElementById('section-converter').classList.add('collapsed');
+        }
+    }
+
     /**
      * RENDERIZADOR VISUAL
      */
-    function renderWorkoutVisual(jsonData) {
-        let html = `
-            <div style="background: #e1f5fe; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+    function renderWorkoutVisual(jsonData, isFromStorage) {
+        let html = '';
+
+        // Seção 2: Info do aluno (card azul)
+        html += `
+        <div id="section-info" class="section-card">
+            <div class="section-header" onclick="toggleSection('section-info')" style="background: #bbdefb;">
+                <span>Informações do Protocolo</span>
+                <span class="chevron">❯</span>
+            </div>
+            <div class="section-body" style="background: #e1f5fe; padding: 15px;">
                 ${jsonData.treinador ? `<strong>Treinador(a):</strong> ${jsonData.treinador} <br>` : ""}
                 <strong>Aluno(a):</strong> ${jsonData.aluno || "Não identificado"} <br>
                 ${jsonData.idade ? `<strong>Idade:</strong> ${jsonData.idade} <br>` : ""}
@@ -671,12 +772,17 @@
                 ${jsonData.descanso ? `<strong>Descanso entre exercícios:</strong> ${jsonData.descanso} <br>` : ""}
                 <strong>Objetivos:</strong> ${jsonData.objetivo || "Não especificado"}
             </div>
+        </div>
         `;
 
         if(jsonData.alongamentos.length > 0) {
             html += `
-                <div class="workout-section">
-                    <h3>Alongamentos e Mobilidade</h3>
+                <div id="section-alongamentos" class="section-card">
+                    <div class="section-header" onclick="toggleSection('section-alongamentos')" style="background: #3498db; color: #fff;">
+                        <span>Alongamentos e Mobilidade</span>
+                        <span class="chevron">❯</span>
+                    </div>
+                    <div class="section-body workout-section" style="margin-top:0; border-radius:0;">
                     <table>
                         <thead><tr><th class="col-seq">Seq</th><th class="col-tempo">Tempo / Reps</th><th>Exercício</th><th class="col-video">Link</th></tr></thead>
                         <tbody>
@@ -696,13 +802,17 @@
                 }
                 ai += 1 + subCount;
             }
-            html += `</tbody></table></div>`;
+            html += `</tbody></table></div></div>`;
         }
 
         if(jsonData.manobras.length > 0) {
             html += `
-                <div class="workout-section">
-                    <h3>Manobras Respiratórias e Abdominais</h3>
+                <div id="section-manobras" class="section-card">
+                    <div class="section-header" onclick="toggleSection('section-manobras')" style="background: #3498db; color: #fff;">
+                        <span>Manobras Respiratórias e Abdominais</span>
+                        <span class="chevron">❯</span>
+                    </div>
+                    <div class="section-body workout-section" style="margin-top:0; border-radius:0;">
                     <table>
                         <thead><tr><th class="col-seq">Seq</th><th class="col-tempo">Séries x Tempo</th><th>Exercício</th><th class="col-video">Link</th></tr></thead>
                         <tbody>
@@ -722,7 +832,7 @@
                 }
                 mi += 1 + subCount;
             }
-            html += `</tbody></table></div>`;
+            html += `</tbody></table></div></div>`;
         }
 
         // Helper para gerar linha de tabela
@@ -732,11 +842,15 @@
             return `<tr><td>${seq}</td><td>${nome}${infoSuffix}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
         }
 
-        jsonData.treinos.forEach(treino => {
+        jsonData.treinos.forEach((treino, treinoIdx) => {
+            let sectionId = 'section-treino-' + treinoIdx;
             html += `
-                <div class="workout-section" style="border-left-color: #2ecc71;">
-                    <h3>${treino.identificador}</h3>
-                    <p><strong>Foco / Dias:</strong> ${treino.dias_e_foco}</p>
+                <div id="${sectionId}" class="section-card" data-dias-foco="${(treino.dias_e_foco || '').replace(/"/g, '&quot;')}">
+                    <div class="section-header" onclick="toggleSection('${sectionId}')" style="background: #c8e6c9;">
+                        <span>${treino.identificador} — ${treino.dias_e_foco || ''}</span>
+                        <span class="chevron">❯</span>
+                    </div>
+                    <div class="section-body workout-section" style="margin-top:0; border-radius:0; border-left-color: #2ecc71;">
                     <table>
                         <thead><tr><th class="col-seq">Seq</th><th>Exercício</th><th class="col-video">Link</th></tr></thead>
                         <tbody>
@@ -807,11 +921,12 @@
                 }
             }
 
-            html += `</tbody></table></div>`;
+            html += `</tbody></table></div></div>`;
 
         });
 
-        visualOutput.innerHTML = (html + '<br>');
+        visualOutput.innerHTML = html;
+        applySectionVisibility(isFromStorage);
     }
 </script>
 
