@@ -11,13 +11,13 @@
             background-color: #f4f7f6;
             color: #333;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
         }
         .container {
             max-width: 900px;
             margin: 0 auto;
             background: #fff;
-            padding: 30px;
+            padding: 15px;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
@@ -25,6 +25,18 @@
             color: #2c3e50;
             border-bottom: 2px solid #ecf0f1;
             padding-bottom: 10px;
+            font-size: 1.4em;
+            margin-top: 10px;
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            body { padding: 0; }
+            .container {
+                border-radius: 0;
+                box-shadow: none;
+                padding: 12px;
+            }
+            h1 { font-size: 1.2em; margin-top: 5px; }
         }
         .actions {
             margin: 20px 0;
@@ -94,7 +106,7 @@
         No iPhone: toque no ícone de compartilhar (quadrado com seta) e selecione "Abrir no Safari".
     </div>
 
-    <p>Selecione o PDF do protocolo de treino para visualizar o conteúdo completo.</p>
+    <p>Selecione o PDF do protocolo de treino para visualizar o conteúdo completo:</p>
 
     <div class="actions" style="flex-direction: column; align-items: stretch; gap: 10px;">
         <input type="file" id="pdf-file" accept=".pdf,application/pdf">
@@ -122,10 +134,7 @@
         statusMsg.style.color = '#e74c3c';
     } else {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-        statusMsg.textContent = "Selecione um PDF acima.";
-        statusMsg.style.display = 'block';
-        statusMsg.style.background = '#e8f5e9';
-        statusMsg.style.color = '#2e7d32';
+        statusMsg.style.display = 'none';
     }
 
     var fileInput = document.getElementById('pdf-file');
@@ -515,7 +524,7 @@
         let html = `
             <div style="background: #e1f5fe; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
                 <strong>Aluno(a):</strong> ${jsonData.aluno || "Não identificado"} <br>
-                <strong>Duração do Protocolo:</strong> ${jsonData.duracao_total || "Não identificada"} |
+                <strong>Duração do Protocolo:</strong> ${jsonData.duracao_total || "Não identificada"} <br>
                 <strong>Frequência Semanal:</strong> ${jsonData.frequencia || "Não identificada"} <br>
                 ${jsonData.descanso ? `<strong>Descanso entre exercícios:</strong> ${jsonData.descanso} <br>` : ""}
                 <strong>Objetivos:</strong> ${jsonData.objetivo || "Não especificado"}
