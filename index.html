@@ -158,11 +158,11 @@
 <body>
 
 <div class="container">
-    <h1>Conversor de Protocolo de Treino</h1>
+    <h1>Protocolo de Treino</h1>
 
     <div id="section-converter" class="section-card">
         <div class="section-header" onclick="toggleSection('section-converter')">
-            <span>Converter PDF em Treino</span>
+            <span>Importar PDF</span>
             <span class="chevron">❯</span>
         </div>
         <div class="section-body" style="padding: 15px;">
@@ -733,21 +733,24 @@
     }
 
     function applySectionVisibility(isFromStorage) {
-        if (isFromStorage) {
-            // Veio do localStorage: esconde converter, mostra tudo, treinos só o do dia
-            document.getElementById('section-converter').classList.add('collapsed');
+        document.getElementById('section-converter').classList.add('collapsed');
 
-            var treinoCards = document.querySelectorAll('.section-card[data-dias-foco]');
-            treinoCards.forEach(function(card) {
-                var dias = card.getAttribute('data-dias-foco');
-                if (!treinoMatchesToday(dias)) {
-                    card.classList.add('collapsed');
-                }
-            });
-        } else {
-            // Acabou de converter: esconde converter, mostra tudo (sem filtro por dia)
-            document.getElementById('section-converter').classList.add('collapsed');
-        }
+        var treinoCards = document.querySelectorAll('.section-card[data-dias-foco]');
+        treinoCards.forEach(function(card) {
+            var dias = card.getAttribute('data-dias-foco');
+            var isToday = treinoMatchesToday(dias);
+
+            // Destaca o treino do dia com verde mais escuro
+            if (isToday) {
+                card.querySelector('.section-header').style.background = '#66bb6a';
+                card.querySelector('.section-header').style.color = '#fff';
+            }
+
+            // Só filtra por dia quando veio do localStorage
+            if (isFromStorage && !isToday) {
+                card.classList.add('collapsed');
+            }
+        });
     }
 
     /**
@@ -759,11 +762,11 @@
         // Seção 2: Info do aluno (card azul)
         html += `
         <div id="section-info" class="section-card">
-            <div class="section-header" onclick="toggleSection('section-info')" style="background: #bbdefb;">
+            <div class="section-header" onclick="toggleSection('section-info')" style="background: #7e57c2; color: #fff;">
                 <span>Informações do Protocolo</span>
                 <span class="chevron">❯</span>
             </div>
-            <div class="section-body" style="background: #e1f5fe; padding: 15px;">
+            <div class="section-body" style="background: #ede7f6; padding: 15px;">
                 ${jsonData.treinador ? `<strong>Treinador(a):</strong> ${jsonData.treinador} <br>` : ""}
                 <strong>Aluno(a):</strong> ${jsonData.aluno || "Não identificado"} <br>
                 ${jsonData.idade ? `<strong>Idade:</strong> ${jsonData.idade} <br>` : ""}
