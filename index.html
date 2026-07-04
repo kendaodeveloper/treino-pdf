@@ -40,6 +40,7 @@
             border-radius: 5px;
             background: #fafafa;
             cursor: pointer;
+            box-sizing: border-box;
         }
         .btn {
             background-color: #3498db;
@@ -54,19 +55,11 @@
         .btn:hover {
             background-color: #2980b9;
         }
-        .btn:disabled {
-            background-color: #bdc3c7;
-            cursor: not-allowed;
-        }
         .btn-success {
             background-color: #2ecc71;
         }
         .btn-success:hover {
             background-color: #27ae60;
-        }
-        #file-name {
-            font-style: italic;
-            color: #7f8c8d;
         }
 .workout-section {
             margin-top: 30px;
@@ -105,7 +98,7 @@
 
     <div class="actions" style="flex-direction: column; align-items: stretch; gap: 10px;">
         <input type="file" id="pdf-file" accept=".pdf,application/pdf">
-        <button id="btn-convert" class="btn btn-success" style="padding: 15px; font-size: 18px; -webkit-appearance: none; cursor: pointer;" ontouchstart="" onclick="iniciarConversao()">Converter</button>
+        <button id="btn-convert" class="btn" style="padding: 15px; font-size: 18px; -webkit-appearance: none; background-color: #bdc3c7; cursor: not-allowed;" disabled ontouchstart="" onclick="iniciarConversao()">Converter</button>
     </div>
 
     <div id="status-msg" style="margin: 10px 0; padding: 10px; border-radius: 5px;"></div>
@@ -136,7 +129,16 @@
     }
 
     var fileInput = document.getElementById('pdf-file');
+    var convertBtn = document.getElementById('btn-convert');
     var visualOutput = document.getElementById('visual-output');
+
+    fileInput.addEventListener('change', function() {
+        if (fileInput.files[0]) {
+            convertBtn.disabled = false;
+            convertBtn.style.backgroundColor = '#2ecc71';
+            convertBtn.style.cursor = 'pointer';
+        }
+    });
 
     function showStatus(msg, color) {
         statusMsg.textContent = msg;
@@ -220,7 +222,7 @@
 
         } catch (error) {
             console.error(error);
-            showError("Erro ao processar o PDF: " + error.message);
+            showStatus("Erro ao processar o PDF: " + error.message, "error");
         }
     }
 
