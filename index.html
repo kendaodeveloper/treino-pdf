@@ -847,7 +847,7 @@
             html += `
                 <div id="${sectionId}" class="section-card" data-dias-foco="${(treino.dias_e_foco || '').replace(/"/g, '&quot;')}">
                     <div class="section-header" onclick="toggleSection('${sectionId}')" style="background: #c8e6c9;">
-                        <span>${treino.identificador} — ${treino.dias_e_foco || ''}</span>
+                        <span>${(treino.dias_e_foco || treino.identificador).replace(/\s*\(/, '<br>(')}</span>
                         <span class="chevron">❯</span>
                     </div>
                     <div class="section-body workout-section" style="margin-top:0; border-radius:0; border-left-color: #2ecc71;">
