@@ -146,12 +146,60 @@
         }
         .section-body {
             overflow: hidden;
+            transition: max-height 0.35s ease, padding 0.35s ease;
         }
         .section-card.collapsed .section-body {
             max-height: 0 !important;
             overflow: hidden;
-            padding: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
             border: none;
+        }
+        .weeks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 10px 0;
+        }
+        .week-check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+            padding: 4px 0;
+        }
+        .week-check input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .obs-field {
+            width: 100%;
+            min-height: 40px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 13px;
+            resize: vertical;
+            box-sizing: border-box;
+            margin-top: 6px;
+            margin-bottom: 4px;
+        }
+        .obs-field::placeholder {
+            color: #aaa;
+        }
+        .exercise-dimmed td {
+            color: #aaa !important;
+        }
+        .exercise-dimmed td a {
+            opacity: 0.4;
+        }
+        tr[data-has-replacement].exercise-dimmed td[rowspan] {
+            color: inherit !important;
         }
     </style>
 </head>
@@ -175,6 +223,10 @@
 
             <div class="actions" style="flex-direction: column; align-items: stretch; gap: 10px;">
                 <input type="file" id="pdf-file" accept=".pdf,application/pdf">
+                <label id="keep-notes-label" style="display: none; align-items: center; gap: 8px; font-size: 14px; color: #555; cursor: pointer;">
+                    <input type="checkbox" id="keep-notes" checked style="width: 18px; height: 18px;">
+                    Manter anotações ao re-importar
+                </label>
                 <button id="btn-convert" class="btn" style="padding: 15px; font-size: 18px; -webkit-appearance: none; background-color: #bdc3c7; cursor: not-allowed;" disabled ontouchstart="" onclick="iniciarConversao()">Converter</button>
             </div>
 
@@ -209,8 +261,69 @@
     var convertBtn = document.getElementById('btn-convert');
     var visualOutput = document.getElementById('visual-output');
 
+    function loadAnotacoes() {
+        try {
+            var saved = localStorage.getItem('treino-pdf-anotacoes');
+            return saved ? JSON.parse(saved) : { semanaAtual: 1, obs: {} };
+        } catch(e) {
+            return { semanaAtual: 1, obs: {} };
+        }
+    }
+
+    function saveAnotacoes(anotacoes) {
+        localStorage.setItem('treino-pdf-anotacoes', JSON.stringify(anotacoes));
+        updateKeepNotesVisibility();
+    }
+
+    function updateKeepNotesVisibility() {
+        var label = document.getElementById('keep-notes-label');
+        if (label) {
+            label.style.display = localStorage.getItem('treino-pdf-anotacoes') ? 'flex' : 'none';
+        }
+    }
+
+    function getCurrentWeek() {
+        var a = loadAnotacoes();
+        return a.semanaAtual || 1;
+    }
+
+    function onWeekChange(weekNum) {
+        var a = loadAnotacoes();
+        a.semanaAtual = weekNum;
+        saveAnotacoes(a);
+        applyExerciseDimming();
+    }
+
+    function onObsChange(obsKey, value) {
+        var a = loadAnotacoes();
+        a.obs[obsKey] = value;
+        saveAnotacoes(a);
+    }
+
+    function applyExerciseDimming() {
+        var currentWeek = getCurrentWeek();
+        document.querySelectorAll('[data-after-weeks]').forEach(function(row) {
+            var afterWeek = parseInt(row.getAttribute('data-after-weeks'));
+            // Find the main row (walk back to the row with data-has-replacement)
+            var mainRow = row.previousElementSibling;
+            while (mainRow && !mainRow.hasAttribute('data-has-replacement')) {
+                mainRow = mainRow.previousElementSibling;
+            }
+            if (currentWeek > afterWeek) {
+                // Past the threshold: dim the main exercise, show the replacement
+                row.classList.remove('exercise-dimmed');
+                if (mainRow) { mainRow.classList.add('exercise-dimmed'); }
+            } else {
+                // Before threshold: dim the replacement, show the main
+                row.classList.add('exercise-dimmed');
+                if (mainRow) { mainRow.classList.remove('exercise-dimmed'); }
+            }
+        });
+    }
+
     // Carrega dados do localStorage se existirem
     (function() {
+        updateKeepNotesVisibility();
         var saved = localStorage.getItem('treino-pdf-data');
         if (saved) {
             try {
@@ -251,6 +364,12 @@
             if (!file) {
                 showStatus("Selecione um arquivo PDF primeiro.", "error");
                 return;
+            }
+
+            // Limpa anotações se o checkbox estiver desmarcado
+            var keepNotes = document.getElementById('keep-notes').checked;
+            if (!keepNotes) {
+                localStorage.removeItem('treino-pdf-anotacoes');
             }
 
             showStatus("Lendo " + file.name + "...", "ok");
@@ -312,6 +431,11 @@
 
             // Salva no localStorage para persistir entre recarregamentos
             localStorage.setItem('treino-pdf-data', JSON.stringify(parsedTrainingData));
+
+            // Inicializa anotações com valor default se não existirem
+            if (!localStorage.getItem('treino-pdf-anotacoes')) {
+                saveAnotacoes({ semanaAtual: 1, obs: {} });
+            }
 
             renderWorkoutVisual(parsedTrainingData, false);
 
@@ -716,7 +840,22 @@
 
     function toggleSection(id) {
         var card = document.getElementById(id);
-        if (card) { card.classList.toggle('collapsed'); }
+        if (!card) return;
+        var body = card.querySelector('.section-body');
+        if (card.classList.contains('collapsed')) {
+            // Opening: set max-height to scrollHeight for animation
+            card.classList.remove('collapsed');
+            body.style.maxHeight = body.scrollHeight + 'px';
+            // After animation, remove max-height to allow dynamic content
+            setTimeout(function() { body.style.maxHeight = 'none'; }, 350);
+        } else {
+            // Closing: set explicit max-height first, then collapse
+            body.style.maxHeight = body.scrollHeight + 'px';
+            // Force reflow so the browser registers the starting value
+            body.offsetHeight;
+            body.style.maxHeight = '0';
+            card.classList.add('collapsed');
+        }
     }
 
     function getDayOfWeek() {
@@ -751,6 +890,14 @@
                 card.classList.add('collapsed');
             }
         });
+
+        // Set initial max-height for open sections
+        document.querySelectorAll('.section-card').forEach(function(card) {
+            var body = card.querySelector('.section-body');
+            if (body) {
+                body.style.maxHeight = card.classList.contains('collapsed') ? '0' : 'none';
+            }
+        });
     }
 
     /**
@@ -778,6 +925,33 @@
         </div>
         `;
 
+        // Seção de Semanas — checkboxes de 1 até duracao_total
+        let numSemanas = 0;
+        if (jsonData.duracao_total) {
+            let match = jsonData.duracao_total.match(/(\d+)/);
+            if (match) numSemanas = parseInt(match[1]);
+        }
+        if (numSemanas > 0) {
+            let anotacoes = loadAnotacoes();
+            let currentWeek = anotacoes.semanaAtual || 1;
+            let weeksHtml = '';
+            for (let w = 1; w <= numSemanas; w++) {
+                let checked = w === currentWeek ? ' checked' : '';
+                weeksHtml += `<label class="week-check"><input type="radio" name="semana-atual" onchange="onWeekChange(${w})"${checked}> Semana ${w}</label>`;
+            }
+            html += `
+            <div id="section-semanas" class="section-card">
+                <div class="section-header" onclick="toggleSection('section-semanas')" style="background: #f9a825; color: #fff;">
+                    <span>Semana Atual</span>
+                    <span class="chevron">❯</span>
+                </div>
+                <div class="section-body" style="background: #fffde7; padding: 15px;">
+                    <div class="weeks-list">${weeksHtml}</div>
+                </div>
+            </div>
+            `;
+        }
+
         if(jsonData.alongamentos.length > 0) {
             html += `
                 <div id="section-alongamentos" class="section-card">
@@ -796,12 +970,19 @@
                 let videoBtn = item.video ? `<a href="${item.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
                 let subCount = 0;
                 while (ai + 1 + subCount < jsonData.alongamentos.length && jsonData.alongamentos[ai + 1 + subCount].isSubExercise) { subCount++; }
+                let hasReplacement = false;
+                for (let si = 0; si < subCount; si++) {
+                    if (/^\(após\s+\d+\s+semanas/i.test(jsonData.alongamentos[ai + 1 + si].exercicio)) { hasReplacement = true; }
+                }
                 let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
-                html += `<tr><td${rowspan}>${item.seq}</td><td${rowspan}>${item.tempo}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
+                let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
+                html += `<tr${mainAttrs}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.tempo}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
                 for (let si = 0; si < subCount; si++) {
                     let sub = jsonData.alongamentos[ai + 1 + si];
                     let subBtn = sub.video ? `<a href="${sub.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
-                    html += `<tr><td>${sub.exercicio}</td><td style="text-align:center;">${subBtn}</td></tr>`;
+                    let afterMatch = sub.exercicio.match(/^\(após\s+(\d+)\s+semanas/i);
+                    let afterAttr = afterMatch ? ` data-after-weeks="${afterMatch[1]}"` : '';
+                    html += `<tr${afterAttr}><td>${sub.exercicio}</td><td style="text-align:center;">${subBtn}</td></tr>`;
                 }
                 ai += 1 + subCount;
             }
@@ -826,12 +1007,19 @@
                 let videoBtn = item.video ? `<a href="${item.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
                 let subCount = 0;
                 while (mi + 1 + subCount < jsonData.manobras.length && jsonData.manobras[mi + 1 + subCount].isSubExercise) { subCount++; }
+                let hasReplacement = false;
+                for (let si = 0; si < subCount; si++) {
+                    if (/^\(após\s+\d+\s+semanas/i.test(jsonData.manobras[mi + 1 + si].exercicio)) { hasReplacement = true; }
+                }
                 let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
-                html += `<tr><td${rowspan}>${item.seq}</td><td${rowspan}>${item.series}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
+                let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
+                html += `<tr${mainAttrs}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.series}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
                 for (let si = 0; si < subCount; si++) {
                     let sub = jsonData.manobras[mi + 1 + si];
                     let subBtn = sub.video ? `<a href="${sub.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
-                    html += `<tr><td>${sub.exercicio}</td><td style="text-align:center;">${subBtn}</td></tr>`;
+                    let afterMatch = sub.exercicio.match(/^\(após\s+(\d+)\s+semanas/i);
+                    let afterAttr = afterMatch ? ` data-after-weeks="${afterMatch[1]}"` : '';
+                    html += `<tr${afterAttr}><td>${sub.exercicio}</td><td style="text-align:center;">${subBtn}</td></tr>`;
                 }
                 mi += 1 + subCount;
             }
@@ -873,6 +1061,8 @@
             // Exercícios — agrupa principal + sub-exercícios com rowspan
             html += `<tr><td colspan="3" style="background:#eaf2f8; font-weight:bold;">Exercícios</td></tr>`;
             let ei = 0;
+            let seqGroupIdx = 0;
+            let anotacoes = loadAnotacoes();
             while (ei < treino.exercicios.length) {
                 let ex = treino.exercicios[ei];
                 let nome = typeof ex === "object" ? ex.nome : ex;
@@ -882,16 +1072,36 @@
                 // Conta sub-exercícios seguintes
                 let subCount = 0;
                 while (ei + 1 + subCount < treino.exercicios.length && treino.exercicios[ei + 1 + subCount].isSubExercise) { subCount++; }
+
+                // Check if any sub has "(após X semanas" — mark main as having replacement
+                let hasReplacement = false;
+                for (let si = 0; si < subCount; si++) {
+                    let subNome = typeof treino.exercicios[ei + 1 + si] === "object" ? treino.exercicios[ei + 1 + si].nome : treino.exercicios[ei + 1 + si];
+                    if (/^\(após\s+\d+\s+semanas/i.test(subNome)) { hasReplacement = true; }
+                }
+
                 let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
-                html += `<tr><td${rowspan}>${seq}</td><td>${nome}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
+                let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
+                html += `<tr${mainAttrs}><td${rowspan}>${seq}</td><td>${nome}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
                 // Sub-exercícios (sem célula de ordem)
                 for (let si = 0; si < subCount; si++) {
                     let sub = treino.exercicios[ei + 1 + si];
                     let subNome = typeof sub === "object" ? sub.nome : sub;
                     let subVideo = (typeof sub === "object") ? sub.video : null;
                     let subBtn = subVideo ? `<a href="${subVideo}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
-                    html += `<tr><td>${subNome}</td><td style="text-align:center;">${subBtn}</td></tr>`;
+                    // Detect "(após X semanas ...)"
+                    let afterMatch = subNome.match(/^\(após\s+(\d+)\s+semanas/i);
+                    let afterAttr = afterMatch ? ` data-after-weeks="${afterMatch[1]}"` : '';
+                    html += `<tr${afterAttr}><td>${subNome}</td><td style="text-align:center;">${subBtn}</td></tr>`;
                 }
+
+                // Obs field per exercise group
+                let obsKey = `treino-${treinoIdx + 1}-ex-${seqGroupIdx + 1}`;
+                let obsValue = anotacoes.obs[obsKey] || '';
+                let escapedObs = obsValue.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                html += `<tr><td colspan="3" style="padding: 4px 6px;"><textarea class="obs-field" placeholder="Adicionar Observação..." oninput="onObsChange('${obsKey}', this.value)">${escapedObs}</textarea></td></tr>`;
+
+                seqGroupIdx++;
                 ei += 1 + subCount;
             }
 
@@ -930,6 +1140,7 @@
 
         visualOutput.innerHTML = html;
         applySectionVisibility(isFromStorage);
+        applyExerciseDimming();
     }
 </script>
 
