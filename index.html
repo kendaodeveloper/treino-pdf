@@ -292,6 +292,12 @@
         a.semanaAtual = weekNum;
         saveAnotacoes(a);
         applyExerciseDimming();
+        // Update semanas section title with current week
+        var semanas = document.getElementById('section-semanas');
+        if (semanas) {
+            var titleSpan = semanas.querySelector('.section-header span:first-child');
+            if (titleSpan) titleSpan.textContent = 'Semana Atual (' + weekNum + ')';
+        }
     }
 
     function onObsChange(obsKey, value) {
@@ -940,12 +946,12 @@
                 weeksHtml += `<label class="week-check"><input type="radio" name="semana-atual" onchange="onWeekChange(${w})"${checked}> Semana ${w}</label>`;
             }
             html += `
-            <div id="section-semanas" class="section-card">
+            <div id="section-semanas" class="section-card collapsed">
                 <div class="section-header" onclick="toggleSection('section-semanas')" style="background: #f9a825; color: #fff;">
-                    <span>Semana Atual</span>
+                    <span>Semana Atual (${currentWeek})</span>
                     <span class="chevron">❯</span>
                 </div>
-                <div class="section-body" style="background: #fffde7; padding: 15px;">
+                <div class="section-body" style="background: #fffde7; padding: 15px; max-height: 0;">
                     <div class="weeks-list">${weeksHtml}</div>
                 </div>
             </div>
@@ -1138,7 +1144,7 @@
 
         });
 
-        visualOutput.innerHTML = html;
+        visualOutput.innerHTML = (html + '<br>');
         applySectionVisibility(isFromStorage);
         applyExerciseDimming();
     }
