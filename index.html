@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversor de PDF de Treino</title>
+    <title>Four Fit - Protocolo de Treino</title>
     <link rel="icon" type="image/jpeg" href="logo.jpg">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
@@ -249,7 +249,7 @@
 <div class="container">
     <h1 style="display: flex; align-items: center; justify-content: center; gap: 12px;">
         <img src="logo.jpg" alt="Logo" style="height: 2.4em; border-radius: 6px;">
-        <span style="text-align: left; line-height: 1.2;">4our Fit<br><span style="font-size: 0.65em; font-weight: normal; color: #aaa;">Protocolo de Treino</span></span>
+        <span style="text-align: left; line-height: 1.2;">Four Fit<br><span style="font-size: 0.65em; font-weight: normal; color: #aaa;">Protocolo de Treino</span></span>
     </h1>
 
     <div id="section-converter" class="section-card">
@@ -342,6 +342,10 @@
         if (semanas) {
             var titleSpan = semanas.querySelector('.section-header span:first-child');
             if (titleSpan) titleSpan.textContent = 'Semana Atual (' + weekNum + ')';
+            // Collapse the section after selecting a week
+            if (!semanas.classList.contains('collapsed')) {
+                toggleSection('section-semanas');
+            }
         }
     }
 
