@@ -198,6 +198,41 @@
         .obs-field::placeholder {
             color: #666;
         }
+        tbody.exercise-group {
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .reps-row {
+            display: flex;
+            gap: 4px;
+            margin-top: 6px;
+            margin-bottom: 2px;
+        }
+        .reps-col {
+            flex: 1;
+            text-align: center;
+            min-width: 0;
+        }
+        .reps-col label {
+            display: block;
+            font-size: 11px;
+            color: #8899a6;
+            margin-bottom: 3px;
+            font-weight: bold;
+        }
+        .reps-col select {
+            width: 100%;
+            height: 44px;
+            padding: 4px 2px;
+            font-size: 14px;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            border: 1px solid #2a2a4a;
+            border-radius: 4px;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            appearance: none;
+            text-align: center;
+        }
         .exercise-dimmed td {
             color: #555 !important;
         }
@@ -269,6 +304,7 @@
     var fileInput = document.getElementById('pdf-file');
     var convertBtn = document.getElementById('btn-convert');
     var visualOutput = document.getElementById('visual-output');
+    var showObsFields = true;
 
     function loadAnotacoes() {
         try {
@@ -312,6 +348,14 @@
     function onObsChange(obsKey, value) {
         var a = loadAnotacoes();
         a.obs[obsKey] = value;
+        saveAnotacoes(a);
+    }
+
+    function onWeightChange(obsKey, reps, value) {
+        var a = loadAnotacoes();
+        if (!a.pesos) a.pesos = {};
+        if (!a.pesos[obsKey]) a.pesos[obsKey] = {};
+        a.pesos[obsKey][reps] = value;
         saveAnotacoes(a);
     }
 
@@ -1098,6 +1142,7 @@
 
                 let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
                 let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
+                html += `<tbody class="exercise-group">`;
                 html += `<tr${mainAttrs}><td${rowspan}>${seq}</td><td>${nome}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
                 // Sub-exercícios (sem célula de ordem)
                 for (let si = 0; si < subCount; si++) {
@@ -1111,11 +1156,27 @@
                     html += `<tr${afterAttr}><td>${subNome}</td><td style="text-align:center;">${subBtn}</td></tr>`;
                 }
 
-                // Obs field per exercise group
+                // Reps/weight row per exercise group
                 let obsKey = `treino-${treinoIdx + 1}-ex-${seqGroupIdx + 1}`;
-                let obsValue = anotacoes.obs[obsKey] || '';
-                let escapedObs = obsValue.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-                html += `<tr><td colspan="3" style="padding: 4px 6px;"><textarea class="obs-field" placeholder="Adicionar Observação..." oninput="onObsChange('${obsKey}', this.value)">${escapedObs}</textarea></td></tr>`;
+                let pesos = (anotacoes.pesos && anotacoes.pesos[obsKey]) || {};
+                let repsArr = ['15', '12', '10', '8', '6'];
+                let repsCols = repsArr.map(r => {
+                    let savedVal = pesos[r] || '';
+                    let opts = '<option value="">-</option>';
+                    for (let w = 1; w <= 100; w++) {
+                        let selected = (String(w) === String(savedVal)) ? ' selected' : '';
+                        opts += `<option value="${w}"${selected}>${w}kg</option>`;
+                    }
+                    return `<div class="reps-col"><label>${r} reps</label><select onchange="onWeightChange('${obsKey}','${r}',this.value)">${opts}</select></div>`;
+                }).join('');
+                if (showObsFields) {
+                    let obsValue = anotacoes.obs[obsKey] || '';
+                    let escapedObs = obsValue.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                    html += `<tr><td colspan="3" style="padding: 4px 6px;"><div class="reps-row">${repsCols}</div><textarea class="obs-field" placeholder="Adicionar Observação..." oninput="onObsChange('${obsKey}', this.value)">${escapedObs}</textarea></td></tr>`;
+                } else {
+                    html += `<tr><td colspan="3" style="padding: 4px 6px;"><div class="reps-row">${repsCols}</div></td></tr>`;
+                }
+                html += `</tbody>`;
 
                 seqGroupIdx++;
                 ei += 1 + subCount;
