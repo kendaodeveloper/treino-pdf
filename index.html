@@ -295,6 +295,57 @@
         .period-current .period-details .pd-periodo {
             color: #81c784;
         }
+        .error-popup-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .error-popup {
+            background: #1e1e3a;
+            border: 2px solid #e74c3c;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 400px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: #e0e0e0;
+        }
+        .error-popup h3 {
+            color: #e74c3c;
+            margin: 0 0 10px;
+            border: none;
+            text-align: left;
+            font-size: 1.1em;
+        }
+        .error-popup pre {
+            background: #0d0d1a;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #ff6b6b;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .error-popup button {
+            margin-top: 12px;
+            padding: 10px 20px;
+            background: #e74c3c;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
         .exercise-dimmed td {
             color: #555 !important;
         }
@@ -344,6 +395,22 @@
 </div>
 
 <script>
+    function showErrorPopup(title, details) {
+        var existing = document.querySelector('.error-popup-overlay');
+        if (existing) existing.remove();
+        var overlay = document.createElement('div');
+        overlay.className = 'error-popup-overlay';
+        overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+        overlay.innerHTML = '<div class="error-popup">' +
+            '<h3>' + title + '</h3>' +
+            '<p style="font-size:13px;color:#aaa;">Detalhes do erro:</p>' +
+            '<pre>' + details + '</pre>' +
+            '<p style="font-size:12px;color:#888;margin-top:8px;">Navegador: ' + (navigator.userAgent || 'desconhecido') + '</p>' +
+            '<button onclick="this.closest(\'.error-popup-overlay\').remove()">Fechar</button>' +
+            '</div>';
+        document.body.appendChild(overlay);
+    }
+
     // Detecta WebView (WhatsApp, Instagram, Facebook, etc.)
     var ua = navigator.userAgent || '';
     var isWebView = /FBAN|FBAV|Instagram|Line\/|WhatsApp|wv\)/i.test(ua);
@@ -378,7 +445,11 @@
     }
 
     function saveAnotacoes(anotacoes) {
-        localStorage.setItem('treino-pdf-anotacoes', JSON.stringify(anotacoes));
+        try {
+            localStorage.setItem('treino-pdf-anotacoes', JSON.stringify(anotacoes));
+        } catch(e) {
+            showErrorPopup('Erro ao salvar dados', 'Armazenamento cheio. Tente limpar dados do navegador.\n\n' + (e.message || e));
+        }
         updateKeepNotesVisibility();
     }
 
@@ -467,6 +538,7 @@
                 showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
             } catch(e) {
                 localStorage.removeItem('treino-pdf-data');
+                showErrorPopup('Erro ao carregar treino salvo', 'Os dados salvos estavam corrompidos e foram removidos. Importe o PDF novamente.\n\n' + (e.message || e));
             }
         }
     })();
@@ -523,66 +595,79 @@
             showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
 
         } catch (err) {
+            var detail = (err.message || String(err));
+            if (err.stack) detail += '\n\n' + err.stack;
+            showErrorPopup('Erro ao importar PDF', detail);
             showStatus("Erro: " + (err.message || err), "error");
         }
     }
 
     async function processarPDF(pdfData) {
+        var pageErrors = [];
         try {
             const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
             let fullText = "";
-            // pageData[pageNum] = { textItems: [{str, y}], links: [{url, y}] }
             let pageData = {};
 
-            // Une o texto por página e coleta links + posições Y dos itens de texto
             for (let i = 1; i <= pdf.numPages; i++) {
-                const page = await pdf.getPage(i);
-                const textContent = await page.getTextContent();
-                const pageText = textContent.items.map(item => item.str).join("\n");
-                fullText += `\n--- SECAO_PAGINA_${i} ---\n` + pageText + "\n";
+                try {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join("\n");
+                    fullText += `\n--- SECAO_PAGINA_${i} ---\n` + pageText + "\n";
 
-                // Guarda itens de texto com posição Y
-                let textItems = textContent.items
-                    .filter(item => item.str.trim().length > 0)
-                    .map(item => ({ str: item.str.trim(), y: item.transform[5] }));
+                    let textItems = textContent.items
+                        .filter(item => item.str.trim().length > 0)
+                        .map(item => ({
+                            str: item.str.trim(),
+                            y: (item.transform && item.transform.length > 5) ? item.transform[5] : 0
+                        }));
 
-                // Extrai annotations de link (apenas vídeos) com posição Y central
-                let links = [];
-                const annotations = await page.getAnnotations();
-                for (const ann of annotations) {
-                    if (ann.subtype === "Link" && ann.url && isVideoUrl(ann.url)) {
-                        let centerY = (ann.rect[1] + ann.rect[3]) / 2;
-                        links.push({ url: ann.url, y: centerY });
+                    let links = [];
+                    try {
+                        const annotations = await page.getAnnotations();
+                        for (const ann of annotations) {
+                            if (ann.subtype === "Link" && ann.url && isVideoUrl(ann.url)) {
+                                let centerY = (ann.rect && ann.rect.length >= 4) ? (ann.rect[1] + ann.rect[3]) / 2 : 0;
+                                links.push({ url: ann.url, y: centerY });
+                            }
+                        }
+                    } catch(annErr) {
+                        pageErrors.push('Pg ' + i + ' links: ' + (annErr.message || annErr));
                     }
-                }
 
-                pageData[i] = { textItems, links };
+                    pageData[i] = { textItems, links };
+                } catch(pageErr) {
+                    pageErrors.push('Pg ' + i + ': ' + (pageErr.message || pageErr));
+                    fullText += `\n--- SECAO_PAGINA_${i} ---\n`;
+                }
             }
 
-            // Log do texto bruto do PDF por página
-            // console.log("=== TEXTO BRUTO DO PDF ===");
-            // console.log(fullText);
-            // console.log("=== FIM TEXTO BRUTO ===");
-
-            // Invoca o parser baseado em blocos isolados
             const parsedTrainingData = parseWorkoutTextByBlocks(fullText, pageData);
 
-            console.log(JSON.stringify(parsedTrainingData, null, 2));
+            // Salva no localStorage com tratamento de quota
+            try {
+                localStorage.setItem('treino-pdf-data', JSON.stringify(parsedTrainingData));
+            } catch(storageErr) {
+                showErrorPopup('Erro ao salvar treino', 'Armazenamento cheio. O treino foi carregado mas não será salvo entre sessões.\n\n' + (storageErr.message || storageErr));
+            }
 
-            // Salva no localStorage para persistir entre recarregamentos
-            localStorage.setItem('treino-pdf-data', JSON.stringify(parsedTrainingData));
-
-            // Inicializa anotações com valor default se não existirem
             if (!localStorage.getItem('treino-pdf-anotacoes')) {
                 saveAnotacoes({ semanaAtual: 1, obs: {} });
             }
 
             renderWorkoutVisual(parsedTrainingData, false);
 
+            // Mostra avisos de páginas com erro (parcial)
+            if (pageErrors.length > 0) {
+                showErrorPopup('Aviso: algumas páginas tiveram problemas', pageErrors.join('\n'));
+            }
 
         } catch (error) {
-            console.error(error);
-            showStatus("Erro ao processar o PDF: " + error.message, "error");
+            var detail = (error.message || String(error));
+            if (error.stack) detail += '\n\n' + error.stack;
+            showErrorPopup('Erro ao processar o PDF', detail);
+            showStatus("Erro ao processar o PDF: " + (error.message || error), "error");
         }
     }
 
