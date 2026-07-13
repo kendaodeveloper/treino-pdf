@@ -233,6 +233,68 @@
             appearance: none;
             text-align: center;
         }
+        .period-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .period-card {
+            display: grid;
+            grid-template-columns: 42px 1fr;
+            gap: 0;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #1e1e3a;
+            border: 1px solid #3a3a5a;
+        }
+        .period-card.period-current {
+            border-color: #2e7d32;
+            box-shadow: 0 0 8px rgba(46,125,50,0.4);
+        }
+        .period-card.period-past {
+            opacity: 0.4;
+        }
+        .period-week-num {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #2a2a4a;
+            font-weight: bold;
+            font-size: 15px;
+            color: #aaa;
+        }
+        .period-current .period-week-num {
+            background: #1b5e20;
+            color: #fff;
+        }
+        .period-details {
+            padding: 8px 10px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px 12px;
+            font-size: 13px;
+        }
+        .period-details .pd-label {
+            color: #777;
+            font-size: 11px;
+        }
+        .period-details .pd-value {
+            color: #ddd;
+        }
+        .period-current .period-details .pd-value {
+            color: #fff;
+            font-weight: bold;
+        }
+        .period-details .pd-periodo {
+            grid-column: 1 / -1;
+            color: #bb86fc;
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+        .period-current .period-details .pd-periodo {
+            color: #81c784;
+        }
         .exercise-dimmed td {
             color: #555 !important;
         }
@@ -347,6 +409,15 @@
                 toggleSection('section-semanas');
             }
         }
+        // Update periodização highlight
+        updatePeriodHighlight(weekNum);
+    }
+
+    function updatePeriodHighlight(weekNum) {
+        document.querySelectorAll('.period-card').forEach(function(card) {
+            var sem = parseInt(card.getAttribute('data-period-week'));
+            card.className = 'period-card' + (sem === weekNum ? ' period-current' : (sem < weekNum ? ' period-past' : ''));
+        });
     }
 
     function onObsChange(obsKey, value) {
@@ -488,9 +559,14 @@
                 pageData[i] = { textItems, links };
             }
 
+            // Log do texto bruto do PDF por página
+            // console.log("=== TEXTO BRUTO DO PDF ===");
+            // console.log(fullText);
+            // console.log("=== FIM TEXTO BRUTO ===");
+
             // Invoca o parser baseado em blocos isolados
             const parsedTrainingData = parseWorkoutTextByBlocks(fullText, pageData);
-            
+
             console.log(JSON.stringify(parsedTrainingData, null, 2));
 
             // Salva no localStorage para persistir entre recarregamentos
@@ -582,6 +658,7 @@
             frequencia: "",
             duracao_total: "",
             descanso: "",
+            periodizacao: [],
             alongamentos: [],
             manobras: [],
             treinos: []
@@ -899,6 +976,53 @@
             });
         }
 
+        // 4. Periodização — tabela de semanas na página que contém "TABELA DE RM"
+        const pagePeriod = paginas.find(pg => /PERIODIZAÇÃO/i.test(pg) && /TABELA DE RM/i.test(pg));
+        if (pagePeriod) {
+            const pLines = pagePeriod.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+
+            // Encontra marcadores de semana (1ª, 2ª, ..., 12ª)
+            let weekIndices = [];
+            pLines.forEach((l, i) => {
+                if (/^\d{1,2}ª$/.test(l)) weekIndices.push(i);
+            });
+
+            weekIndices.forEach((wi, idx) => {
+                let endIdx = idx + 1 < weekIndices.length ? weekIndices[idx + 1] : pLines.length;
+                let weekLines = pLines.slice(wi + 1, endIdx);
+                let weekNum = parseInt(pLines[wi]);
+
+                // Remove padrões conhecidos
+                let remaining = weekLines.filter(l =>
+                    !/D \| S/.test(l) &&
+                    !/\d+:\d+:\d+:\d+/.test(l) &&
+                    !/^-{4,}$/.test(l)
+                );
+                let cadencia = weekLines.find(l => /\d+:\d+:\d+:\d+/.test(l)) || '';
+
+                // remaining: [periodo..., series, descanso, falha...]
+                let seriesIdx = remaining.findIndex(l => /\d+\s*(?:a\s*\d+\s*)?x\s*\d+/i.test(l));
+                let descansoIdx = remaining.findIndex(l => /\d+.*[\u201D"]/i.test(l));
+
+                let periodo = seriesIdx >= 0 ? remaining.slice(0, seriesIdx).join(' ').trim() : '';
+                let series = seriesIdx >= 0 ? remaining[seriesIdx] : '';
+                let descanso = descansoIdx >= 0 ? remaining[descansoIdx] : '';
+                let falha = '';
+                if (descansoIdx >= 0 && descansoIdx + 1 < remaining.length) {
+                    falha = remaining.slice(descansoIdx + 1).join(' ').trim();
+                }
+
+                data.periodizacao.push({
+                    semana: weekNum,
+                    periodo: periodo,
+                    series: series,
+                    descanso: descanso,
+                    cadencia: cadencia,
+                    falha: falha
+                });
+            });
+        }
+
         return data;
     }
 
@@ -1011,6 +1135,39 @@
                 </div>
                 <div class="section-body" style="background: #2a2510; padding: 15px; max-height: 0;">
                     <div class="weeks-list">${weeksHtml}</div>
+                </div>
+            </div>
+            `;
+        }
+
+        // Seção de Periodização
+        if (jsonData.periodizacao && jsonData.periodizacao.length > 0) {
+            let anotPeriod = loadAnotacoes();
+            let curWeek = anotPeriod.semanaAtual || 1;
+            let periodCards = jsonData.periodizacao.map(p => {
+                let cls = 'period-card';
+                if (p.semana === curWeek) cls += ' period-current';
+                else if (p.semana < curWeek) cls += ' period-past';
+                return `<div class="${cls}" data-period-week="${p.semana}">
+                    <div class="period-week-num">${p.semana}ª</div>
+                    <div class="period-details">
+                        <div class="pd-periodo">${p.periodo}</div>
+                        <div><span class="pd-label">Séries</span><br><span class="pd-value">${p.series}</span></div>
+                        <div><span class="pd-label">Descanso</span><br><span class="pd-value">${p.descanso}</span></div>
+                        <div><span class="pd-label">Cadência</span><br><span class="pd-value">${p.cadencia}</span></div>
+                        <div><span class="pd-label">Falha</span><br><span class="pd-value">${p.falha}</span></div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            html += `
+            <div id="section-periodizacao" class="section-card collapsed">
+                <div class="section-header" onclick="toggleSection('section-periodizacao')" style="background: #4a1942; color: #e0e0e0;">
+                    <span>Periodização</span>
+                    <span class="chevron">❯</span>
+                </div>
+                <div class="section-body" style="background: #2a1028; padding: 15px; max-height: 0;">
+                    <div class="period-list">${periodCards}</div>
                 </div>
             </div>
             `;
