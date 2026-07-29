@@ -645,11 +645,11 @@
 
             const parsedTrainingData = parseWorkoutTextByBlocks(fullText, pageData);
 
-            // NÃO REMOVER ESSES COMENTÁRIOS!
-            // console.log('--- fullText completo ---');
-            // console.log(fullText);
-            // console.log('--- Dados parseados ---');
-            // console.log(JSON.stringify(parsedTrainingData, null, 2));
+            // NÃO REMOVER ESSES LOGS!
+            console.log('--- fullText completo ---');
+            console.log(fullText);
+            console.log('--- Dados parseados ---');
+            console.log(JSON.stringify(parsedTrainingData, null, 2));
 
             // Salva no localStorage com tratamento de quota
             try {
@@ -687,22 +687,40 @@
      */
     function findTextY(textItems, searchText) {
         if (!searchText || !textItems) { return null; }
-        let searchLower = searchText.toLowerCase().substring(0, 15);
+        let searchLower = searchText.toLowerCase();
+
+        // 1. Busca exata com substring completa
         for (const item of textItems) {
             if (item.str.toLowerCase().includes(searchLower)) {
                 return item.y;
             }
         }
-        // Tenta com palavras individuais (>4 chars)
-        let palavras = searchText.split(/\s+/).filter(p => p.length > 4);
-        for (const p of palavras) {
-            let pLower = p.toLowerCase();
-            for (const item of textItems) {
-                if (item.str.toLowerCase().includes(pLower)) {
-                    return item.y;
-                }
+
+        // 2. Busca com primeiros 15 chars
+        let searchShort = searchLower.substring(0, 15);
+        for (const item of textItems) {
+            if (item.str.toLowerCase().includes(searchShort)) {
+                return item.y;
             }
         }
+
+        // 3. Fallback: pontua itens por número de palavras coincidentes (>3 chars)
+        let palavras = searchText.split(/\s+/).filter(p => p.length > 3).map(p => p.toLowerCase());
+        if (palavras.length === 0) { return null; }
+        let bestItem = null;
+        let bestScore = 0;
+        for (const item of textItems) {
+            let itemLower = item.str.toLowerCase();
+            let score = 0;
+            for (const p of palavras) {
+                if (itemLower.includes(p)) { score++; }
+            }
+            if (score > bestScore) {
+                bestScore = score;
+                bestItem = item;
+            }
+        }
+        if (bestItem && bestScore > 0) { return bestItem.y; }
         return null;
     }
 
@@ -909,11 +927,7 @@
                     }
                     warmLines.push({ nome: l });
                 }
-                // Associa vídeos aos exercícios de aquecimento
-                aquecimento = warmLines.map(item => {
-                    let video = findVideoByPosition(item.nome, pageIdx, pageData);
-                    return video ? { ...item, video } : item;
-                });
+                aquecimento = warmLines;
             }
 
             // Aeróbio — extrai como array de exercícios com vídeo
@@ -934,10 +948,7 @@
                     }
                     aeroLines.push({ nome: l });
                 }
-                aerobio = aeroLines.map(item => {
-                    let video = findVideoByPosition(item.nome, pageIdx, pageData);
-                    return video ? { ...item, video } : item;
-                });
+                aerobio = aeroLines;
             }
 
             // Relaxamento — busca o bloco "SQ RELAXAMENTO REPETIÇÕES" (não o rótulo "RELAXAMENTO AERÓBIO")
@@ -961,10 +972,7 @@
                         }
                         relaxLines.push({ nome: l });
                     }
-                    relaxamento = relaxLines.map(item => {
-                        let video = findVideoByPosition(item.nome, pageIdx, pageData);
-                        return video ? { ...item, video } : item;
-                    });
+                    relaxamento = relaxLines;
                     break;
                 }
             }
@@ -1040,17 +1048,29 @@
             }
 
             if (exercicios.length > 0) {
-                // Associa links de vídeo a cada exercício/sub-exercício individualmente
+                // 1. EXERCÍCIOS primeiro (prioridade nos links)
                 let exerciciosComVideo = exercicios.map(ex => {
-                    // Para buscar vídeo, limpa prefixos e parênteses
-                    let searchName = ex.nome
-                        .replace(/^(Supersérie|Pós exaustão|Biset)\s*/i, '')
-                        .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
-                        .replace(/\)$/, '')
-                        .trim();
-                    let video = findVideoByPosition(searchName, pageIdx, pageData);
+                    let video = findVideoByPosition(ex.nome, pageIdx, pageData);
+                    if (!video) {
+                        let searchName = ex.nome
+                            .replace(/^(Supersérie|Pós exaustão|Biset)\s*/i, '')
+                            .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
+                            .replace(/\)$/, '')
+                            .trim();
+                        video = findVideoByPosition(searchName, pageIdx, pageData);
+                    }
                     return video ? { ...ex, video } : ex;
                 });
+
+                // 2. Depois warmup/aeróbio/relaxamento (com links restantes)
+                let assignVideo = (item, nameField) => {
+                    let nome = item[nameField || 'nome'];
+                    let video = findVideoByPosition(nome, pageIdx, pageData);
+                    return video ? { ...item, video } : item;
+                };
+                aquecimento = aquecimento.map(item => assignVideo(item));
+                aerobio = aerobio.map(item => assignVideo(item));
+                relaxamento = relaxamento.map(item => assignVideo(item));
 
                 let treino = {
                     identificador: identificador,
@@ -1068,19 +1088,25 @@
         let alongPageNum = paginas.findIndex(pg => /ALONGAMENTOS/i.test(pg));
         if (alongPageNum > 0) {
             data.alongamentos = data.alongamentos.map(item => {
-                let searchName = item.exercicio
-                    .replace(/^(Supersérie|Pós exaustão|Biset)\s*/i, '')
-                    .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
-                    .replace(/\)$/, '').trim();
-                let video = findVideoByPosition(searchName, alongPageNum, pageData);
+                let video = findVideoByPosition(item.exercicio, alongPageNum, pageData);
+                if (!video) {
+                    let searchName = item.exercicio
+                        .replace(/^(Supersérie|Pós exaustão|Biset)\s*/i, '')
+                        .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
+                        .replace(/\)$/, '').trim();
+                    video = findVideoByPosition(searchName, alongPageNum, pageData);
+                }
                 return video ? { ...item, video } : item;
             });
             data.manobras = data.manobras.map(item => {
-                let searchName = item.exercicio
-                    .replace(/^(Supersérie|Pós exaustão|Biset)\s*/i, '')
-                    .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
-                    .replace(/\)$/, '').trim();
-                let video = findVideoByPosition(searchName, alongPageNum, pageData);
+                let video = findVideoByPosition(item.exercicio, alongPageNum, pageData);
+                if (!video) {
+                    let searchName = item.exercicio
+                        .replace(/^(Supersérie|Pós exaustão|Biset)\s*/i, '')
+                        .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
+                        .replace(/\)$/, '').trim();
+                    video = findVideoByPosition(searchName, alongPageNum, pageData);
+                }
                 return video ? { ...item, video } : item;
             });
         }
