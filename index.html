@@ -645,6 +645,12 @@
 
             const parsedTrainingData = parseWorkoutTextByBlocks(fullText, pageData);
 
+            // NÃO REMOVER ESSES COMENTÁRIOS!
+            // console.log('--- fullText completo ---');
+            // console.log(fullText);
+            // console.log('--- Dados parseados ---');
+            // console.log(JSON.stringify(parsedTrainingData, null, 2));
+
             // Salva no localStorage com tratamento de quota
             try {
                 localStorage.setItem('treino-pdf-data', JSON.stringify(parsedTrainingData));
@@ -812,7 +818,7 @@
                         let cur = subExercicios[0];
                         for (let el = 0; el < exLines.length; el++) {
                             let eline = exLines[el];
-                            let matchPfx = eline.match(/^(Supersérie|Pós exaustão)\s*(.*)/i);
+                            let matchPfx = eline.match(/^(Supersérie|Pós exaustão|Biset)\s*(.*)/i);
                             if (matchPfx) {
                                 cur = { lines: [], tipo: matchPfx[1] };
                                 if (matchPfx[2].trim()) { cur.lines.push(matchPfx[2].trim()); }
@@ -868,6 +874,11 @@
             let diasFoco = "";
             const diasRegex = p.match(/(?:Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)[^\n]*/i);
             if (diasRegex) { diasFoco = diasRegex[0].trim(); }
+            // Fallback: "Caso treinar mais de Xx na semana (foco)"
+            if (!diasFoco) {
+                const casoRegex = p.match(/Caso\s+treinar[^\n]*/i);
+                if (casoRegex) { diasFoco = casoRegex[0].trim(); }
+            }
 
             // Warm Up — extrai como array de exercícios com vídeo
             let aquecimento = [];
@@ -878,6 +889,10 @@
                     let l = linhas[i];
                     if (/^(SQ|EXERCÍCIOS|AERÓBIO|RELAXAMENTO|TREINO)/i.test(l)) { break; }
                     if (l === "REPETIÇÕES" || /^\d+°$/.test(l)) { continue; }
+                    // Filtra fragmentos de logo/marca (ex: "4", "F", "our Fit", "c o n s u l t o r i a")
+                    if (/^[A-Za-z0-9]$/.test(l)) { continue; } // caractere isolado (letra ou dígito de logo)
+                    if (/^([A-Za-z]\s){3,}[A-Za-z]?$/.test(l)) { continue; } // letras espaçadas (logo tipo "c o n s u l t o r i a")
+                    if (/^(our\s+Fit|Four\s*Fit|consultoria|Roberto\s+Oliveira)$/i.test(l)) { continue; } // nomes de marca/treinador
                     // Captura info de reps/cadência (ex: "2 x 15 REPS | Cadência 3:3")
                     if (/^\d+\s*x\s*\d+\s*REPS/i.test(l)) {
                         // Junta com próxima linha se for continuação de cadência
@@ -935,6 +950,7 @@
                         let l = linhas[j];
                         if (/^(SQ|EXERCÍCIOS|AERÓBIO|TREINO|WARM|RELAXAMENTO)/i.test(l)) { break; }
                         if (/(?:Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)/i.test(l)) { break; }
+                        if (/^Caso\s/i.test(l)) { break; } // "Caso treinar mais de 3x..."
                         if (/^\d+°$/.test(l)) { continue; }
                         // Reps info (ex: "1 x 40"")
                         if (/^\d+\s*x\s*\d+/i.test(l)) {
@@ -989,7 +1005,7 @@
                     for (let li = 0; li < group.length; li++) {
                         let line = group[li];
                         // "Supersérie ..." ou "Pós exaustão ..." inicia novo sub-exercício
-                        let matchPrefix = line.match(/^(Supersérie|Pós exaustão)\s*(.*)/i);
+                        let matchPrefix = line.match(/^(Supersérie|Pós exaustão|Biset)\s*(.*)/i);
                         if (matchPrefix) {
                             current = { lines: [], tipo: matchPrefix[1] };
                             if (matchPrefix[2].trim()) { current.lines.push(matchPrefix[2].trim()); }
@@ -999,6 +1015,14 @@
                         // "(após X semanas ...)" inicia novo sub-exercício (alternativa)
                         if (/^\(após\s/i.test(line)) {
                             current = { lines: [line], tipo: "" };
+                            exercises.push(current);
+                            continue;
+                        }
+                        // Verifica se "Biset" aparece no meio da linha (ex: "Pull down barra Biset Remada curvada")
+                        let bisetMid = line.match(/^(.+?)\s+Biset\s+(.+)$/i);
+                        if (bisetMid) {
+                            current.lines.push(bisetMid[1].trim());
+                            current = { lines: [bisetMid[2].trim()], tipo: "Biset" };
                             exercises.push(current);
                             continue;
                         }
@@ -1020,7 +1044,7 @@
                 let exerciciosComVideo = exercicios.map(ex => {
                     // Para buscar vídeo, limpa prefixos e parênteses
                     let searchName = ex.nome
-                        .replace(/^(Supersérie|Pós exaustão)\s*/i, '')
+                        .replace(/^(Supersérie|Pós exaustão|Biset)\s*/i, '')
                         .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
                         .replace(/\)$/, '')
                         .trim();
@@ -1045,7 +1069,7 @@
         if (alongPageNum > 0) {
             data.alongamentos = data.alongamentos.map(item => {
                 let searchName = item.exercicio
-                    .replace(/^(Supersérie|Pós exaustão)\s*/i, '')
+                    .replace(/^(Supersérie|Pós exaustão|Biset)\s*/i, '')
                     .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
                     .replace(/\)$/, '').trim();
                 let video = findVideoByPosition(searchName, alongPageNum, pageData);
@@ -1053,7 +1077,7 @@
             });
             data.manobras = data.manobras.map(item => {
                 let searchName = item.exercicio
-                    .replace(/^(Supersérie|Pós exaustão)\s*/i, '')
+                    .replace(/^(Supersérie|Pós exaustão|Biset)\s*/i, '')
                     .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
                     .replace(/\)$/, '').trim();
                 let video = findVideoByPosition(searchName, alongPageNum, pageData);
@@ -1072,8 +1096,19 @@
                 if (/^\d{1,2}ª$/.test(l)) weekIndices.push(i);
             });
 
+            // Para a última semana, encontra onde termina seus dados (antes de conteúdo RM/header que vem DEPOIS dela)
+            let lastWeekIdx = weekIndices.length > 0 ? weekIndices[weekIndices.length - 1] : 0;
+            let rmTableStart = pLines.length;
+            for (let ri = lastWeekIdx + 1; ri < pLines.length; ri++) {
+                let l = pLines[ri];
+                if (/^\d+\s*%$/.test(l) || /^\d+-?\d*\s*RM$/i.test(l) || /^PERIODIZAÇÃO$/i.test(l) || /^TABELA DE RM$/i.test(l)) {
+                    rmTableStart = ri;
+                    break;
+                }
+            }
+
             weekIndices.forEach((wi, idx) => {
-                let endIdx = idx + 1 < weekIndices.length ? weekIndices[idx + 1] : pLines.length;
+                let endIdx = idx + 1 < weekIndices.length ? weekIndices[idx + 1] : rmTableStart;
                 let weekLines = pLines.slice(wi + 1, endIdx);
                 let weekNum = parseInt(pLines[wi]);
 
@@ -1409,7 +1444,7 @@
                 let repsCols = repsArr.map(r => {
                     let savedVal = pesos[r] || '';
                     let opts = '<option value="">-</option>';
-                    for (let w = 1; w <= 100; w++) {
+                    for (let w = 1; w <= 500; w++) {
                         let selected = (String(w) === String(savedVal)) ? ' selected' : '';
                         opts += `<option value="${w}"${selected}>${w}kg</option>`;
                     }
