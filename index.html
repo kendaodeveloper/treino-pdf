@@ -868,7 +868,7 @@
         }
 
         // Objetivo — captura múltiplas linhas até encontrar próximo campo
-        const matchObjetivo = norm.match(/OBJETIVO\s*\n([\s\S]*?)(?=\nPERÍODO|\nFREQUÊNCIA|\nDURAÇÃO|\nCARGA|\nDESCANSO|\n---)/i);
+        const matchObjetivo = norm.match(/OBJETIVO\s*\n([\s\S]*?)(?=\nPER[ÍI]ODO|\nFREQU[ÊE]NCIA|\nDURA[ÇC][ÃA]O|\nCARGA\s*\||\nDESCANSO|\nM[ÉE]DIA|\n---)/i);
         if (matchObjetivo) { data.objetivo = matchObjetivo[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim(); }
 
         const matchFreq = norm.match(/FREQUÊNCIA\s*\n\s*([^\n]+)/i);
@@ -1444,8 +1444,8 @@
                 }
                 let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
                 let bodyTypeAttr = '';
-                if (/DIAS DE MMII/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
-                else if (/DIAS DE MMSS/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
+                if (/DIAS D[EO]S? MMII/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
+                else if (/DIAS D[EO]S? MMSS/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
 
                 let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
                 html += `<tr${mainAttrs}${bodyTypeAttr}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.tempo}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
@@ -1486,8 +1486,8 @@
                 let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
                 // Detecta se a manobra é específica para MMII ou MMSS
                 let bodyTypeAttr = '';
-                if (/DIAS DE MMII/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
-                else if (/DIAS DE MMSS/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
+                if (/DIAS D[EO]S? MMII/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
+                else if (/DIAS D[EO]S? MMSS/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
 
                 let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
                 html += `<tr${mainAttrs}${bodyTypeAttr}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.series}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;

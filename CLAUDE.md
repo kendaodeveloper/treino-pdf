@@ -61,14 +61,18 @@ PDF -> PDF.js -> textContent.items (texto + coordenadas Y) + annotations (links)
 
 ### Metadados (pagina ~4)
 Regex no fullText para extrair: TREINADOR, ALUNO, OBJETIVO, FREQUENCIA, DURACAO TOTAL, DESCANSO.
+- OBJETIVO: lookahead usa `\nCARGA\s*\|` (nao `\nCARGA` sozinho) para evitar casar com palavras como "cargas" no texto
+- Acentos flexiveis: PER[ÍI]ODO, FREQU[ÊE]NCIA, DURA[ÇC][ÃA]O
 
 ### Alongamentos e Manobras (pagina que contem "ALONGAMENTOS")
 Parseia sequencialmente: seq (numero ou "Mobilidade") -> tempo/series -> nome do exercicio.
-Transicao de alongamentos para manobras ocorre apos "Mobilidade".
+Transicao de alongamentos para manobras: ocorre no primeiro seq numerico APOS ter visto pelo menos um "Mobilidade" (flag seenMobilidade). Permite multiplas entradas Mobilidade nos alongamentos.
+- Tempo: aspas unicode (smart quotes) sao normalizadas para aspas simples
 
 ### Periodizacao (pagina com "PERIODIZACAO" + "TABELA DE RM")
 Encontra marcadores de semana (1a, 2a, ..., 12a) e extrai periodo, series, descanso, cadencia, falha.
 Para na tabela de RM (linhas com "X%" ou "X RM") para nao poluir a ultima semana.
+- Falha: corrige palavras quebradas pelo PDF.js (ex: "Concêntr ica" -> "Concêntrica")
 
 ### Treinos (paginas com "EXERCICIOS")
 Cada pagina de treino contem: WARM UP, EXERCICIOS, AEROBIO, RELAXAMENTO.
@@ -130,7 +134,7 @@ Duas logicas independentes aplicadas em sequencia:
 
 2. **applyBodyTypeDimming()** - baseado no tipo do treino do dia:
    - Detecta se hoje e MMII ou MMSS pelo `dias_e_foco` que casa com o dia da semana
-   - `data-body-type="mmii"` ou `"mmss"` em alongamentos e manobras com "(DIAS DE MMII/MMSS)": dim se nao casa com o tipo do dia
+   - `data-body-type="mmii"` ou `"mmss"` em alongamentos e manobras com "(DIAS DE/DOS MMII/MMSS)": dim se nao casa com o tipo do dia
    - Sem dias da semana (ex: Daniel Alves): nenhum dimming aplicado (tudo visivel)
    - Respeita o dimming de semanas: nao remove exercise-dimmed se after-weeks ou has-replacement esta ativo
 
@@ -152,9 +156,11 @@ Fragmentos de logo/marca sao filtrados no warmup parser:
 ## PDFs de teste (pasta `teste/`)
 
 - `Treino - Kenneth.pdf` - 3 treinos (1E5, 2E4, 3), periodizacao com Forca Pura, tem dias da semana
-- `Consultoria 2 - Daniel Alves.pdf` - 3 treinos sem dias da semana (so foco), Pos-exaustao com hifen
 - `Consultoria - Lucas Paim.pdf` - 4 treinos (1, 2E5, 3, 4 alternativo), Biset
-- Outros PDFs para testes adicionais
+- `Consultoria 2 - Daniel Alves.pdf` - 3 treinos sem dias da semana (so foco), Pos-exaustao com hifen
+- `Consultoria Laryssa Siena.pdf` - 3 treinos (1E3, 2E4, 5), mobilidade dupla (MMII + MMSS)
+- `Treino 2 - Consultoria Talita Alves.pdf` - 5 treinos, relaxamento com fragmento curto ("Ca"+"deia")
+- `Consultoria Bianca Vitalino.pdf` - 3 treinos, "DIAS DOS MMII/MMSS" (com "DOS"), objetivo com "cargas"
 - `kenneth-ok.json` e `lucas-paim-ok.json` - JSONs de referencia para validacao
 
 ## Debug
