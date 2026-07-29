@@ -1,0 +1,461 @@
+{
+  "treinador": "Four Fit Consultoria",
+  "aluno": "Laryssa Siena Pereira",
+  "idade": "26 Anos",
+  "objetivo": "Correção Postural | Diminuir percentual de gordura I Manutenção da massa magra",
+  "frequencia": "5x Musculação",
+  "duracao_total": "12 semanas",
+  "descanso": "45 segundos à 70 segundos",
+  "periodizacao": [
+    {
+      "semana": 1,
+      "periodo": "Resistência",
+      "series": "2 x 15 a 18",
+      "descanso": "45\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Submáxima"
+    },
+    {
+      "semana": 2,
+      "periodo": "Resistência",
+      "series": "3 x 15 a 18",
+      "descanso": "45\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Submáxima"
+    },
+    {
+      "semana": 3,
+      "periodo": "Resistência",
+      "series": "3 x 15",
+      "descanso": "50\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Submáxima"
+    },
+    {
+      "semana": 4,
+      "periodo": "Resistência",
+      "series": "3 x 15",
+      "descanso": "50\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Submáxima"
+    },
+    {
+      "semana": 5,
+      "periodo": "Resistência",
+      "series": "3 x 12",
+      "descanso": "60\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Quase Concêntrica"
+    },
+    {
+      "semana": 6,
+      "periodo": "Resistência",
+      "series": "3 x 12",
+      "descanso": "60\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Quase Concêntrica"
+    },
+    {
+      "semana": 7,
+      "periodo": "Resistência",
+      "series": "3 x 10 a 12",
+      "descanso": "60\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Quase Concêntrica"
+    },
+    {
+      "semana": 8,
+      "periodo": "Resistência",
+      "series": "3 x 10",
+      "descanso": "70\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Quase Concêntrica"
+    },
+    {
+      "semana": 9,
+      "periodo": "Resistência",
+      "series": "3 x 10",
+      "descanso": "70\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica"
+    },
+    {
+      "semana": 10,
+      "periodo": "Resistência",
+      "series": "3 x 15",
+      "descanso": "50\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica"
+    },
+    {
+      "semana": 11,
+      "periodo": "Resistência",
+      "series": "3 x 10 a 12",
+      "descanso": "60\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica"
+    },
+    {
+      "semana": 12,
+      "periodo": "Resistência",
+      "series": "3 x 12 a 15",
+      "descanso": "50\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica"
+    }
+  ],
+  "alongamentos": [
+    {
+      "seq": "1",
+      "tempo": "1 x 20\"",
+      "exercicio": "Sóleo bilateral espaldar",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1VGpC5tKgJIyxri3ctyg0lrzuXArhJhsj/view?usp=drive_link"
+    },
+    {
+      "seq": "2",
+      "tempo": "1 x 20\"",
+      "exercicio": "I.T uni espaldar",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1bgcVPWmqLiI9Qeugzl05BuCpkAEr1TGy/view?usp=drive_link"
+    },
+    {
+      "seq": "3",
+      "tempo": "1 x 20\"",
+      "exercicio": "Iliopsoas solo",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1dwv-ECRTE4TbFUDTr2mo8iQAmGIkuIxN/view?usp=drive_link"
+    },
+    {
+      "seq": "4",
+      "tempo": "1 x 20\"",
+      "exercicio": "Pernas afastadas",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1N7jxQCiuwulJXg3N25KB-0nRtubiTh0u/view?usp=drive_link"
+    },
+    {
+      "seq": "5",
+      "tempo": "1 x 20\"",
+      "exercicio": "Borboletão",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1uz8irmvYo9aNq_RDcdB3LPsc6J0kf2Lz/view?usp=drive_link"
+    },
+    {
+      "seq": "6",
+      "tempo": "1 x 20\"",
+      "exercicio": "Glúteo solo",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1qxLpyHblhusQSXzEs7LLiOm0Xz_5iP0o/view?usp=drive_link"
+    },
+    {
+      "seq": "7",
+      "tempo": "1 X 20\"",
+      "exercicio": "Suspensão parcial",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/15AKEbpVfSy86042trGlyLgPUI2ZQe9DA/view?usp=drivesdk"
+    },
+    {
+      "seq": "8",
+      "tempo": "1 x 20\"",
+      "exercicio": "Suspensão de quadril",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/17_6LbWINz_0VXvqeUc3wPijbczM_jP87/view?usp=drive_link"
+    },
+    {
+      "seq": "Mobilidade",
+      "tempo": "1 x 10 Reps",
+      "exercicio": "Mobilização oscilatória Tornozelo (DIAS DE MMII)",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1qEdANDsZDHrUhCYhXOWYKz2f6h83HyM9/view?usp=drivesdk"
+    },
+    {
+      "seq": "Mobilidade",
+      "tempo": "1 x 10 REPS",
+      "exercicio": "Mobilização oscilatória Camelo - Gato (DIAS DE MMSS)",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/13umy1ZabGgtiN11WGqrayDYv1YM3L_Jh/view?usp=drivesdk"
+    }
+  ],
+  "manobras": [
+    {
+      "seq": "1",
+      "series": "4 x 30 Seg",
+      "exercicio": "Manobra do Bracing (TODOS OS DIAS)",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1dwznWzGAIEdjuB3xF9SqJiDFV77DmY3F/view?usp=drive_link"
+    },
+    {
+      "seq": "2",
+      "series": "2 x 30 Seg",
+      "exercicio": "Superman (TODOS OS DIAS)",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1WysWuxFCT7827hDVygin5BdLWa4UZXEf/view?usp=drive_link"
+    }
+  ],
+  "treinos": [
+    {
+      "identificador": "TREINO 1 E 3",
+      "dias_e_foco": "Segunda e Quarta-feira (MMII Completo)",
+      "aquecimento": [
+        {
+          "nome": "Elevação pélvica solo c/ band e step",
+          "reps": "2 x 15 REPS | Cadência 3:3",
+          "video": "https://drive.google.com/file/d/1Nv08pboATRHk-AxvSCEfIStGfxysJFnI/view?usp=drivesdk"
+        }
+      ],
+      "exercicios": [
+        {
+          "seq": "1°",
+          "nome": "Molusco",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1rY-ao8jP0WZ9kAT2QwdUaQ7DYTVc0FFt/view?usp=drivesdk"
+        },
+        {
+          "seq": "1°",
+          "nome": "Supersérie Agachamento halter baixo | Base projeção",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1mMfg3qZI-qyQJ7svMu4Yt7m7FoDqln_0/view?usp=drivesdk"
+        },
+        {
+          "seq": "2°",
+          "nome": "Passada alternada para trás",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/19ZZfd4OlrvmvzXI_sZNUH0txSYJrvuEH/view?usp=drivesdk"
+        },
+        {
+          "seq": "2°",
+          "nome": "(após 6 semanas realizar afundo halter)",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1XV8gnsYzL_7-dWuhM1ZNo4jwu4YIvW8M/view?usp=drivesdk"
+        },
+        {
+          "seq": "3°",
+          "nome": "Leg 45° (carrinho) | Base projeção",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1vF8FAypaGj2LWbxDlVQvShC3u7ZtS5Gi/view?usp=drivesdk"
+        },
+        {
+          "seq": "4°",
+          "nome": "Stiff halter",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1pf6DAgg7JJ5pmfbk2vGom4IaTOz-d6C8/view?usp=drivesdk"
+        },
+        {
+          "seq": "4°",
+          "nome": "(após 6 semanas realizar Stiff dois halteres)",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1uTEfWhuwU4HAfhox-63EJs1nfW8T2YdH/view?usp=drivesdk"
+        },
+        {
+          "seq": "4°",
+          "nome": "Pós exaustão Frog pump",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1chia_nnuWcojHcps4a7oqwfmDYyr0SCL/view?usp=drivesdk"
+        },
+        {
+          "seq": "5°",
+          "nome": "Posterior bilateral no banco",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1tppCKyscooMvPFF6ZIq9Qk28PegRei5X/view?usp=drivesdk"
+        }
+      ],
+      "aerobio": [
+        {
+          "nome": "Livre",
+          "duracao": "15 a 20'"
+        }
+      ],
+      "relaxamento": [
+        {
+          "nome": "Borboletão deitado",
+          "reps": "1 x 40\"",
+          "video": "https://drive.google.com/file/d/1_SUyujWEWtKmREISq3XRhv6DsjznaWRo/view?usp=drivesdk"
+        }
+      ]
+    },
+    {
+      "identificador": "TREINO 2 E 4",
+      "dias_e_foco": "Terça-Feira e Quinta-Feira (MMSS Completo e Panturrilha)",
+      "aquecimento": [
+        {
+          "nome": "Flexão 30° no Smith",
+          "reps": "2 x 15 REPS | Cadência 3:3",
+          "video": "https://drive.google.com/file/d/11lQFO1MzN3VOBzkXtaxYL2V7IRNOhAHe/view?usp=drivesdk"
+        }
+      ],
+      "exercicios": [
+        {
+          "seq": "1°",
+          "nome": "Trapézio inferior de 0° a 90°",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1tzohWvdwkdcigHEzU8S8QjhOUWzxdR3v/view?usp=drivesdk"
+        },
+        {
+          "seq": "1°",
+          "nome": "Supersérie Remada invertida no smith",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/17vL-ccwm7d7LGKFvZOky1nnqzzLCoFR7/view?usp=drivesdk"
+        },
+        {
+          "seq": "1°",
+          "nome": "(após 4 semanas realizar Remada art. neutra cabo)",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1jdYjAogPJSRT5Vjc0RGpqSUrnU2doZ_R/view?usp=drivesdk"
+        },
+        {
+          "seq": "2°",
+          "nome": "Adução escapular banco 30°",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/113vVjJCVzgCLST01G7BSEMOmz6rPduAK/view?usp=drivesdk"
+        },
+        {
+          "seq": "2°",
+          "nome": "(após 4 semanas realizar Remada neutra polia)",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1uwop6V4NJGRVt8Y150bL_HHWlc-Ofwz-/view?usp=drivesdk"
+        },
+        {
+          "seq": "2°",
+          "nome": "Supersérie Supino inclinado banco 30° halter",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1df224WPtEE2EYKjnoIjOsdHeKxUKg7--/view?usp=drivesdk"
+        },
+        {
+          "seq": "3°",
+          "nome": "Puxada vertical fechada",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/113dm6KX0EI-qOwp70Y8HH0x3TcSzPXWn/view?usp=drivesdk"
+        },
+        {
+          "seq": "4°",
+          "nome": "Desenvolvimento halter banco 60°",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1gQ5LqrzNJ07YgZfazuLOPo2uUQftUbqM/view?usp=drivesdk"
+        },
+        {
+          "seq": "5°",
+          "nome": "Elevação lateral banco 30°",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1e_sCphSe2k_eCVPrzAdRvlNrqKTSgoxJ/view?usp=drivesdk"
+        },
+        {
+          "seq": "5°",
+          "nome": "(após 6 semanas realizar Elevação lateral halter P/E)",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1_00CV61kUXEtqyzqVFlvOjdBr_LlplZB/view?usp=drivesdk"
+        },
+        {
+          "seq": "6°",
+          "nome": "Rosca neutra halter",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1-X8uO0jk_Rq6YJ2N9gFuH8myGdUzJXJy/view?usp=drivesdk"
+        },
+        {
+          "seq": "6°",
+          "nome": "Supersérie Tríceps testa solo",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1-kKlOzc1vKtbSIR_0yeAoqOtqQD23Nad/view?usp=drivesdk"
+        }
+      ],
+      "aerobio": [
+        {
+          "nome": "Livre",
+          "duracao": "15 a 20'"
+        }
+      ],
+      "relaxamento": [
+        {
+          "nome": "Suspensão de quadril frente",
+          "reps": "1 x 40\"",
+          "video": "https://drive.google.com/file/d/1A5HhgvtlXzuWEu16YC1LaIqhZCqJdEpc/view?usp=drivesdk"
+        }
+      ]
+    },
+    {
+      "identificador": "TREINO 5",
+      "dias_e_foco": "Sexta-feira (Glúteos e Coxas)",
+      "aquecimento": [
+        {
+          "nome": "Frog pump",
+          "reps": "2 x 15 REPS | Cadência 3:3",
+          "video": "https://drive.google.com/file/d/1chia_nnuWcojHcps4a7oqwfmDYyr0SCL/view?usp=drivesdk"
+        }
+      ],
+      "exercicios": [
+        {
+          "seq": "1°",
+          "nome": "Cadeira abdutora 90°",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1458iUDZMSZbzv22Gd9Gg-6TxMallN1g1/view?usp=drivesdk"
+        },
+        {
+          "seq": "1°",
+          "nome": "(após 6 semanas realizar Abdução de quadril 45° solo)",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1XI9k-NL4zjJ5JW1RXWUQFiFdVJaEXkhv/view?usp=drivesdk"
+        },
+        {
+          "seq": "2°",
+          "nome": "Posterior na polia",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1F4csY755z8N3jHdzeL6N09R7Rl_KEML8/view?usp=drivesdk"
+        },
+        {
+          "seq": "2°",
+          "nome": "(após 4 semanas realizar Elevação pélvica banco c/ band)",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/13iUIbhBAXbaMmyhq1nUS2Fv_wtGYf-io/view?usp=drivesdk"
+        },
+        {
+          "seq": "3°",
+          "nome": "Posterior pés no banco",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1tppCKyscooMvPFF6ZIq9Qk28PegRei5X/view?usp=drivesdk"
+        },
+        {
+          "seq": "3°",
+          "nome": "Supersérie Leg press 45° (carrinho) | Base projeção",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1vF8FAypaGj2LWbxDlVQvShC3u7ZtS5Gi/view?usp=drivesdk"
+        },
+        {
+          "seq": "4°",
+          "nome": "Cadeira flexora",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1-vbgs4y7vgb0m7FVb2Owm64spRV33JtR/view?usp=drivesdk"
+        },
+        {
+          "seq": "4°",
+          "nome": "Supersérie Hack 45° invertido | Base projeção",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1pD7yF_yYxAUP3sHnYxydJk0QiogxLjXl/view?usp=drivesdk"
+        },
+        {
+          "seq": "5°",
+          "nome": "Panturrilha smith solo",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1tddLFeI9y36jCLFCzhtf6qEtQrmu6Bw5/view?usp=drivesdk"
+        },
+        {
+          "seq": "6°",
+          "nome": "Panturrilha máquina",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1BTmG5CYqqIFEuzbsrT4FEXF3nOgP9Da8/view?usp=drivesdk"
+        }
+      ],
+      "aerobio": [
+        {
+          "nome": "Livre",
+          "duracao": "15 a 20'"
+        }
+      ],
+      "relaxamento": [
+        {
+          "nome": "Borboletão deitado",
+          "reps": "1 x 40\"",
+          "video": "https://drive.google.com/file/d/1_SUyujWEWtKmREISq3XRhv6DsjznaWRo/view?usp=drivesdk"
+        }
+      ]
+    }
+  ]
+}

@@ -891,6 +891,7 @@
             const aLines = pageAlong.split("\n").map(l => l.trim()).filter(l => l.length > 0);
             let i = 0;
             let phase = "along"; // começa em alongamentos
+            let seenMobilidade = false;
             while (i < aLines.length) {
                 let line = aLines[i];
                 // Detecta fim das seções de interesse
@@ -930,17 +931,23 @@
                             cur.lines.push(eline);
                         }
 
+                        // Transiciona para manobras quando encontra numero apos Mobilidade
+                        if (seenMobilidade && /^\d+$/.test(seq) && phase === "along") {
+                            phase = "manobras";
+                        }
+
                         subExercicios.forEach((sub, si) => {
                             let nome = sub.lines.join(" ").trim();
                             if (!nome) return;
                             let exercicio = sub.tipo ? sub.tipo + " " + nome : nome;
                             if (phase === "along") {
                                 data.alongamentos.push({ seq: si === 0 ? seq : "", tempo: si === 0 ? tempo : "", exercicio, isSubExercise: si > 0 });
-                                if (/^Mobilidade$/i.test(seq)) { phase = "manobras"; }
                             } else {
                                 data.manobras.push({ seq: si === 0 ? seq : "", series: si === 0 ? tempo : "", exercicio, isSubExercise: si > 0 });
                             }
                         });
+
+                        if (/^Mobilidade$/i.test(seq)) { seenMobilidade = true; }
                         i = j;
                     } else {
                         i++;
@@ -990,6 +997,7 @@
                     if (/^[A-Za-z0-9]$/.test(l)) { continue; } // caractere isolado (letra ou dígito de logo)
                     if (/^([A-Za-z]\s){3,}[A-Za-z]?$/.test(l)) { continue; } // letras espaçadas (logo tipo "c o n s u l t o r i a")
                     if (/^(our\s+Fit|Four\s*Fit|consultoria|Roberto\s+Oliveira)$/i.test(l)) { continue; } // nomes de marca/treinador
+                    if (/^\(após\s/i.test(l)) { continue; } // notas tipo "(após 4 semanas adicionar carga)"
                     // Captura info de reps/cadência (ex: "2 x 15 REPS | Cadência 3:3")
                     if (/^\d+\s*x\s*\d+\s*REPS/i.test(l)) {
                         // Junta com próxima linha se for continuação de cadência
@@ -1241,6 +1249,8 @@
                 let falha = '';
                 if (descansoIdx >= 0 && descansoIdx + 1 < remaining.length) {
                     falha = remaining.slice(descansoIdx + 1).join(' ').trim();
+                    // Corrige palavras quebradas pelo PDF.js (ex: "Concêntr ica" → "Concêntrica")
+                    falha = falha.replace(/(\w)\s+(ica)\b/g, '$1$2');
                 }
 
                 data.periodizacao.push({
@@ -1424,14 +1434,18 @@
                     if (/^\(após\s+\d+\s+semanas/i.test(jsonData.alongamentos[ai + 1 + si].exercicio)) { hasReplacement = true; }
                 }
                 let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
+                let bodyTypeAttr = '';
+                if (/DIAS DE MMII/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
+                else if (/DIAS DE MMSS/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
+
                 let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
-                html += `<tr${mainAttrs}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.tempo}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
+                html += `<tr${mainAttrs}${bodyTypeAttr}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.tempo}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
                 for (let si = 0; si < subCount; si++) {
                     let sub = jsonData.alongamentos[ai + 1 + si];
                     let subBtn = sub.video ? `<a href="${sub.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
                     let afterMatch = sub.exercicio.match(/^\(após\s+(\d+)\s+semanas/i);
                     let afterAttr = afterMatch ? ` data-after-weeks="${afterMatch[1]}"` : '';
-                    html += `<tr${afterAttr}><td>${sub.exercicio}</td><td style="text-align:center;">${subBtn}</td></tr>`;
+                    html += `<tr${afterAttr}${bodyTypeAttr}><td>${sub.exercicio}</td><td style="text-align:center;">${subBtn}</td></tr>`;
                 }
                 ai += 1 + subCount;
             }

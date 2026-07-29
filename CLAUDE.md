@@ -130,7 +130,7 @@ Duas logicas independentes aplicadas em sequencia:
 
 2. **applyBodyTypeDimming()** - baseado no tipo do treino do dia:
    - Detecta se hoje e MMII ou MMSS pelo `dias_e_foco` que casa com o dia da semana
-   - `data-body-type="mmii"` ou `"mmss"` nas manobras: dim se nao casa com o tipo do dia
+   - `data-body-type="mmii"` ou `"mmss"` em alongamentos e manobras com "(DIAS DE MMII/MMSS)": dim se nao casa com o tipo do dia
    - Sem dias da semana (ex: Daniel Alves): nenhum dimming aplicado (tudo visivel)
    - Respeita o dimming de semanas: nao remove exercise-dimmed se after-weeks ou has-replacement esta ativo
 
