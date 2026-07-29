@@ -363,6 +363,9 @@
             color: #555;
         }
         tr[data-has-replacement].exercise-dimmed td[rowspan] {
+            color: #555 !important;
+        }
+        tr[data-has-replacement].exercise-dimmed.dimmed-by-weeks td[rowspan] {
             color: inherit !important;
         }
     </style>
@@ -406,7 +409,7 @@
 
 <script>
     // Para testes: setar diaSemana = 'quarta' (ou segunda, terca, quinta, sexta, sabado, domingo)
-    var diaSemana = 'terca';
+    var diaSemana = null;
 
     function showErrorPopup(title, details) {
         var existing = document.querySelector('.error-popup-overlay');
@@ -590,13 +593,13 @@
                 // Passou o threshold: dim o main + peso do main, mostrar o replacement
                 row.classList.remove('exercise-dimmed');
                 if (afterWeightRow) afterWeightRow.classList.remove('exercise-dimmed');
-                if (mainRow) mainRow.classList.add('exercise-dimmed');
+                if (mainRow) { mainRow.classList.add('exercise-dimmed'); mainRow.classList.add('dimmed-by-weeks'); }
                 if (mainWeightRow) mainWeightRow.classList.add('exercise-dimmed');
             } else {
                 // Antes do threshold: dim o replacement + peso, mostrar o main
                 row.classList.add('exercise-dimmed');
                 if (afterWeightRow) afterWeightRow.classList.add('exercise-dimmed');
-                if (mainRow) mainRow.classList.remove('exercise-dimmed');
+                if (mainRow) { mainRow.classList.remove('exercise-dimmed'); mainRow.classList.remove('dimmed-by-weeks'); }
                 if (mainWeightRow) mainWeightRow.classList.remove('exercise-dimmed');
             }
         });
