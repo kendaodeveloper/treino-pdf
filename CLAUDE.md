@@ -10,17 +10,16 @@ Single-page app (index.html, ~1600 linhas) que importa PDFs de treino da consult
 
 ## Estrutura do arquivo index.html
 
-```
-Linhas ~1-360     CSS (estilos inline no <style>)
-Linhas ~360-410   HTML (estrutura basica, input file, botoes)
-Linhas ~410-520   JS: funcoes auxiliares (localStorage, anotacoes, pesos, semanas)
-Linhas ~520-600   JS: applyBodyTypeDimming(), applyExerciseDimming(), load do localStorage
-Linhas ~600-680   JS: processarPDF() - extrai texto e links do PDF via PDF.js
-Linhas ~680-750   JS: findTextY(), findVideoByPosition() - associacao de videos por posicao Y
-Linhas ~750-1150  JS: parseWorkoutTextByBlocks() - parser generico do PDF
-Linhas ~1150-1250 JS: toggleSection(), getDayOfWeek(), applySectionVisibility()
-Linhas ~1250-1620 JS: renderWorkoutVisual() - renderiza todo o HTML do dashboard
-```
+Tudo em um unico arquivo. Ordem no codigo:
+1. CSS (estilos inline no `<style>`)
+2. HTML (estrutura basica, input file, botoes)
+3. JS: `diaSemana` (var de teste), `showErrorPopup`, helpers de localStorage/anotacoes/pesos/semanas
+4. JS: `applyBodyTypeDimming()`, `applyExerciseDimming()`, load do localStorage
+5. JS: `processarPDF()` - extrai texto e links do PDF via PDF.js
+6. JS: `findTextY()`, `findVideoByPosition()` - associacao de videos por posicao Y
+7. JS: `parseWorkoutTextByBlocks()` - parser generico do PDF
+8. JS: `toggleSection()`, `getDayOfWeek()`, `applySectionVisibility()`
+9. JS: `renderWorkoutVisual()` - renderiza todo o HTML do dashboard
 
 ## Fluxo de dados
 
