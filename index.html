@@ -352,6 +352,16 @@
         .exercise-dimmed td a {
             opacity: 0.4;
         }
+        .exercise-dimmed .reps-row {
+            opacity: 0.35;
+        }
+        .exercise-dimmed .reps-row select {
+            color: #555;
+            border-color: #1a1a2e;
+        }
+        .exercise-dimmed .reps-row label {
+            color: #555;
+        }
         tr[data-has-replacement].exercise-dimmed td[rowspan] {
             color: inherit !important;
         }
@@ -470,6 +480,7 @@
         a.semanaAtual = weekNum;
         saveAnotacoes(a);
         applyExerciseDimming();
+        applyBodyTypeDimming();
         // Update semanas section title with current week
         var semanas = document.getElementById('section-semanas');
         if (semanas) {
@@ -505,23 +516,83 @@
         saveAnotacoes(a);
     }
 
+    function applyBodyTypeDimming() {
+        // Detecta o tipo do treino do dia (MMII ou MMSS) pelo treino aberto/destacado
+        var todayType = null;
+        var treinoCards = document.querySelectorAll('.section-card[data-dias-foco]');
+        treinoCards.forEach(function(card) {
+            var dias = card.getAttribute('data-dias-foco');
+            if (treinoMatchesToday(dias)) {
+                var diasLower = dias.toLowerCase();
+                if (/mmii|completo|perna/i.test(diasLower)) {
+                    todayType = 'mmii';
+                } else {
+                    todayType = 'mmss';
+                }
+            }
+        });
+
+        var currentWeek = getCurrentWeek();
+        document.querySelectorAll('[data-body-type]').forEach(function(row) {
+            var bodyType = row.getAttribute('data-body-type');
+
+            // Não desfazer dimming de "após X semanas" (sub que ainda não chegou)
+            var afterWeeks = row.getAttribute('data-after-weeks');
+            if (afterWeeks && currentWeek <= parseInt(afterWeeks)) {
+                row.classList.add('exercise-dimmed');
+                return;
+            }
+
+            // Não desfazer dimming de main com replacement ativo (semana já passou)
+            if (row.hasAttribute('data-has-replacement')) {
+                // Procura o sub "(após X semanas)" dentro do mesmo tbody
+                var tbody = row.closest('tbody');
+                if (tbody) {
+                    var afterRow = tbody.querySelector('[data-after-weeks]');
+                    if (afterRow) {
+                        var aw = parseInt(afterRow.getAttribute('data-after-weeks'));
+                        if (currentWeek > aw) {
+                            row.classList.add('exercise-dimmed');
+                            return;
+                        }
+                    }
+                }
+            }
+
+            if (todayType && bodyType !== todayType) {
+                row.classList.add('exercise-dimmed');
+            } else {
+                row.classList.remove('exercise-dimmed');
+            }
+        });
+    }
+
     function applyExerciseDimming() {
         var currentWeek = getCurrentWeek();
         document.querySelectorAll('[data-after-weeks]').forEach(function(row) {
             var afterWeek = parseInt(row.getAttribute('data-after-weeks'));
-            // Find the main row (walk back to the row with data-has-replacement)
+            var afterWeightRow = row.nextElementSibling; // linha de peso do sub "(após...)"
+
+            // Acha o main row (volta até achar data-has-replacement)
             var mainRow = row.previousElementSibling;
             while (mainRow && !mainRow.hasAttribute('data-has-replacement')) {
                 mainRow = mainRow.previousElementSibling;
             }
+            // Linha de peso do main é o próximo sibling do mainRow
+            var mainWeightRow = mainRow ? mainRow.nextElementSibling : null;
+
             if (currentWeek > afterWeek) {
-                // Past the threshold: dim the main exercise, show the replacement
+                // Passou o threshold: dim o main + peso do main, mostrar o replacement
                 row.classList.remove('exercise-dimmed');
-                if (mainRow) { mainRow.classList.add('exercise-dimmed'); }
+                if (afterWeightRow) afterWeightRow.classList.remove('exercise-dimmed');
+                if (mainRow) mainRow.classList.add('exercise-dimmed');
+                if (mainWeightRow) mainWeightRow.classList.add('exercise-dimmed');
             } else {
-                // Before threshold: dim the replacement, show the main
+                // Antes do threshold: dim o replacement + peso, mostrar o main
                 row.classList.add('exercise-dimmed');
-                if (mainRow) { mainRow.classList.remove('exercise-dimmed'); }
+                if (afterWeightRow) afterWeightRow.classList.add('exercise-dimmed');
+                if (mainRow) mainRow.classList.remove('exercise-dimmed');
+                if (mainWeightRow) mainWeightRow.classList.remove('exercise-dimmed');
             }
         });
     }
@@ -1379,14 +1450,19 @@
                     if (/^\(após\s+\d+\s+semanas/i.test(jsonData.manobras[mi + 1 + si].exercicio)) { hasReplacement = true; }
                 }
                 let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
+                // Detecta se a manobra é específica para MMII ou MMSS
+                let bodyTypeAttr = '';
+                if (/DIAS DE MMII/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
+                else if (/DIAS DE MMSS/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
+
                 let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
-                html += `<tr${mainAttrs}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.series}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
+                html += `<tr${mainAttrs}${bodyTypeAttr}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.series}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
                 for (let si = 0; si < subCount; si++) {
                     let sub = jsonData.manobras[mi + 1 + si];
                     let subBtn = sub.video ? `<a href="${sub.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
                     let afterMatch = sub.exercicio.match(/^\(após\s+(\d+)\s+semanas/i);
                     let afterAttr = afterMatch ? ` data-after-weeks="${afterMatch[1]}"` : '';
-                    html += `<tr${afterAttr}><td>${sub.exercicio}</td><td style="text-align:center;">${subBtn}</td></tr>`;
+                    html += `<tr${afterAttr}${bodyTypeAttr}><td>${sub.exercicio}</td><td style="text-align:center;">${subBtn}</td></tr>`;
                 }
                 mi += 1 + subCount;
             }
@@ -1430,6 +1506,23 @@
             let ei = 0;
             let seqGroupIdx = 0;
             let anotacoes = loadAnotacoes();
+
+            function buildWeightRow(obsKey, colspan) {
+                let pesos = (anotacoes.pesos && anotacoes.pesos[obsKey]) || {};
+                let repsArr = ['15', '12', '10', '8', '6'];
+                let cs = colspan || 3;
+                let repsCols = repsArr.map(r => {
+                    let savedVal = pesos[r] || '';
+                    let opts = '<option value="">-</option>';
+                    for (let w = 1; w <= 500; w++) {
+                        let selected = (String(w) === String(savedVal)) ? ' selected' : '';
+                        opts += `<option value="${w}"${selected}>${w}kg</option>`;
+                    }
+                    return `<div class="reps-col"><label>${r} reps</label><select onchange="onWeightChange('${obsKey}','${r}',this.value)">${opts}</select></div>`;
+                }).join('');
+                return `<tr><td colspan="${cs}" style="padding: 4px 6px;"><div class="reps-row">${repsCols}</div></td></tr>`;
+            }
+
             while (ei < treino.exercicios.length) {
                 let ex = treino.exercicios[ei];
                 let nome = typeof ex === "object" ? ex.nome : ex;
@@ -1447,41 +1540,39 @@
                     if (/^\(após\s+\d+\s+semanas/i.test(subNome)) { hasReplacement = true; }
                 }
 
-                let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
+                let totalRows = 2 + subCount * 2 + (showObsFields ? 1 : 0);
+                let rowspan = ` rowspan="${totalRows}" style="vertical-align:middle;"`;
                 let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
                 html += `<tbody class="exercise-group">`;
                 html += `<tr${mainAttrs}><td${rowspan}>${seq}</td><td>${nome}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
-                // Sub-exercícios (sem célula de ordem)
+
+                // Linhas internas usam colspan 2 (coluna seq ocupada pelo rowspan)
+                let innerColspan = 2;
+
+                // Peso do exercício principal
+                let mainObsKey = `treino-${treinoIdx + 1}-ex-${seqGroupIdx + 1}`;
+                html += buildWeightRow(mainObsKey, innerColspan);
+
+                // Sub-exercícios com seus próprios pesos
                 for (let si = 0; si < subCount; si++) {
                     let sub = treino.exercicios[ei + 1 + si];
                     let subNome = typeof sub === "object" ? sub.nome : sub;
                     let subVideo = (typeof sub === "object") ? sub.video : null;
                     let subBtn = subVideo ? `<a href="${subVideo}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
-                    // Detect "(após X semanas ...)"
                     let afterMatch = subNome.match(/^\(após\s+(\d+)\s+semanas/i);
                     let afterAttr = afterMatch ? ` data-after-weeks="${afterMatch[1]}"` : '';
                     html += `<tr${afterAttr}><td>${subNome}</td><td style="text-align:center;">${subBtn}</td></tr>`;
+
+                    // Peso do sub-exercício
+                    let subObsKey = `treino-${treinoIdx + 1}-ex-${seqGroupIdx + 1}-sub-${si + 1}`;
+                    html += buildWeightRow(subObsKey, innerColspan);
                 }
 
-                // Reps/weight row per exercise group
-                let obsKey = `treino-${treinoIdx + 1}-ex-${seqGroupIdx + 1}`;
-                let pesos = (anotacoes.pesos && anotacoes.pesos[obsKey]) || {};
-                let repsArr = ['15', '12', '10', '8', '6'];
-                let repsCols = repsArr.map(r => {
-                    let savedVal = pesos[r] || '';
-                    let opts = '<option value="">-</option>';
-                    for (let w = 1; w <= 500; w++) {
-                        let selected = (String(w) === String(savedVal)) ? ' selected' : '';
-                        opts += `<option value="${w}"${selected}>${w}kg</option>`;
-                    }
-                    return `<div class="reps-col"><label>${r} reps</label><select onchange="onWeightChange('${obsKey}','${r}',this.value)">${opts}</select></div>`;
-                }).join('');
+                // Observação do grupo (se habilitado)
                 if (showObsFields) {
-                    let obsValue = anotacoes.obs[obsKey] || '';
+                    let obsValue = anotacoes.obs[mainObsKey] || '';
                     let escapedObs = obsValue.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-                    html += `<tr><td colspan="3" style="padding: 4px 6px;"><div class="reps-row">${repsCols}</div><textarea class="obs-field" placeholder="Adicionar Observação..." oninput="onObsChange('${obsKey}', this.value)">${escapedObs}</textarea></td></tr>`;
-                } else {
-                    html += `<tr><td colspan="3" style="padding: 4px 6px;"><div class="reps-row">${repsCols}</div></td></tr>`;
+                    html += `<tr><td colspan="${innerColspan}" style="padding: 4px 6px;"><textarea class="obs-field" placeholder="Adicionar Observação..." oninput="onObsChange('${mainObsKey}', this.value)">${escapedObs}</textarea></td></tr>`;
                 }
                 html += `</tbody>`;
 
@@ -1525,6 +1616,7 @@
         visualOutput.innerHTML = html;
         applySectionVisibility(isFromStorage);
         applyExerciseDimming();
+        applyBodyTypeDimming();
     }
 </script>
 
