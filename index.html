@@ -901,7 +901,7 @@
                     let seq = line;
                     // Próxima linha: tempo/séries (contém "x" e número)
                     if (i + 1 < aLines.length && /\d+\s*[xX]\s*\d+/i.test(aLines[i + 1])) {
-                        let tempo = aLines[i + 1];
+                        let tempo = aLines[i + 1].replace(/[\u201C\u201D\u201E\u201F]/g, '"').replace(/\s+"/g, '"');
                         // Coleta linhas do exercício até próxima seq ou seção
                         let exLines = [];
                         let j = i + 2;
@@ -1064,6 +1064,15 @@
                             continue;
                         }
                         relaxLines.push({ nome: l });
+                    }
+                    // Junta fragmentos curtos (ex: "Ca" + "deia posterior" → "Cadeia posterior")
+                    for (let ri = 0; ri < relaxLines.length - 1; ri++) {
+                        if (relaxLines[ri].nome.length <= 3 && !relaxLines[ri].reps) {
+                            relaxLines[ri + 1].nome = relaxLines[ri].nome + relaxLines[ri + 1].nome;
+                            if (relaxLines[ri].video) relaxLines[ri + 1].video = relaxLines[ri].video;
+                            relaxLines.splice(ri, 1);
+                            ri--;
+                        }
                     }
                     relaxamento = relaxLines;
                     break;
