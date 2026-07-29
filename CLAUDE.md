@@ -77,7 +77,9 @@ Para na tabela de RM (linhas com "X%" ou "X RM") para nao poluir a ultima semana
 ### Treinos (paginas com "EXERCICIOS")
 Cada pagina de treino contem: WARM UP, EXERCICIOS, AEROBIO, RELAXAMENTO.
 - Identificador: "TREINO N" ou "TREINO N E M"
-- dias_e_foco: detecta dias da semana, "Caso treinar mais de Xx", ou foco entre parenteses no relaxamento (ex: "(Dorsais, Deltoide e Biceps)", "(MMII Completo)")
+- dias_e_foco: detecta dias da semana, "Caso treinar..."/"Treino extra caso...", ou foco entre parenteses no relaxamento (ex: "(Dorsais, Deltoide e Biceps)", "(MMII Completo)")
+- Warmup: filtra "(apos...)" como notas, "Superserie" isolado eh prefixado na proxima linha
+- Aerobio: texto entre parenteses juntado com exercicio anterior (ex: "Livre (intensidade moderada a alta)")
 - Exercicios sao agrupados por seq (1°, 2°, ...) com sub-exercicios:
   - **Superserie**: prefixo "Superserie" no nome
   - **Pos exaustao**: prefixo "Pos exaustao" ou "Pos-exaustao" (com hifen) no nome
@@ -90,6 +92,7 @@ Cada pagina de treino contem: WARM UP, EXERCICIOS, AEROBIO, RELAXAMENTO.
 3. Remove o link apos uso (splice) para nao reusar
 4. **Ordem de prioridade**: exercicios primeiro, depois warmup/aerobio/relaxamento (evita que aerobio "roube" links de exercicios)
 5. findTextY busca: substring completa -> primeiros 15 chars -> fallback por palavras (pontua por quantidade de matches)
+6. warmup/aerobio/relaxamento: se nome com prefixo (Superserie/Pos exaustao/Biset) nao encontra, tenta sem prefixo
 
 ## Persistencia (localStorage)
 
@@ -161,6 +164,7 @@ Fragmentos de logo/marca sao filtrados no warmup parser:
 - `Consultoria Laryssa Siena.pdf` - 3 treinos (1E3, 2E4, 5), mobilidade dupla (MMII + MMSS)
 - `Treino 2 - Consultoria Talita Alves.pdf` - 5 treinos, relaxamento com fragmento curto ("Ca"+"deia")
 - `Consultoria Bianca Vitalino.pdf` - 3 treinos, "DIAS DOS MMII/MMSS" (com "DOS"), objetivo com "cargas"
+- `Treino 2 - Consultoria Carolina Vanzolini.pdf` - 4 treinos, aerobio com "(intensidade...)", warmup com Superserie isolado, "(MMII)"/"(MMSS)" sem "DIAS DE"
 - `kenneth-ok.json` e `lucas-paim-ok.json` - JSONs de referencia para validacao
 
 ## Debug

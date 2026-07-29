@@ -612,6 +612,7 @@
         if (saved) {
             try {
                 var jsonData = JSON.parse(saved);
+                console.log('--- Dados parseados ---');
                 console.log(JSON.stringify(jsonData, null, 2));
                 renderWorkoutVisual(jsonData, true);
                 showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
@@ -725,9 +726,9 @@
             const parsedTrainingData = parseWorkoutTextByBlocks(fullText, pageData);
 
             // NÃO REMOVER ESSES LOGS!
-            // console.log('--- fullText completo ---');
-            // console.log(fullText);
-            // console.log('--- Dados parseados ---');
+            console.log('--- fullText completo ---');
+            console.log(fullText);
+            console.log('--- Dados parseados ---');
             console.log(JSON.stringify(parsedTrainingData, null, 2));
 
             // Salva no localStorage com tratamento de quota
@@ -978,9 +979,9 @@
             let diasFoco = "";
             const diasRegex = p.match(/(?:Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)[^\n]*/i);
             if (diasRegex) { diasFoco = diasRegex[0].trim(); }
-            // Fallback: "Caso treinar mais de Xx na semana (foco)"
+            // Fallback: "Caso treinar..." ou "Treino extra caso..."
             if (!diasFoco) {
-                const casoRegex = p.match(/Caso\s+treinar[^\n]*/i);
+                const casoRegex = p.match(/(?:Caso\s+treinar|Treino\s+extra\s+caso)[^\n]*/i);
                 if (casoRegex) { diasFoco = casoRegex[0].trim(); }
             }
 
@@ -998,6 +999,17 @@
                     if (/^([A-Za-z]\s){3,}[A-Za-z]?$/.test(l)) { continue; } // letras espaçadas (logo tipo "c o n s u l t o r i a")
                     if (/^(our\s+Fit|Four\s*Fit|consultoria|Roberto\s+Oliveira)$/i.test(l)) { continue; } // nomes de marca/treinador
                     if (/^\(após\s/i.test(l)) { continue; } // notas tipo "(após 4 semanas adicionar carga)"
+                    // "Supersérie" isolado: prefixar na próxima linha do warmup
+                    if (/^(Supersérie|Pós[- ]exaustão|Biset)$/i.test(l)) {
+                        if (i + 1 < linhas.length) {
+                            // Pula - será juntado quando a próxima linha for processada
+                            let nextLine = linhas[i + 1];
+                            if (!/^(SQ|EXERCÍCIOS|AERÓBIO|RELAXAMENTO|TREINO)/i.test(nextLine)) {
+                                linhas[i + 1] = l + ' ' + nextLine;
+                            }
+                        }
+                        continue;
+                    }
                     // Captura info de reps/cadência (ex: "2 x 15 REPS | Cadência 3:3")
                     if (/^\d+\s*x\s*\d+\s*REPS/i.test(l)) {
                         // Junta com próxima linha se for continuação de cadência
@@ -1031,6 +1043,11 @@
                         if (aeroLines.length > 0) {
                             aeroLines[aeroLines.length - 1].duracao = l;
                         }
+                        continue;
+                    }
+                    // Texto entre parênteses (ex: "(intensidade moderada a alta)") — junta com exercício anterior
+                    if (/^\(/.test(l) && aeroLines.length > 0) {
+                        aeroLines[aeroLines.length - 1].nome += ' ' + l;
                         continue;
                     }
                     aeroLines.push({ nome: l });
@@ -1168,6 +1185,11 @@
                 let assignVideo = (item, nameField) => {
                     let nome = item[nameField || 'nome'];
                     let video = findVideoByPosition(nome, pageIdx, pageData);
+                    if (!video) {
+                        // Tenta sem prefixo (ex: "Supersérie Adutora 45°" → "Adutora 45°")
+                        let cleaned = nome.replace(/^(Supersérie|Pós[- ]exaustão|Biset)\s*/i, '');
+                        if (cleaned !== nome) video = findVideoByPosition(cleaned, pageIdx, pageData);
+                    }
                     return video ? { ...item, video } : item;
                 };
                 aquecimento = aquecimento.map(item => assignVideo(item));
@@ -1444,8 +1466,8 @@
                 }
                 let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
                 let bodyTypeAttr = '';
-                if (/DIAS D[EO]S? MMII/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
-                else if (/DIAS D[EO]S? MMSS/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
+                if (/(?:DIAS\s+D[EO]S?\s+)?(?:\(?\s*)MMII/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
+                else if (/(?:DIAS\s+D[EO]S?\s+)?(?:\(?\s*)MMSS/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
 
                 let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
                 html += `<tr${mainAttrs}${bodyTypeAttr}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.tempo}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
@@ -1486,8 +1508,8 @@
                 let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
                 // Detecta se a manobra é específica para MMII ou MMSS
                 let bodyTypeAttr = '';
-                if (/DIAS D[EO]S? MMII/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
-                else if (/DIAS D[EO]S? MMSS/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
+                if (/(?:DIAS\s+D[EO]S?\s+)?(?:\(?\s*)MMII/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
+                else if (/(?:DIAS\s+D[EO]S?\s+)?(?:\(?\s*)MMSS/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
 
                 let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
                 html += `<tr${mainAttrs}${bodyTypeAttr}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.series}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
