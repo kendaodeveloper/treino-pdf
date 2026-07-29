@@ -73,10 +73,10 @@ Para na tabela de RM (linhas com "X%" ou "X RM") para nao poluir a ultima semana
 ### Treinos (paginas com "EXERCICIOS")
 Cada pagina de treino contem: WARM UP, EXERCICIOS, AEROBIO, RELAXAMENTO.
 - Identificador: "TREINO N" ou "TREINO N E M"
-- dias_e_foco: detecta dias da semana ou "Caso treinar mais de Xx"
+- dias_e_foco: detecta dias da semana, "Caso treinar mais de Xx", ou foco entre parenteses no relaxamento (ex: "(Dorsais, Deltoide e Biceps)", "(MMII Completo)")
 - Exercicios sao agrupados por seq (1°, 2°, ...) com sub-exercicios:
   - **Superserie**: prefixo "Superserie" no nome
-  - **Pos exaustao**: prefixo "Pos exaustao" no nome
+  - **Pos exaustao**: prefixo "Pos exaustao" ou "Pos-exaustao" (com hifen) no nome
   - **Biset**: prefixo "Biset" (pode vir como linha separada ou mid-line)
   - **(apos X semanas ...)**: exercicio substituto apos N semanas
 
@@ -129,9 +129,14 @@ Duas logicas independentes aplicadas em sequencia:
    - Tambem dim/undim as weight rows adjacentes (nextElementSibling/previousElementSibling)
 
 2. **applyBodyTypeDimming()** - baseado no tipo do treino do dia:
-   - Detecta se hoje e MMII ou MMSS pelo `dias_e_foco` do treino que casa com o dia da semana
+   - Detecta se hoje e MMII ou MMSS pelo `dias_e_foco` que casa com o dia da semana
    - `data-body-type="mmii"` ou `"mmss"` nas manobras: dim se nao casa com o tipo do dia
+   - Sem dias da semana (ex: Daniel Alves): nenhum dimming aplicado (tudo visivel)
    - Respeita o dimming de semanas: nao remove exercise-dimmed se after-weeks ou has-replacement esta ativo
+
+### Headers dos treinos
+- Com dias da semana: "Segunda e Sexta-Feira\n(Dorsais, Deltoide e Biceps)"
+- Sem dias da semana: "TREINO 1\n(Dorsais, Deltoide e Biceps)" (prefixado com identificador)
 
 ### Auto-abertura de treinos
 - Ao carregar do localStorage: abre apenas o treino do dia (pela funcao treinoMatchesToday)
@@ -146,7 +151,8 @@ Fragmentos de logo/marca sao filtrados no warmup parser:
 
 ## PDFs de teste (pasta `teste/`)
 
-- `Treino - Kenneth.pdf` - 3 treinos (1E5, 2E4, 3), periodizacao com Forca Pura
+- `Treino - Kenneth.pdf` - 3 treinos (1E5, 2E4, 3), periodizacao com Forca Pura, tem dias da semana
+- `Consultoria 2 - Daniel Alves.pdf` - 3 treinos sem dias da semana (so foco), Pos-exaustao com hifen
 - `Consultoria - Lucas Paim.pdf` - 4 treinos (1, 2E5, 3, 4 alternativo), Biset
 - Outros PDFs para testes adicionais
 - `kenneth-ok.json` e `lucas-paim-ok.json` - JSONs de referencia para validacao

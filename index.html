@@ -725,9 +725,9 @@
             const parsedTrainingData = parseWorkoutTextByBlocks(fullText, pageData);
 
             // NÃO REMOVER ESSES LOGS!
-            console.log('--- fullText completo ---');
-            console.log(fullText);
-            console.log('--- Dados parseados ---');
+            // console.log('--- fullText completo ---');
+            // console.log(fullText);
+            // console.log('--- Dados parseados ---');
             console.log(JSON.stringify(parsedTrainingData, null, 2));
 
             // Salva no localStorage com tratamento de quota
@@ -915,7 +915,7 @@
                         let cur = subExercicios[0];
                         for (let el = 0; el < exLines.length; el++) {
                             let eline = exLines[el];
-                            let matchPfx = eline.match(/^(Supersérie|Pós exaustão|Biset)\s*(.*)/i);
+                            let matchPfx = eline.match(/^(Supersérie|Pós[- ]exaustão|Biset)\s*(.*)/i);
                             if (matchPfx) {
                                 cur = { lines: [], tipo: matchPfx[1] };
                                 if (matchPfx[2].trim()) { cur.lines.push(matchPfx[2].trim()); }
@@ -1042,6 +1042,12 @@
                         if (/(?:Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)/i.test(l)) { break; }
                         if (/^Caso\s/i.test(l)) { break; } // "Caso treinar mais de 3x..."
                         if (/^\d+°$/.test(l)) { continue; }
+                        // Foco entre parênteses sem "após" (ex: "(Dorsais, Deltoide e Bíceps)", "(MMII Completo)")
+                        // Captura como dias_e_foco se ainda não tiver
+                        if (/^\((?!após)/.test(l) && /(?:Dorsais|Peito|Deltoide|Bíceps|Tríceps|MMII|MMSS|Completo)/i.test(l)) {
+                            if (!diasFoco) { diasFoco = l; }
+                            break;
+                        }
                         // Reps info (ex: "1 x 40"")
                         if (/^\d+\s*x\s*\d+/i.test(l)) {
                             if (relaxLines.length > 0) {
@@ -1057,7 +1063,7 @@
             }
 
             // Exercícios — extrai do bloco entre "EXERCÍCIOS" e próxima seção
-            // Cada sequência (1°, 2°...) pode conter sub-exercícios separados por "Supersérie" ou "Pós exaustão"
+            // Cada sequência (1°, 2°...) pode conter sub-exercícios separados por "Supersérie" ou "Pós[- ]exaustão"
             let exercicios = [];
             let idxExerc = linhas.findIndex(l => l.toUpperCase() === "EXERCÍCIOS");
             if (idxExerc !== -1) {
@@ -1091,8 +1097,8 @@
 
                     for (let li = 0; li < group.length; li++) {
                         let line = group[li];
-                        // "Supersérie ..." ou "Pós exaustão ..." inicia novo sub-exercício
-                        let matchPrefix = line.match(/^(Supersérie|Pós exaustão|Biset)\s*(.*)/i);
+                        // "Supersérie ..." ou "Pós[- ]exaustão ..." inicia novo sub-exercício
+                        let matchPrefix = line.match(/^(Supersérie|Pós[- ]exaustão|Biset)\s*(.*)/i);
                         if (matchPrefix) {
                             current = { lines: [], tipo: matchPrefix[1] };
                             if (matchPrefix[2].trim()) { current.lines.push(matchPrefix[2].trim()); }
@@ -1132,7 +1138,7 @@
                     let video = findVideoByPosition(ex.nome, pageIdx, pageData);
                     if (!video) {
                         let searchName = ex.nome
-                            .replace(/^(Supersérie|Pós exaustão|Biset)\s*/i, '')
+                            .replace(/^(Supersérie|Pós[- ]exaustão|Biset)\s*/i, '')
                             .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
                             .replace(/\)$/, '')
                             .trim();
@@ -1170,7 +1176,7 @@
                 let video = findVideoByPosition(item.exercicio, alongPageNum, pageData);
                 if (!video) {
                     let searchName = item.exercicio
-                        .replace(/^(Supersérie|Pós exaustão|Biset)\s*/i, '')
+                        .replace(/^(Supersérie|Pós[- ]exaustão|Biset)\s*/i, '')
                         .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
                         .replace(/\)$/, '').trim();
                     video = findVideoByPosition(searchName, alongPageNum, pageData);
@@ -1181,7 +1187,7 @@
                 let video = findVideoByPosition(item.exercicio, alongPageNum, pageData);
                 if (!video) {
                     let searchName = item.exercicio
-                        .replace(/^(Supersérie|Pós exaustão|Biset)\s*/i, '')
+                        .replace(/^(Supersérie|Pós[- ]exaustão|Biset)\s*/i, '')
                         .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
                         .replace(/\)$/, '').trim();
                     video = findVideoByPosition(searchName, alongPageNum, pageData);
@@ -1256,15 +1262,11 @@
         if (!card) return;
         var body = card.querySelector('.section-body');
         if (card.classList.contains('collapsed')) {
-            // Opening: set max-height to scrollHeight for animation
             card.classList.remove('collapsed');
             body.style.maxHeight = body.scrollHeight + 'px';
-            // After animation, remove max-height to allow dynamic content
             setTimeout(function() { body.style.maxHeight = 'none'; }, 350);
         } else {
-            // Closing: set explicit max-height first, then collapse
             body.style.maxHeight = body.scrollHeight + 'px';
-            // Force reflow so the browser registers the starting value
             body.offsetHeight;
             body.style.maxHeight = '0';
             card.classList.add('collapsed');
@@ -1490,7 +1492,16 @@
             html += `
                 <div id="${sectionId}" class="section-card" data-dias-foco="${(treino.dias_e_foco || '').replace(/"/g, '&quot;')}">
                     <div class="section-header" onclick="toggleSection('${sectionId}')" style="background: #1b4332; color: #c8e6c9;">
-                        <span>${(treino.dias_e_foco || treino.identificador).replace(/\s*\(/, '<br>(')}</span>
+                        <span>${(() => {
+                            let foco = treino.dias_e_foco || '';
+                            let id = treino.identificador || '';
+                            if (!foco) return id;
+                            // Se dias_e_foco não começa com dia da semana, prefixar com identificador
+                            if (!/^(Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo|Caso)/i.test(foco)) {
+                                return (id + '<br>' + foco);
+                            }
+                            return foco.replace(/\s*\(/, '<br>(');
+                        })()}</span>
                         <span class="chevron">❯</span>
                     </div>
                     <div class="section-body workout-section" style="margin-top:0; border-radius:0; border-left-color: #2e7d32;">
