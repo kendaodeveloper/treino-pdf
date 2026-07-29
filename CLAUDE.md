@@ -156,3 +156,6 @@ Fragmentos de logo/marca sao filtrados no warmup parser:
 Logs no console (comentados com "NAO REMOVER"):
 - fullText completo e JSON parseado apos importar PDF
 - Para reativar: descomentar as linhas ~649-652
+
+Variaveis de teste:
+- `diaSemana` (topo do script, linha ~409): `null` por default (usa dia real). Setar para `'segunda'`, `'terca'`, `'quarta'`, `'quinta'`, `'sexta'`, `'sabado'` ou `'domingo'` para simular outro dia. DEVE ficar no topo do script (antes do load do localStorage) por causa de hoisting.

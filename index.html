@@ -405,6 +405,9 @@
 </div>
 
 <script>
+    // Para testes: setar diaSemana = 'quarta' (ou segunda, terca, quinta, sexta, sabado, domingo)
+    var diaSemana = 'terca';
+
     function showErrorPopup(title, details) {
         var existing = document.querySelector('.error-popup-overlay');
         if (existing) existing.remove();
@@ -571,15 +574,17 @@
         var currentWeek = getCurrentWeek();
         document.querySelectorAll('[data-after-weeks]').forEach(function(row) {
             var afterWeek = parseInt(row.getAttribute('data-after-weeks'));
-            var afterWeightRow = row.nextElementSibling; // linha de peso do sub "(após...)"
+            // Só considera weight row se tiver .reps-row (evita pegar exercício seguinte nas manobras)
+            var afterWeightRow = row.nextElementSibling;
+            if (afterWeightRow && !afterWeightRow.querySelector('.reps-row')) afterWeightRow = null;
 
             // Acha o main row (volta até achar data-has-replacement)
             var mainRow = row.previousElementSibling;
             while (mainRow && !mainRow.hasAttribute('data-has-replacement')) {
                 mainRow = mainRow.previousElementSibling;
             }
-            // Linha de peso do main é o próximo sibling do mainRow
             var mainWeightRow = mainRow ? mainRow.nextElementSibling : null;
+            if (mainWeightRow && !mainWeightRow.querySelector('.reps-row')) mainWeightRow = null;
 
             if (currentWeek > afterWeek) {
                 // Passou o threshold: dim o main + peso do main, mostrar o replacement
@@ -1264,6 +1269,7 @@
     }
 
     function getDayOfWeek() {
+        if (diaSemana) return diaSemana;
         var days = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
         return days[new Date().getDay()];
     }
