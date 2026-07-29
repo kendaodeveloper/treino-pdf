@@ -13,7 +13,7 @@ Single-page app (index.html, ~1600 linhas) que importa PDFs de treino da consult
 Tudo em um unico arquivo. Ordem no codigo:
 1. CSS (estilos inline no `<style>`)
 2. HTML (estrutura basica, input file, botoes)
-3. JS: `diaSemana` (var de teste), `showErrorPopup`, helpers de localStorage/anotacoes/pesos/semanas
+3. JS: variaveis globais (todas no topo: `diaSemana`, `statusMsg`, `fileInput`, `convertBtn`, `visualOutput`, `showObsFields`), `showErrorPopup`, helpers de localStorage/anotacoes/pesos/semanas
 4. JS: `applyBodyTypeDimming()`, `applyExerciseDimming()`, load do localStorage
 5. JS: `processarPDF()` - extrai texto e links do PDF via PDF.js
 6. JS: `findTextY()`, `findVideoByPosition()` - associacao de videos por posicao Y

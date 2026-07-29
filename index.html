@@ -408,8 +408,14 @@
 </div>
 
 <script>
+    // === VARIÁVEIS GLOBAIS (todas no topo) ===
     // Para testes: setar diaSemana = 'quarta' (ou segunda, terca, quinta, sexta, sabado, domingo)
     var diaSemana = null;
+    var statusMsg = document.getElementById('status-msg');
+    var fileInput = document.getElementById('pdf-file');
+    var convertBtn = document.getElementById('btn-convert');
+    var visualOutput = document.getElementById('visual-output');
+    var showObsFields = true;
 
     function showErrorPopup(title, details) {
         var existing = document.querySelector('.error-popup-overlay');
@@ -435,7 +441,6 @@
     }
 
     // Verifica se PDF.js carregou
-    var statusMsg = document.getElementById('status-msg');
     if (typeof pdfjsLib === 'undefined') {
         statusMsg.textContent = "Erro: biblioteca PDF.js não carregou. Abra no Safari ou no Chrome.";
         statusMsg.style.display = 'block';
@@ -445,11 +450,6 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
         statusMsg.style.display = 'none';
     }
-
-    var fileInput = document.getElementById('pdf-file');
-    var convertBtn = document.getElementById('btn-convert');
-    var visualOutput = document.getElementById('visual-output');
-    var showObsFields = true;
 
     function loadAnotacoes() {
         try {
