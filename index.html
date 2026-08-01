@@ -417,6 +417,15 @@
     var visualOutput = document.getElementById('visual-output');
     var showObsFields = true;
 
+    // === REGEX REUTILIZÁVEIS ===
+    var RE_DIAS_SEMANA = /(?:Segunda|Ter[cç]a|Quarta|Quinta|Sexta|S[aá]bado|Domingo)/i;
+    var RE_PREFIXO_EX = /Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset/i;
+    var RE_MMII = /mmii|perna|inferior|panturrilha|gl[úu]teo|coxa/i;
+    var RE_MMSS = /mmss|superior|dorsa[il]s?|peito(?:ral)?|costas|b[ií]ceps|tr[ií]ceps|ombro|deltoid|bra[cç]o/i;
+    var RE_FOCO_MUSCULAR = /(?:Dorsa[il]s?|Peito(?:ral)?|Deltoid[es]?|B[ií]ceps|Tr[ií]ceps|MMII|MMSS|Completo|Gl[úu]teos?|Coxas?|Panturrilha|Costas|Ombros?|Bra[cç]os?)/i;
+    var RE_BODY_TYPE_MMII = /(?:DIAS\s+D[EO]S?\s+)?(?:\(?\s*)MMII/i;
+    var RE_BODY_TYPE_MMSS = /(?:DIAS\s+D[EO]S?\s+)?(?:\(?\s*)MMSS/i;
+
     function showErrorPopup(title, details) {
         var existing = document.querySelector('.error-popup-overlay');
         if (existing) existing.remove();
@@ -529,8 +538,8 @@
         treinoCards.forEach(function(card) {
             if (!card.classList.contains('collapsed')) {
                 var dias = (card.getAttribute('data-dias-foco') || '').toLowerCase();
-                var isMMII = /mmii|perna|inferior|panturrilha|gl[úu]teo|coxa/i.test(dias);
-                var isMMSS = /mmss|superior|dorsa[il]s?|peito(?:ral)?|costas|b[ií]ceps|tr[ií]ceps|ombro|deltoid|bra[cç]o/i.test(dias);
+                var isMMII = RE_MMII.test(dias);
+                var isMMSS = RE_MMSS.test(dias);
                 if (isMMII && isMMSS) {
                     todayType = null;
                 } else if (isMMII) {
@@ -923,7 +932,7 @@
                         let cur = subExercicios[0];
                         for (let el = 0; el < exLines.length; el++) {
                             let eline = exLines[el];
-                            let matchPfx = eline.match(/^(Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset)\s*(.*)/i);
+                            let matchPfx = eline.match(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*(.*)', 'i'));
                             if (matchPfx) {
                                 cur = { lines: [], tipo: matchPfx[1] };
                                 if (matchPfx[2].trim()) { cur.lines.push(matchPfx[2].trim()); }
@@ -983,7 +992,7 @@
 
             // Dias/foco — texto próximo ao identificador do treino (ex: "Segunda e Sexta-Feira (...)")
             let diasFoco = "";
-            const diasRegex = p.match(/(?:Segunda|Ter[cç]a|Quarta|Quinta|Sexta|S[aá]bado|Domingo)[^\n]*/i);
+            const diasRegex = p.match(new RegExp(RE_DIAS_SEMANA.source + '[^\\n]*', 'i'));
             if (diasRegex) { diasFoco = diasRegex[0].trim(); }
             // Fallback: "Caso treinar..." ou "Treino extra caso..."
             if (!diasFoco) {
@@ -1003,10 +1012,10 @@
                     // Filtra fragmentos de logo/marca (ex: "4", "F", "our Fit", "c o n s u l t o r i a")
                     if (/^[A-Za-z0-9]$/.test(l)) { continue; } // caractere isolado (letra ou dígito de logo)
                     if (/^([A-Za-z]\s){3,}[A-Za-z]?$/.test(l)) { continue; } // letras espaçadas (logo tipo "c o n s u l t o r i a")
-                    if (/^(our\s+Fit|Four\s*Fit|consultoria|Roberto\s+Oliveira)$/i.test(l)) { continue; } // nomes de marca/treinador
+                    if (/^(our\s+Fit|Four\s*Fit|consultoria)$/i.test(l)) { continue; } // nomes de marca/treinador
                     if (/^\(após\s/i.test(l)) { continue; } // notas tipo "(após 4 semanas adicionar carga)"
                     // "Supersérie" isolado: prefixar na próxima linha do warmup
-                    if (/^(Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset)$/i.test(l)) {
+                    if (new RegExp('^(' + RE_PREFIXO_EX.source + ')$', 'i').test(l)) {
                         if (i + 1 < linhas.length) {
                             // Pula - será juntado quando a próxima linha for processada
                             let nextLine = linhas[i + 1];
@@ -1070,12 +1079,12 @@
                     for (let j = ri + 3; j < linhas.length && j < ri + 8; j++) {
                         let l = linhas[j];
                         if (/^(SQ|EXERC[ÍI]CIOS|AER[ÓO]BIO|TREINO|WARM|RELAXAMENTO)/i.test(l)) { break; }
-                        if (/(?:Segunda|Ter[cç]a|Quarta|Quinta|Sexta|S[aá]bado|Domingo)/i.test(l)) { break; }
+                        if (RE_DIAS_SEMANA.test(l)) { break; }
                         if (/^Caso\s/i.test(l)) { break; } // "Caso treinar mais de 3x..."
                         if (/^\d+°$/.test(l)) { continue; }
                         // Foco entre parênteses sem "após" (ex: "(Dorsais, Deltoide e Bíceps)", "(MMII Completo)")
                         // Captura como dias_e_foco se ainda não tiver
-                        if (/^\((?!após)/.test(l) && /(?:Dorsa[il]s?|Peito(?:ral)?|Deltoid[es]?|B[ií]ceps|Tr[ií]ceps|MMII|MMSS|Completo|Gl[úu]teos?|Coxas?|Panturrilha|Costas|Ombros?|Bra[cç]os?)/i.test(l)) {
+                        if (/^\((?!após)/.test(l) && RE_FOCO_MUSCULAR.test(l)) {
                             if (!diasFoco) { diasFoco = l; }
                             break;
                         }
@@ -1138,7 +1147,7 @@
                     for (let li = 0; li < group.length; li++) {
                         let line = group[li];
                         // "Supersérie ..." ou "Pós[- ]exaustão ..." inicia novo sub-exercício
-                        let matchPrefix = line.match(/^(Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset)\s*(.*)/i);
+                        let matchPrefix = line.match(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*(.*)', 'i'));
                         if (matchPrefix) {
                             current = { lines: [], tipo: matchPrefix[1] };
                             if (matchPrefix[2].trim()) { current.lines.push(matchPrefix[2].trim()); }
@@ -1178,7 +1187,7 @@
                     let video = findVideoByPosition(ex.nome, pageIdx, pageData);
                     if (!video) {
                         let searchName = ex.nome
-                            .replace(/^(Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset)\s*/i, '')
+                            .replace(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*', 'i'), '')
                             .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
                             .replace(/\)$/, '')
                             .trim();
@@ -1193,7 +1202,7 @@
                     let video = findVideoByPosition(nome, pageIdx, pageData);
                     if (!video) {
                         // Tenta sem prefixo (ex: "Supersérie Adutora 45°" → "Adutora 45°")
-                        let cleaned = nome.replace(/^(Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset)\s*/i, '');
+                        let cleaned = nome.replace(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*', 'i'), '');
                         if (cleaned !== nome) video = findVideoByPosition(cleaned, pageIdx, pageData);
                     }
                     return video ? { ...item, video } : item;
@@ -1221,7 +1230,7 @@
                 let video = findVideoByPosition(item.exercicio, alongPageNum, pageData);
                 if (!video) {
                     let searchName = item.exercicio
-                        .replace(/^(Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset)\s*/i, '')
+                        .replace(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*', 'i'), '')
                         .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
                         .replace(/\)$/, '').trim();
                     video = findVideoByPosition(searchName, alongPageNum, pageData);
@@ -1232,7 +1241,7 @@
                 let video = findVideoByPosition(item.exercicio, alongPageNum, pageData);
                 if (!video) {
                     let searchName = item.exercicio
-                        .replace(/^(Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset)\s*/i, '')
+                        .replace(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*', 'i'), '')
                         .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
                         .replace(/\)$/, '').trim();
                     video = findVideoByPosition(searchName, alongPageNum, pageData);
@@ -1321,7 +1330,7 @@
                 !/^M[ÉE]TODOS$/i.test(l) &&
                 !/^[A-Za-z0-9]$/.test(l) &&
                 !/^([A-Za-z]\s){3,}[A-Za-z]?$/.test(l) &&
-                !/our Fit|Four Fit|consultoria|Roberto Oliveira/i.test(l) &&
+                !/our Fit|Four Fit|consultoria/i.test(l) &&
                 !/CONSULTORIA ONLINE/i.test(l) &&
                 !/^SEMA(NAS?)?$/i.test(l) &&
                 !/^PER[ÍI]ODO$/i.test(l) &&
@@ -1590,8 +1599,8 @@
                 }
                 let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
                 let bodyTypeAttr = '';
-                if (/(?:DIAS\s+D[EO]S?\s+)?(?:\(?\s*)MMII/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
-                else if (/(?:DIAS\s+D[EO]S?\s+)?(?:\(?\s*)MMSS/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
+                if (RE_BODY_TYPE_MMII.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
+                else if (RE_BODY_TYPE_MMSS.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
 
                 let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
                 html += `<tr${mainAttrs}${bodyTypeAttr}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.tempo}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
@@ -1632,8 +1641,8 @@
                 let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
                 // Detecta se a manobra é específica para MMII ou MMSS
                 let bodyTypeAttr = '';
-                if (/(?:DIAS\s+D[EO]S?\s+)?(?:\(?\s*)MMII/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
-                else if (/(?:DIAS\s+D[EO]S?\s+)?(?:\(?\s*)MMSS/i.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
+                if (RE_BODY_TYPE_MMII.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
+                else if (RE_BODY_TYPE_MMSS.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
 
                 let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
                 html += `<tr${mainAttrs}${bodyTypeAttr}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.series}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
@@ -1666,7 +1675,7 @@
                             let id = treino.identificador || '';
                             if (!foco) return id;
                             // Se dias_e_foco não começa com dia da semana, prefixar com identificador
-                            if (!/^(Segunda|Ter[cç]a|Quarta|Quinta|Sexta|S[aá]bado|Domingo|Caso)/i.test(foco)) {
+                            if (!RE_DIAS_SEMANA.test(foco) && !/^Caso/i.test(foco)) {
                                 return (id + '<br>' + foco);
                             }
                             return foco.replace(/\s*\(/, '<br>(');

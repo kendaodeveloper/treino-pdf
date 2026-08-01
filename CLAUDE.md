@@ -13,7 +13,7 @@ Single-page app (index.html, ~1600 linhas) que importa PDFs de treino da consult
 Tudo em um unico arquivo. Ordem no codigo:
 1. CSS (estilos inline no `<style>`)
 2. HTML (estrutura basica, input file, botoes)
-3. JS: variaveis globais (todas no topo: `diaSemana`, `statusMsg`, `fileInput`, `convertBtn`, `visualOutput`, `showObsFields`), `showErrorPopup`, helpers de localStorage/anotacoes/pesos/semanas
+3. JS: variaveis globais (todas no topo: `diaSemana`, `statusMsg`, `fileInput`, `convertBtn`, `visualOutput`, `showObsFields`), regex reutilizaveis (`RE_DIAS_SEMANA`, `RE_PREFIXO_EX`, `RE_MMII`, `RE_MMSS`, `RE_FOCO_MUSCULAR`, `RE_BODY_TYPE_MMII`, `RE_BODY_TYPE_MMSS`), `showErrorPopup`, helpers de localStorage/anotacoes/pesos/semanas
 4. JS: `applyBodyTypeDimming()`, `applyExerciseDimming()`, load do localStorage
 5. JS: `processarPDF()` - extrai texto e links do PDF via PDF.js
 6. JS: `findTextY()`, `findVideoByPosition()` - associacao de videos por posicao Y
@@ -62,7 +62,8 @@ PDF -> PDF.js -> textContent.items (texto + coordenadas Y) + annotations (links)
 ### Metadados (pagina ~4)
 Regex no fullText para extrair: TREINADOR, ALUNO, OBJETIVO, FREQUENCIA, DURACAO TOTAL, DESCANSO.
 - OBJETIVO: lookahead usa `\nCARGA\s*\|` (nao `\nCARGA` sozinho) para evitar casar com palavras como "cargas" no texto
-- Acentos flexiveis: PER[ÍI]ODO, FREQU[ÊE]NCIA, DURA[ÇC][ÃA]O
+- Acentos flexiveis em todos os regex: PER[ÍI]ODO, FREQU[ÊE]NCIA, DURA[ÇC][ÃA]O, EXERC[ÍI]CIOS, AER[ÓO]BIO, PERIODIZA[ÇC][ÃA]O, Ter[cç]a, S[aá]bado, etc.
+- Prefixos de exercicios (Supersérie, Pós exaustão, Biset) e grupos musculares (MMII/MMSS) centralizados nas constantes RE_* globais
 
 ### Alongamentos e Manobras (pagina que contem "ALONGAMENTOS")
 Parseia sequencialmente: seq (numero ou "Mobilidade") -> tempo/series -> nome do exercicio.
