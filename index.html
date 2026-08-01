@@ -585,6 +585,30 @@
                 row.classList.remove('exercise-dimmed');
             }
         });
+
+        // Se todos os exercícios de um grupo (rowspan) estão dimmed, dim o seq/séries também
+        document.querySelectorAll('td[rowspan]').forEach(function(seqCell) {
+            var span = parseInt(seqCell.getAttribute('rowspan'));
+            var row = seqCell.closest('tr');
+            if (!row) return;
+            var allDimmed = true;
+            var current = row;
+            for (var i = 0; i < span && current; i++) {
+                if (!current.classList.contains('exercise-dimmed')) {
+                    allDimmed = false;
+                    break;
+                }
+                current = current.nextElementSibling;
+            }
+            var seriesCell = seqCell.nextElementSibling;
+            if (allDimmed) {
+                seqCell.style.setProperty('color', '#555', 'important');
+                if (seriesCell) seriesCell.style.setProperty('color', '#555', 'important');
+            } else {
+                seqCell.style.removeProperty('color');
+                if (seriesCell) seriesCell.style.removeProperty('color');
+            }
+        });
     }
 
     function applyExerciseDimming() {
