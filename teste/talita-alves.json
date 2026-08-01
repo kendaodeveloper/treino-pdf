@@ -13,7 +13,8 @@
       "series": "3 x 15",
       "descanso": "50\"",
       "cadencia": "3:0:2:0",
-      "falha": "Concêntrica"
+      "falha": "Concêntrica",
+      "metodo": ""
     },
     {
       "semana": 2,
@@ -21,7 +22,8 @@
       "series": "3 x 12 a 15",
       "descanso": "50\"",
       "cadencia": "3:0:2:0",
-      "falha": "Concêntrica"
+      "falha": "Concêntrica",
+      "metodo": ""
     },
     {
       "semana": 3,
@@ -29,7 +31,8 @@
       "series": "3 x 12",
       "descanso": "50\"",
       "cadencia": "3:0:2:0",
-      "falha": "Concêntrica"
+      "falha": "Concêntrica",
+      "metodo": ""
     },
     {
       "semana": 4,
@@ -37,7 +40,8 @@
       "series": "3 x 10",
       "descanso": "60\"",
       "cadencia": "3:0:2:0",
-      "falha": "Concêntrica"
+      "falha": "Concêntrica",
+      "metodo": ""
     },
     {
       "semana": 5,
@@ -45,7 +49,8 @@
       "series": "3 x 15-12-12",
       "descanso": "60\"",
       "cadencia": "3:0:2:0",
-      "falha": "Concêntrica"
+      "falha": "Concêntrica",
+      "metodo": ""
     },
     {
       "semana": 6,
@@ -53,7 +58,8 @@
       "series": "3 x 15-12-10",
       "descanso": "60 a 70\"",
       "cadencia": "3:0:2:0",
-      "falha": "Concêntrica"
+      "falha": "Concêntrica",
+      "metodo": ""
     },
     {
       "semana": 7,
@@ -61,7 +67,8 @@
       "series": "3 x 12-10-08",
       "descanso": "60 a 80\"",
       "cadencia": "3:0:2:0",
-      "falha": "Concêntrica"
+      "falha": "Concêntrica",
+      "metodo": ""
     },
     {
       "semana": 8,
@@ -69,7 +76,8 @@
       "series": "3 x 10-08-06",
       "descanso": "80 a 90\"",
       "cadencia": "3:0:2:0",
-      "falha": "Concêntrica"
+      "falha": "Concêntrica",
+      "metodo": ""
     },
     {
       "semana": 9,
@@ -77,7 +85,8 @@
       "series": "3 x 06-08-08",
       "descanso": "90 a 100\"",
       "cadencia": "4:0:2:0",
-      "falha": "Concêntrica"
+      "falha": "Concêntrica",
+      "metodo": ""
     },
     {
       "semana": 10,
@@ -85,7 +94,8 @@
       "series": "3 x 06-08-10",
       "descanso": "80 a 90\"",
       "cadencia": "3:0:2:0",
-      "falha": "Concêntrica"
+      "falha": "Concêntrica",
+      "metodo": ""
     },
     {
       "semana": 11,
@@ -93,7 +103,8 @@
       "series": "3 x 06 a 07",
       "descanso": "90 a 100\"",
       "cadencia": "4:0:2:0",
-      "falha": "Concêntrica"
+      "falha": "Concêntrica",
+      "metodo": ""
     },
     {
       "semana": 12,
@@ -101,9 +112,11 @@
       "series": "3 x 06 a 07",
       "descanso": "90 a 100\"",
       "cadencia": "4:0:2:0",
-      "falha": "Concêntrica"
+      "falha": "Concêntrica",
+      "metodo": ""
     }
   ],
+  "metodos": [],
   "alongamentos": [
     {
       "seq": "1",

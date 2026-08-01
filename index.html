@@ -523,17 +523,18 @@
     }
 
     function applyBodyTypeDimming() {
-        // Detecta o tipo do treino do dia (MMII ou MMSS) pelo treino aberto/destacado
+        // Detecta o tipo pelo treino aberto (não collapsed)
         var todayType = null;
-        var treinoCards = document.querySelectorAll('.section-card[data-dias-foco]');
+        var treinoCards = document.querySelectorAll('[id^="section-treino-"]');
         treinoCards.forEach(function(card) {
-            var dias = card.getAttribute('data-dias-foco');
-            if (treinoMatchesToday(dias)) {
-                var diasLower = dias.toLowerCase();
-                if (/mmii|completo|perna/i.test(diasLower)) {
+            if (!card.classList.contains('collapsed')) {
+                var dias = (card.getAttribute('data-dias-foco') || '').toLowerCase();
+                if (/mmii|perna|inferior/i.test(dias)) {
                     todayType = 'mmii';
-                } else {
+                } else if (/mmss|superior|dorsa[il]s?|peito(?:ral)?|costas|b[ií]ceps|tr[ií]ceps|ombro|deltoid|bra[cç]o/i.test(dias)) {
                     todayType = 'mmss';
+                } else {
+                    todayType = null;
                 }
             }
         });
@@ -614,7 +615,7 @@
                 var jsonData = JSON.parse(saved);
                 console.log('--- Dados parseados ---');
                 console.log(JSON.stringify(jsonData, null, 2));
-                renderWorkoutVisual(jsonData, true);
+                renderWorkoutVisual(jsonData);
                 showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
             } catch(e) {
                 localStorage.removeItem('treino-pdf-data');
@@ -742,7 +743,7 @@
                 saveAnotacoes({ semanaAtual: 1, obs: {} });
             }
 
-            renderWorkoutVisual(parsedTrainingData, false);
+            renderWorkoutVisual(parsedTrainingData);
 
             // Mostra avisos de páginas com erro (parcial)
             if (pageErrors.length > 0) {
@@ -848,6 +849,7 @@
             duracao_total: "",
             descanso: "",
             periodizacao: [],
+            metodos: [],
             alongamentos: [],
             manobras: [],
             treinos: []
@@ -1278,10 +1280,20 @@
                 let series = seriesIdx >= 0 ? remaining[seriesIdx] : '';
                 let descanso = descansoIdx >= 0 ? remaining[descansoIdx] : '';
                 let falha = '';
+                let metodo = '';
                 if (descansoIdx >= 0 && descansoIdx + 1 < remaining.length) {
-                    falha = remaining.slice(descansoIdx + 1).join(' ').trim();
-                    // Corrige palavras quebradas pelo PDF.js (ex: "Concêntr ica" → "Concêntrica")
-                    falha = falha.replace(/(\w)\s+(ica)\b/g, '$1$2');
+                    let falhaLines = remaining.slice(descansoIdx + 1);
+                    // Junta tudo e corrige "Concêntr ica" / "Concêntr\nica" → "Concêntrica"
+                    let falhaRaw = falhaLines.join(' ').trim();
+                    falhaRaw = falhaRaw.replace(/Conc[eê]ntr\s*ica/gi, 'Concêntrica');
+                    // Separa falha do método: falha termina em "Concêntrica" ou "Submáxima" etc
+                    let falhaMatch = falhaRaw.match(/^(.*(?:Conc[eê]ntrica|Subm[aá]xima))\s*(.*)?$/i);
+                    if (falhaMatch) {
+                        falha = falhaMatch[1].trim();
+                        metodo = (falhaMatch[2] || '').trim();
+                    } else {
+                        falha = falhaRaw;
+                    }
                 }
 
                 data.periodizacao.push({
@@ -1290,9 +1302,62 @@
                     series: series,
                     descanso: descanso,
                     cadencia: cadencia,
-                    falha: falha
+                    falha: falha,
+                    metodo: metodo
                 });
             });
+        }
+
+        // 5. Métodos — página com "MÉTODOS" + semanas (1ª, 2ª...) mas SEM "TABELA DE RM"
+        const pageMetodos = paginas.find(pg => /M[ÉE]TODOS/i.test(pg) && /\d{1,2}ª/.test(pg) && !/TABELA DE RM/i.test(pg));
+        if (pageMetodos) {
+            const mLines = pageMetodos.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+            // Filtra linhas de logo/marca e headers
+            const filtered = mLines.filter(l =>
+                !/^M[ÉE]TODOS$/i.test(l) &&
+                !/^[A-Za-z0-9]$/.test(l) &&
+                !/^([A-Za-z]\s){3,}[A-Za-z]?$/.test(l) &&
+                !/our Fit|Four Fit|consultoria|Roberto Oliveira/i.test(l) &&
+                !/CONSULTORIA ONLINE/i.test(l) &&
+                !/^SEMA(NAS?)?$/i.test(l) &&
+                !/^PER[ÍI]ODO$/i.test(l) &&
+                !/^M[ÉE]TODO$/i.test(l) &&
+                !/^DESCRI[ÇC][ÃA]O$/i.test(l) &&
+                !/^NAS?$/i.test(l)
+            );
+
+            // Parseia blocos: cada bloco começa com "Nª" (semana)
+            let currentMetodo = null;
+            let gotMetodo = false;
+            filtered.forEach(l => {
+                if (/^\d{1,2}ª$/.test(l)) {
+                    if (currentMetodo) data.metodos.push(currentMetodo);
+                    currentMetodo = { semana: parseInt(l), periodo: '', metodo: '', descricao: '' };
+                    gotMetodo = false;
+                } else if (currentMetodo) {
+                    // Linhas de traço separador
+                    if (/^-{4,}$/.test(l)) {
+                        if (!gotMetodo) {
+                            currentMetodo.metodo = '--------';
+                            gotMetodo = true;
+                        }
+                        return;
+                    }
+                    // Detecta periodo (pode ser multiline: "Princípio de" + "Força")
+                    if (!gotMetodo && /Resist[eê]ncia|Pr[ií]nc[ií]pio|For[cç]a|Hipertrofia/i.test(l)) {
+                        currentMetodo.periodo = currentMetodo.periodo ? currentMetodo.periodo + ' ' + l : l;
+                    } else if (!gotMetodo && currentMetodo.periodo) {
+                        // Primeira linha que não é período nem traço = nome do método
+                        currentMetodo.metodo = l;
+                        gotMetodo = true;
+                    } else if (gotMetodo && currentMetodo.metodo !== '--------') {
+                        // Linhas de descrição
+                        if (currentMetodo.descricao) currentMetodo.descricao += ' ';
+                        currentMetodo.descricao += l;
+                    }
+                }
+            });
+            if (currentMetodo) data.metodos.push(currentMetodo);
         }
 
         return data;
@@ -1302,7 +1367,20 @@
         var card = document.getElementById(id);
         if (!card) return;
         var body = card.querySelector('.section-body');
-        if (card.classList.contains('collapsed')) {
+        var isOpening = card.classList.contains('collapsed');
+        if (isOpening) {
+            // Se é uma seção de treino, fecha as outras antes de abrir
+            if (id.startsWith('section-treino-')) {
+                document.querySelectorAll('[id^="section-treino-"]').forEach(function(other) {
+                    if (other.id !== id && !other.classList.contains('collapsed')) {
+                        var otherBody = other.querySelector('.section-body');
+                        otherBody.style.maxHeight = otherBody.scrollHeight + 'px';
+                        otherBody.offsetHeight;
+                        otherBody.style.maxHeight = '0';
+                        other.classList.add('collapsed');
+                    }
+                });
+            }
             card.classList.remove('collapsed');
             body.style.maxHeight = body.scrollHeight + 'px';
             setTimeout(function() { body.style.maxHeight = 'none'; }, 350);
@@ -1311,6 +1389,10 @@
             body.offsetHeight;
             body.style.maxHeight = '0';
             card.classList.add('collapsed');
+        }
+        // Atualiza dimming de alongamentos/manobras baseado no treino aberto
+        if (id.startsWith('section-treino-')) {
+            applyBodyTypeDimming();
         }
     }
 
@@ -1328,9 +1410,10 @@
         return normalized.includes(today);
     }
 
-    function applySectionVisibility(isFromStorage) {
+    function applySectionVisibility() {
         document.getElementById('section-converter').classList.add('collapsed');
 
+        var openedOne = false;
         var treinoCards = document.querySelectorAll('.section-card[data-dias-foco]');
         treinoCards.forEach(function(card) {
             var dias = card.getAttribute('data-dias-foco');
@@ -1342,8 +1425,10 @@
                 card.querySelector('.section-header').style.color = '#e0e0e0';
             }
 
-            // Só filtra por dia quando veio do localStorage
-            if (isFromStorage && !isToday) {
+            // Abre só o treino do dia (e só o primeiro match)
+            if (isToday && !openedOne) {
+                openedOne = true;
+            } else {
                 card.classList.add('collapsed');
             }
         });
@@ -1360,7 +1445,7 @@
     /**
      * RENDERIZADOR VISUAL
      */
-    function renderWorkoutVisual(jsonData, isFromStorage) {
+    function renderWorkoutVisual(jsonData) {
         let html = '';
 
         // Seção 2: Info do aluno (card azul)
@@ -1409,10 +1494,11 @@
             `;
         }
 
+        let anotPeriod = loadAnotacoes();
+        let curWeek = anotPeriod.semanaAtual || 1;
+
         // Seção de Periodização
         if (jsonData.periodizacao && jsonData.periodizacao.length > 0) {
-            let anotPeriod = loadAnotacoes();
-            let curWeek = anotPeriod.semanaAtual || 1;
             let periodCards = jsonData.periodizacao.map(p => {
                 let cls = 'period-card';
                 if (p.semana === curWeek) cls += ' period-current';
@@ -1425,6 +1511,7 @@
                         <div><span class="pd-label">Descanso</span><br><span class="pd-value">${p.descanso}</span></div>
                         <div><span class="pd-label">Cadência</span><br><span class="pd-value">${p.cadencia}</span></div>
                         <div><span class="pd-label">Falha</span><br><span class="pd-value">${p.falha}</span></div>
+                        ${p.metodo ? `<div><span class="pd-label">Método</span><br><span class="pd-value">${p.metodo}</span></div>` : ''}
                     </div>
                 </div>`;
             }).join('');
@@ -1440,6 +1527,39 @@
                 </div>
             </div>
             `;
+        }
+
+        // Seção de Métodos
+        if (jsonData.metodos && jsonData.metodos.length > 0) {
+            let hasAnyMetodo = jsonData.metodos.some(m => m.metodo && m.metodo !== '--------');
+            if (hasAnyMetodo) {
+                let metodoCards = jsonData.metodos.map(m => {
+                    let cls = 'period-card';
+                    if (m.semana === curWeek) cls += ' period-current';
+                    else if (m.semana < curWeek) cls += ' period-past';
+                    let metodoDisplay = (m.metodo && m.metodo !== '--------') ? m.metodo : '---';
+                    return `<div class="${cls}" data-period-week="${m.semana}">
+                        <div class="period-week-num">${m.semana}ª</div>
+                        <div class="period-details">
+                            <div class="pd-periodo">${m.periodo}</div>
+                            <div><span class="pd-label">Método</span><br><span class="pd-value">${metodoDisplay}</span></div>
+                            ${m.descricao ? `<div style="grid-column: 1 / -1;"><span class="pd-value" style="font-size: 0.82em; opacity: 0.85;">${m.descricao}</span></div>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+
+                html += `
+                <div id="section-metodos" class="section-card collapsed">
+                    <div class="section-header" onclick="toggleSection('section-metodos')" style="background: #4a3728; color: #e0e0e0;">
+                        <span>Métodos</span>
+                        <span class="chevron">❯</span>
+                    </div>
+                    <div class="section-body" style="background: #2a2018; padding: 15px; max-height: 0;">
+                        <div class="period-list">${metodoCards}</div>
+                    </div>
+                </div>
+                `;
+            }
         }
 
         if(jsonData.alongamentos.length > 0) {
@@ -1678,8 +1798,9 @@
 
         });
 
+        html += '<br>';
         visualOutput.innerHTML = html;
-        applySectionVisibility(isFromStorage);
+        applySectionVisibility();
         applyExerciseDimming();
         applyBodyTypeDimming();
     }

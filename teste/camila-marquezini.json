@@ -1,0 +1,537 @@
+{
+  "treinador": "Four Fit Consultoria",
+  "aluno": "Camila Marquezini de Paula",
+  "idade": "44 anos",
+  "objetivo": "Aumentar a força resistência | Preparação para cargas elevadas | Ganho da massa magra | Melhorar proporção muscular",
+  "frequencia": "3x Musculação",
+  "duracao_total": "12 semanas",
+  "descanso": "50 segundos à 1 minuto e 30 segundos",
+  "periodizacao": [
+    {
+      "semana": 1,
+      "periodo": "Resistência",
+      "series": "3 x 15",
+      "descanso": "50\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Quase Concêntrica",
+      "metodo": ""
+    },
+    {
+      "semana": 2,
+      "periodo": "Resistência",
+      "series": "3 x 12",
+      "descanso": "60\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica",
+      "metodo": "Strip Set Metab."
+    },
+    {
+      "semana": 3,
+      "periodo": "Resistência",
+      "series": "3 x 10",
+      "descanso": "70\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica",
+      "metodo": ""
+    },
+    {
+      "semana": 4,
+      "periodo": "Resistência",
+      "series": "3 x 08",
+      "descanso": "80\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica",
+      "metodo": "Cluster Var. I"
+    },
+    {
+      "semana": 5,
+      "periodo": "Resistência",
+      "series": "3 x 10",
+      "descanso": "70\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica",
+      "metodo": ""
+    },
+    {
+      "semana": 6,
+      "periodo": "Resistência",
+      "series": "3 x 12",
+      "descanso": "60\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica",
+      "metodo": "Rest Pause M."
+    },
+    {
+      "semana": 7,
+      "periodo": "Princípio de Força",
+      "series": "3 x 15-12-10",
+      "descanso": "50-60-70\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica",
+      "metodo": ""
+    },
+    {
+      "semana": 8,
+      "periodo": "Princípio de Força",
+      "series": "3 x 12-10-08",
+      "descanso": "60-70-80\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica",
+      "metodo": ""
+    },
+    {
+      "semana": 9,
+      "periodo": "Princípio de Força",
+      "series": "3 x 10-08-06",
+      "descanso": "70-80-90\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica",
+      "metodo": ""
+    },
+    {
+      "semana": 10,
+      "periodo": "Princípio de Força",
+      "series": "3 x 06-08-10",
+      "descanso": "90-80-70\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica",
+      "metodo": ""
+    },
+    {
+      "semana": 11,
+      "periodo": "Princípio de Força",
+      "series": "3 x 08-10-12",
+      "descanso": "80-70-60\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica",
+      "metodo": ""
+    },
+    {
+      "semana": 12,
+      "periodo": "Princípio de Força",
+      "series": "3 x 10-12-15",
+      "descanso": "70-60-50\"",
+      "cadencia": "3:0:2:0",
+      "falha": "Concêntrica",
+      "metodo": ""
+    }
+  ],
+  "metodos": [
+    {
+      "semana": 1,
+      "periodo": "Resistência",
+      "metodo": "--------",
+      "descricao": ""
+    },
+    {
+      "semana": 2,
+      "periodo": "Resistência",
+      "metodo": "Strip Set Metabólico",
+      "descricao": "Realizar: Última série de 2 a 3 exercícios por sessão de treinamento. Prática: Ao chegar a falha concêntrica reduzir 50% da carga e prosseguir com a cadência mais lenta."
+    },
+    {
+      "semana": 3,
+      "periodo": "Resistência",
+      "metodo": "--------",
+      "descricao": ""
+    },
+    {
+      "semana": 4,
+      "periodo": "Resistência",
+      "metodo": "Cluster Variação I",
+      "descricao": "Realizar : Primeiro exercício de cada grupamento muscular. Prática: Realizar, 5 REP. Pausa 10 seg. + 5 REP. Pausa 10 seg. + 5 REP. = 15 repetições totais."
+    },
+    {
+      "semana": 5,
+      "periodo": "Resistência",
+      "metodo": "--------",
+      "descricao": ""
+    },
+    {
+      "semana": 6,
+      "periodo": "Resistência",
+      "metodo": "Rest Pause Metabólico",
+      "descricao": "Realizar: Última série de 2 a 3 exercícios por sessão de treinamento. Prática: Ao chegar a falha concêntrica pausa de no máximo 6 segs. e retomar a execução com a mesma carga, buscando outra falha concêntrica."
+    },
+    {
+      "semana": 7,
+      "periodo": "Princípio de Força",
+      "metodo": "--------",
+      "descricao": ""
+    },
+    {
+      "semana": 8,
+      "periodo": "Princípio de Força",
+      "metodo": "--------",
+      "descricao": ""
+    },
+    {
+      "semana": 9,
+      "periodo": "Princípio de Força",
+      "metodo": "--------",
+      "descricao": ""
+    },
+    {
+      "semana": 10,
+      "periodo": "Princípio de Força",
+      "metodo": "--------",
+      "descricao": ""
+    },
+    {
+      "semana": 11,
+      "periodo": "Princípio de Força",
+      "metodo": "--------",
+      "descricao": ""
+    },
+    {
+      "semana": 12,
+      "periodo": "Princípio de Força",
+      "metodo": "--------",
+      "descricao": ""
+    }
+  ],
+  "alongamentos": [
+    {
+      "seq": "1",
+      "tempo": "2 x 20\"",
+      "exercicio": "Sóleo ajoelhado no solo",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1w1zBmsfXctM4yYDVGzhHAMcpfaAO_u0v/view?usp=drive_link"
+    },
+    {
+      "seq": "2",
+      "tempo": "1 x 20\"",
+      "exercicio": "I.T. uni espaldar",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1bgcVPWmqLiI9Qeugzl05BuCpkAEr1TGy/view?usp=drive_link"
+    },
+    {
+      "seq": "3",
+      "tempo": "1 x 20\"",
+      "exercicio": "Cócoras pélve em neutro",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1mldQdFWdR2jE9mPZODBZHICra0VHGUPD/view?usp=drive_link"
+    },
+    {
+      "seq": "4",
+      "tempo": "2 x 20\"",
+      "exercicio": "Glúteo perna no solo",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/15AidwSGf6g00LmatyHTTHGUiTX4Jy4Db/view?usp=drive_link"
+    },
+    {
+      "seq": "5",
+      "tempo": "1 x 20\"",
+      "exercicio": "Quadriceps bilateral",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1UAtWvLlCUn93ohzOE28mEhv8bkpOISWs/view?usp=drive_link"
+    },
+    {
+      "seq": "6",
+      "tempo": "2 x 20\"",
+      "exercicio": "Suspensão de quadril de frente",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1A5HhgvtlXzuWEu16YC1LaIqhZCqJdEpc/view?usp=drive_link"
+    },
+    {
+      "seq": "5",
+      "tempo": "1 x 20\"",
+      "exercicio": "Suspensão de quadril",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/17_6LbWINz_0VXvqeUc3wPijbczM_jP87/view?usp=drive_link"
+    },
+    {
+      "seq": "Mobilidade",
+      "tempo": "1 x 10 Reps",
+      "exercicio": "Mobilização oscilatória I.T c/ dorsiflexão",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1UDx9n1oiXCa4A0ZJkBwoCTK-2oiJS_K2/view?usp=drive_link"
+    }
+  ],
+  "manobras": [
+    {
+      "seq": "1",
+      "series": "3 x 30 Seg",
+      "exercicio": "Vacuum + bracing (TODOS OS DIAS)",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/14imHdz-QXY2_cYRMCMoWVZTIwUkxTD9D/view?usp=drive_link"
+    },
+    {
+      "seq": "2",
+      "series": "2 x 15 Reps",
+      "exercicio": "Abdominal máquina (DIAS DE MMII)",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1wSH2ORRIKP4_MuKWejpOoypk1IDs2qMq/view?usp=drive_link"
+    },
+    {
+      "seq": "3",
+      "series": "2 x 30 Seg",
+      "exercicio": "Prancha com flexão de ombros dinâmica (DIAS DE MMSS)",
+      "isSubExercise": false,
+      "video": "https://drive.google.com/file/d/1bOnRaB1Z7Zw5F2Dnut1XTHpdBknV_Efi/view?usp=drive_link"
+    }
+  ],
+  "treinos": [
+    {
+      "identificador": "TREINO 1",
+      "dias_e_foco": "Segunda-feira (MMII Completo)",
+      "aquecimento": [
+        {
+          "nome": "Reloginho (MMII)",
+          "reps": "2 x 15 REPS | Cadência 3:3",
+          "video": "https://drive.google.com/file/d/1UmqZFICqCMqDWO6rCfio1yyckg9JfDRz/view?usp=drivesdk"
+        }
+      ],
+      "exercicios": [
+        {
+          "seq": "1°",
+          "nome": "Hack linear 45° | Base projeção",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1EHqROsbKr4RT2ZzJF9bRtUvNV5TOyaO_/view?usp=drive_link"
+        },
+        {
+          "seq": "1°",
+          "nome": "Pós exaustão Swing kettlebell",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1CmcPcMGyvN_Y0RtHh1haXCFqilyZySal/view?usp=drivesdk"
+        },
+        {
+          "seq": "2°",
+          "nome": "Afundo barra grande",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1enlX3gSTTdDN9YZNSiT53kgDTtKxUI3U/view?usp=drive_link"
+        },
+        {
+          "seq": "2°",
+          "nome": "(após 6 semanas realizar Afundo com dois steps)",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1xGGznp6V5grkL1yEvc8M_ERguZ2Betjg/view?usp=drive_link"
+        },
+        {
+          "seq": "3°",
+          "nome": "Leg press 45° linear | Base projeção",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/149P54I5TmliWUeCid9RstErNsYyMO5WJ/view?usp=drive_link"
+        },
+        {
+          "seq": "4°",
+          "nome": "Stiff lunge",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/18htgEy23dCZDXXYxec6XK7ifrwIukbxO/view?usp=drive_link"
+        },
+        {
+          "seq": "4°",
+          "nome": "(após 6 semanas realizar Stiff com dois halteres) (+1)",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1uTEfWhuwU4HAfhox-63EJs1nfW8T2YdH/view?usp=drive_link"
+        },
+        {
+          "seq": "5°",
+          "nome": "Cadeira flexora (+1)",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1-vbgs4y7vgb0m7FVb2Owm64spRV33JtR/view?usp=drive_link"
+        }
+      ],
+      "aerobio": [
+        {
+          "nome": "Livre"
+        }
+      ],
+      "relaxamento": [
+        {
+          "nome": "Cadeia posterior com anilha",
+          "reps": "1 x 60\"",
+          "video": "https://drive.google.com/file/d/1tx197umJ6V706Cd3w4iohoK3Jg-HKGvu/view?usp=drive_link"
+        }
+      ]
+    },
+    {
+      "identificador": "TREINO 2",
+      "dias_e_foco": "Terça-Feira (MMSS Completo)",
+      "aquecimento": [
+        {
+          "nome": "Trapézio inf. halter",
+          "reps": "2 x 15 REPS | Cadência 3:3",
+          "video": "https://drive.google.com/file/d/1_3TMIZGP35dKx2DR2szdHbwTCAhBoGUQ/view?usp=drive_link"
+        }
+      ],
+      "exercicios": [
+        {
+          "seq": "1°",
+          "nome": "Pull down barra",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1WhwdZ_9wUsKfaQWpOBSjUYbQOQNJdQco/view?usp=drive_link"
+        },
+        {
+          "seq": "1°",
+          "nome": "Supersérie Flexão de braço solo",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1ir1U-bc3b1JjI7drW_oYzaN9ev6g-AYq/view?usp=drive_link"
+        },
+        {
+          "seq": "2°",
+          "nome": "Remada art. neutra (cabo)",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1_26Ntkls6TKVKgBy4xO-ZLSFmRtg351G/view?usp=drive_link"
+        },
+        {
+          "seq": "2°",
+          "nome": "(após 6 semanas realizar Puxada vertical fechada)",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/113dm6KX0EI-qOwp70Y8HH0x3TcSzPXWn/view?usp=drive_link"
+        },
+        {
+          "seq": "3°",
+          "nome": "Remada alta máquina",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1WNXi1vSZWNIfLm11ONDgOtfVj_zYySTT/view?usp=drive_link"
+        },
+        {
+          "seq": "3°",
+          "nome": "(após 6 semanas realizar Remada curvada halter)",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1SCT9wDf0J6AtwVCz0OiNB1dKAJulsZMf/view?usp=drive_link"
+        },
+        {
+          "seq": "4°",
+          "nome": "Elevação frontal polia barra reta",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/19hdo5b1VBIMkI6Z2jIqB0oKiTnuXdd63/view?usp=drive_link"
+        },
+        {
+          "seq": "4°",
+          "nome": "Biset Posterior de ombro corda pequena (+1)",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1urxJF4Lp3tGDrLOH1twiAL7IvowMtM9R/view?usp=drive_link"
+        },
+        {
+          "seq": "5°",
+          "nome": "Rosca neutra polia",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1DB-1LZv9RofFY3Oy5XMuZhx3Zrfvy6XB/view?usp=drive_link"
+        },
+        {
+          "seq": "5°",
+          "nome": "Supersérie Tríceps pulley barra V",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1zEAiYxZlsKJI7pPxNjoLQ084bNFrzNcF/view?usp=drive_link"
+        },
+        {
+          "seq": "6°",
+          "nome": "Panturrilha Leg press 45° (carrinho) (+1)",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/15DxwsrkPNFnJ6RRmw6sWzWS7xWnD1IBR/view?usp=drive_link"
+        }
+      ],
+      "aerobio": [
+        {
+          "nome": "Livre"
+        }
+      ],
+      "relaxamento": [
+        {
+          "nome": "Suspensão de quadril de frente",
+          "reps": "1 x 40\"",
+          "video": "https://drive.google.com/file/d/1A5HhgvtlXzuWEu16YC1LaIqhZCqJdEpc/view?usp=drive_link"
+        }
+      ]
+    },
+    {
+      "identificador": "TREINO 3",
+      "dias_e_foco": "Quarta-Feira (Treino misto)",
+      "aquecimento": [],
+      "exercicios": [
+        {
+          "seq": "1°",
+          "nome": "Abdução de quadril 45° no solo",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1XI9k-NL4zjJ5JW1RXWUQFiFdVJaEXkhv/view?usp=drive_link"
+        },
+        {
+          "seq": "1°",
+          "nome": "(após 6 semanas realizar em ponte isométrica)",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1asd046S_zYjkVybwosYOW0Gcf1GAXkZb/view?usp=drive_link"
+        },
+        {
+          "seq": "2°",
+          "nome": "Cadeira abdutora 90°",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1458iUDZMSZbzv22Gd9Gg-6TxMallN1g1/view?usp=drive_link"
+        },
+        {
+          "seq": "2°",
+          "nome": "Pós exaustão Cadeira abdutora 120°",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1gVRgtkRNWg-PSAdbsjliZalWU2UE_4CR/view?usp=drive_link"
+        },
+        {
+          "seq": "3°",
+          "nome": "Elevação pélvica máquina (+1)",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1ssoPWKEYMUuCZjkoPO1wiWiFfoFpDHAi/view?usp=drive_link"
+        },
+        {
+          "seq": "4°",
+          "nome": "Cadeira extensora",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1GErpEDD6mSFedccQMQkzQZXCbc-vdPuL/view?usp=drive_link"
+        },
+        {
+          "seq": "4°",
+          "nome": "Supersérie Cadeira flexora",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1-vbgs4y7vgb0m7FVb2Owm64spRV33JtR/view?usp=drive_link"
+        },
+        {
+          "seq": "5°",
+          "nome": "Remada neutra polia",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1uwop6V4NJGRVt8Y150bL_HHWlc-Ofwz-/view?usp=drive_link"
+        },
+        {
+          "seq": "5°",
+          "nome": "Supersérie Fly máquina",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1-GbTnVHE22tel3Rx94L7UsmF-_CBgjG2/view?usp=drive_link"
+        },
+        {
+          "seq": "6°",
+          "nome": "Elevação lateral halter P/E",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1_00CV61kUXEtqyzqVFlvOjdBr_LlplZB/view?usp=drive_link"
+        },
+        {
+          "seq": "6°",
+          "nome": "Pós exaustão Remada alta halter",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/15ZWbDA1lNuYamWf_OfhIWrB-vurnSTgW/view?usp=drive_link"
+        },
+        {
+          "seq": "7°",
+          "nome": "Elevação lateral banco 30°",
+          "isSubExercise": false,
+          "video": "https://drive.google.com/file/d/1e_sCphSe2k_eCVPrzAdRvlNrqKTSgoxJ/view?usp=drive_link"
+        },
+        {
+          "seq": "7°",
+          "nome": "Supersérie Tríceps testa banco 30°",
+          "isSubExercise": true,
+          "video": "https://drive.google.com/file/d/1zDJbxMbeR4vjRyOSCRZSDTG1t2n4_cMF/view?usp=drive_link"
+        }
+      ],
+      "aerobio": [
+        {
+          "nome": "Livre"
+        }
+      ],
+      "relaxamento": [
+        {
+          "nome": "Suspensão de quadril de frente",
+          "reps": "1 x 60\"",
+          "video": "https://drive.google.com/file/d/1A5HhgvtlXzuWEu16YC1LaIqhZCqJdEpc/view?usp=drive_link"
+        }
+      ]
+    }
+  ]
+}

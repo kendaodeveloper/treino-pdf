@@ -42,7 +42,8 @@ PDF -> PDF.js -> textContent.items (texto + coordenadas Y) + annotations (links)
   "frequencia": "string",
   "duracao_total": "string",
   "descanso": "string",
-  "periodizacao": [{ "semana": 1, "periodo": "", "series": "", "descanso": "", "cadencia": "", "falha": "" }],
+  "periodizacao": [{ "semana": 1, "periodo": "", "series": "", "descanso": "", "cadencia": "", "falha": "", "metodo": "" }],
+  "metodos": [{ "semana": 1, "periodo": "", "metodo": "", "descricao": "" }],
   "alongamentos": [{ "seq": "", "tempo": "", "exercicio": "", "isSubExercise": false, "video": "url" }],
   "manobras": [{ "seq": "", "series": "", "exercicio": "", "isSubExercise": false, "video": "url" }],
   "treinos": [{
@@ -69,9 +70,17 @@ Transicao de alongamentos para manobras: ocorre no primeiro seq numerico APOS te
 - Tempo: aspas unicode (smart quotes) sao normalizadas para aspas simples
 
 ### Periodizacao (pagina com "PERIODIZACAO" + "TABELA DE RM")
-Encontra marcadores de semana (1a, 2a, ..., 12a) e extrai periodo, series, descanso, cadencia, falha.
+Encontra marcadores de semana (1a, 2a, ..., 12a) e extrai periodo, series, descanso, cadencia, falha, metodo.
 Para na tabela de RM (linhas com "X%" ou "X RM") para nao poluir a ultima semana.
 - Falha: corrige palavras quebradas pelo PDF.js (ex: "Concêntr ica" -> "Concêntrica")
+- Falha vs Metodo: separados apos descanso — falha termina em "Concêntrica", o restante eh metodo (ex: "Strip Set Metab.", "Cluster Var. I")
+
+### Metodos (pagina com "METODOS" + semanas, SEM "TABELA DE RM")
+Parseia blocos por semana (1a, 2a, ...): periodo, nome do metodo e descricao (Realizar/Pratica).
+Semanas sem metodo ficam com metodo = "--------".
+- Filtra headers de tabela (SEMANAS, PERÍODO, MÉTODO, DESCRIÇÃO) e logo/marca
+- Periodo multiline: "Princípio de" + "Força" sao juntados
+- Presente apenas em alguns PDFs (ex: Camila Marquezini)
 
 ### Treinos (paginas com "EXERCICIOS")
 Cada pagina de treino contem: WARM UP, EXERCICIOS, AEROBIO, RELAXAMENTO.
@@ -106,9 +115,10 @@ Cada pagina de treino contem: WARM UP, EXERCICIOS, AEROBIO, RELAXAMENTO.
 - Info do aluno (sempre aberta)
 - Semana Atual (seletor 1-12, collapsed por padrao)
 - Periodizacao (tabela de semanas, collapsed)
+- Metodos (collapsed, so aparece se PDF tiver pagina de metodos)
 - Alongamentos e Mobilidades
 - Manobras Respiratorias e Abdominais
-- Treinos (1 card por treino, auto-abre o do dia)
+- Treinos (1 card por treino, auto-abre o do dia, accordion: so 1 aberto por vez)
 
 ### Exercicios - estrutura de cada grupo
 ```html
@@ -134,10 +144,13 @@ Duas logicas independentes aplicadas em sequencia:
    - `data-has-replacement`: se semanaAtual > N, dim o exercicio principal (substituido)
    - Tambem dim/undim as weight rows adjacentes (nextElementSibling/previousElementSibling)
 
-2. **applyBodyTypeDimming()** - baseado no tipo do treino do dia:
-   - Detecta se hoje e MMII ou MMSS pelo `dias_e_foco` que casa com o dia da semana
-   - `data-body-type="mmii"` ou `"mmss"` em alongamentos e manobras com "(DIAS DE/DOS MMII/MMSS)": dim se nao casa com o tipo do dia
-   - Sem dias da semana (ex: Daniel Alves): nenhum dimming aplicado (tudo visivel)
+2. **applyBodyTypeDimming()** - baseado no treino aberto (nao no dia da semana):
+   - Detecta MMII ou MMSS pelo `dias_e_foco` do treino aberto (nao collapsed)
+   - MMII: `/mmii|perna|inferior/i`
+   - MMSS: `/mmss|superior|dorsa[il]s?|peito(?:ral)?|costas|b[ií]ceps|tr[ií]ceps|ombro|deltoid|bra[cç]o/i`
+   - Treino misto ou sem match: `todayType = null`, sem dimming (tudo visivel)
+   - `data-body-type="mmii"` ou `"mmss"` em alongamentos e manobras com "(DIAS DE/DOS MMII/MMSS)": dim se nao casa com o tipo
+   - Chamada automaticamente ao abrir/fechar treinos no toggleSection
    - Respeita o dimming de semanas: nao remove exercise-dimmed se after-weeks ou has-replacement esta ativo
 
 ### Headers dos treinos
@@ -145,8 +158,8 @@ Duas logicas independentes aplicadas em sequencia:
 - Sem dias da semana: "TREINO 1\n(Dorsais, Deltoide e Biceps)" (prefixado com identificador)
 
 ### Auto-abertura de treinos
-- Ao carregar do localStorage: abre apenas o treino do dia (pela funcao treinoMatchesToday)
-- Ao importar novo PDF: abre todos
+- Ao carregar do localStorage ou importar PDF: abre apenas o treino do dia (pela funcao treinoMatchesToday)
+- Comportamento accordion: ao abrir um treino, os outros fecham automaticamente (toggleSection)
 
 ## Filtros no parser
 
@@ -155,16 +168,16 @@ Fragmentos de logo/marca sao filtrados no warmup parser:
 - Letras espacadas: `/^([A-Za-z]\s){3,}[A-Za-z]?$/` (ex: "c o n s u l t o r i a")
 - Nomes de marca: "our Fit", "Four Fit", "consultoria", "Roberto Oliveira"
 
-## PDFs de teste (pasta `teste/`)
+## JSONs de teste (pasta `teste/`)
 
-- `Treino - Kenneth.pdf` - 3 treinos (1E5, 2E4, 3), periodizacao com Forca Pura, tem dias da semana
-- `Consultoria - Lucas Paim.pdf` - 4 treinos (1, 2E5, 3, 4 alternativo), Biset
-- `Consultoria 2 - Daniel Alves.pdf` - 3 treinos sem dias da semana (so foco), Pos-exaustao com hifen
-- `Consultoria Laryssa Siena.pdf` - 3 treinos (1E3, 2E4, 5), mobilidade dupla (MMII + MMSS)
-- `Treino 2 - Consultoria Talita Alves.pdf` - 5 treinos, relaxamento com fragmento curto ("Ca"+"deia")
-- `Consultoria Bianca Vitalino.pdf` - 3 treinos, "DIAS DOS MMII/MMSS" (com "DOS"), objetivo com "cargas"
-- `Treino 2 - Consultoria Carolina Vanzolini.pdf` - 4 treinos, aerobio com "(intensidade...)", warmup com Superserie isolado, "(MMII)"/"(MMSS)" sem "DIAS DE"
-- `kenneth-ok.json` e `lucas-paim-ok.json` - JSONs de referencia para validacao
+- `kenneth.json` - 3 treinos (1E5, 2E4, 3), periodizacao com Forca Pura, tem dias da semana
+- `lucas-paim.json` - 4 treinos (1, 2E5, 3, 4 alternativo), Biset
+- `daniel-alves.json` - 3 treinos sem dias da semana (so foco), Pos-exaustao com hifen
+- `laryssa-siena.json` - 3 treinos (1E3, 2E4, 5), mobilidade dupla (MMII + MMSS)
+- `talita-alves.json` - 5 treinos, relaxamento com fragmento curto ("Ca"+"deia")
+- `bianca-vitalino.json` - 3 treinos, "DIAS DOS MMII/MMSS" (com "DOS"), objetivo com "cargas"
+- `carolina-vanzolini.json` - 4 treinos, aerobio com "(intensidade...)", warmup com Superserie isolado, "(MMII)"/"(MMSS)" sem "DIAS DE"
+- `camila-marquezini.json` - 3 treinos, pagina de Metodos com descricoes, coluna MÉTODO na periodizacao
 
 ## Debug
 
