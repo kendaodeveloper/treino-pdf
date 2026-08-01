@@ -146,8 +146,9 @@ Duas logicas independentes aplicadas em sequencia:
 
 2. **applyBodyTypeDimming()** - baseado no treino aberto (nao no dia da semana):
    - Detecta MMII ou MMSS pelo `dias_e_foco` do treino aberto (nao collapsed)
-   - MMII: `/mmii|perna|inferior/i`
+   - MMII: `/mmii|perna|inferior|panturrilha|gl[úu]teo|coxa/i`
    - MMSS: `/mmss|superior|dorsa[il]s?|peito(?:ral)?|costas|b[ií]ceps|tr[ií]ceps|ombro|deltoid|bra[cç]o/i`
+   - Treino com ambos (ex: "MMSS Completo e Panturrilha"): `todayType = null`, sem dimming
    - Treino misto ou sem match: `todayType = null`, sem dimming (tudo visivel)
    - `data-body-type="mmii"` ou `"mmss"` em alongamentos e manobras com "(DIAS DE/DOS MMII/MMSS)": dim se nao casa com o tipo
    - Chamada automaticamente ao abrir/fechar treinos no toggleSection

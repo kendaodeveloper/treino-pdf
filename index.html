@@ -529,9 +529,13 @@
         treinoCards.forEach(function(card) {
             if (!card.classList.contains('collapsed')) {
                 var dias = (card.getAttribute('data-dias-foco') || '').toLowerCase();
-                if (/mmii|perna|inferior/i.test(dias)) {
+                var isMMII = /mmii|perna|inferior|panturrilha|gl[úu]teo|coxa/i.test(dias);
+                var isMMSS = /mmss|superior|dorsa[il]s?|peito(?:ral)?|costas|b[ií]ceps|tr[ií]ceps|ombro|deltoid|bra[cç]o/i.test(dias);
+                if (isMMII && isMMSS) {
+                    todayType = null;
+                } else if (isMMII) {
                     todayType = 'mmii';
-                } else if (/mmss|superior|dorsa[il]s?|peito(?:ral)?|costas|b[ií]ceps|tr[ií]ceps|ombro|deltoid|bra[cç]o/i.test(dias)) {
+                } else if (isMMSS) {
                     todayType = 'mmss';
                 } else {
                     todayType = null;
@@ -862,7 +866,7 @@
         const matchTreinador = norm.match(/TREINADORA?\s*\n[\s\n]*([^\n]+)/i);
         if (matchTreinador) { data.treinador = matchTreinador[1].trim(); }
 
-        const matchAluno = norm.match(/ALUN[OA]\s*\n([\s\S]*?)(?=\nOBJETIVO|\nPERÍODO|\nFREQUÊNCIA|\nDURAÇÃO|\nCARGA|\nDESCANSO|\n---)/i);
+        const matchAluno = norm.match(/ALUN[OA]\s*\n([\s\S]*?)(?=\nOBJETIVO|\nPER[ÍI]ODO|\nFREQU[ÊE]NCIA|\nDURA[ÇC][ÃA]O|\nCARGA|\nDESCANSO|\n---)/i);
         if (matchAluno) {
             let alunoText = matchAluno[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
             let parts = alunoText.split("|");
@@ -874,13 +878,13 @@
         const matchObjetivo = norm.match(/OBJETIVO\s*\n([\s\S]*?)(?=\nPER[ÍI]ODO|\nFREQU[ÊE]NCIA|\nDURA[ÇC][ÃA]O|\nCARGA\s*\||\nDESCANSO|\nM[ÉE]DIA|\n---)/i);
         if (matchObjetivo) { data.objetivo = matchObjetivo[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim(); }
 
-        const matchFreq = norm.match(/FREQUÊNCIA\s*\n\s*([^\n]+)/i);
+        const matchFreq = norm.match(/FREQU[ÊE]NCIA\s*\n\s*([^\n]+)/i);
         if (matchFreq) { data.frequencia = matchFreq[1].trim(); }
 
-        const matchDuracao = norm.match(/DURAÇÃO TOTAL\s*\n\s*([^\n]+)/i);
+        const matchDuracao = norm.match(/DURA[ÇC][ÃA]O TOTAL\s*\n\s*([^\n]+)/i);
         if (matchDuracao) { data.duracao_total = matchDuracao[1].trim(); }
 
-        const matchDescanso = norm.match(/DESCANSO ENTRE\s*\n\s*OS EXERCÍCIOS\s*\n\s*([^\n]+)/i);
+        const matchDescanso = norm.match(/DESCANSO ENTRE\s*\n\s*OS EXERC[ÍI]CIOS\s*\n\s*([^\n]+)/i);
         if (matchDescanso) { data.descanso = matchDescanso[1].trim(); }
 
         // Divide por páginas uma vez (usado por alongamentos e treinos)
@@ -919,7 +923,7 @@
                         let cur = subExercicios[0];
                         for (let el = 0; el < exLines.length; el++) {
                             let eline = exLines[el];
-                            let matchPfx = eline.match(/^(Supersérie|Pós[- ]exaustão|Biset)\s*(.*)/i);
+                            let matchPfx = eline.match(/^(Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset)\s*(.*)/i);
                             if (matchPfx) {
                                 cur = { lines: [], tipo: matchPfx[1] };
                                 if (matchPfx[2].trim()) { cur.lines.push(matchPfx[2].trim()); }
@@ -965,7 +969,7 @@
 
         paginas.forEach((p, pageIdx) => {
             // Identifica páginas de treino pela presença de "EXERCÍCIOS" (tabela de exercícios)
-            if (!p.toUpperCase().includes("EXERCÍCIOS")) { return; }
+            if (!/EXERC[ÍI]CIOS/i.test(p)) { return; }
 
             // Identifica qual treino — lida com quebras de linha do PDF.js
             // Ex: "TREINO 1\n \nE 5" ou "TREINO\n \n3"
@@ -979,7 +983,7 @@
 
             // Dias/foco — texto próximo ao identificador do treino (ex: "Segunda e Sexta-Feira (...)")
             let diasFoco = "";
-            const diasRegex = p.match(/(?:Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)[^\n]*/i);
+            const diasRegex = p.match(/(?:Segunda|Ter[cç]a|Quarta|Quinta|Sexta|S[aá]bado|Domingo)[^\n]*/i);
             if (diasRegex) { diasFoco = diasRegex[0].trim(); }
             // Fallback: "Caso treinar..." ou "Treino extra caso..."
             if (!diasFoco) {
@@ -994,7 +998,7 @@
                 let warmLines = [];
                 for (let i = idxWarm + 1; i < linhas.length && i < idxWarm + 10; i++) {
                     let l = linhas[i];
-                    if (/^(SQ|EXERCÍCIOS|AERÓBIO|RELAXAMENTO|TREINO)/i.test(l)) { break; }
+                    if (/^(SQ|EXERC[ÍI]CIOS|AER[ÓO]BIO|RELAXAMENTO|TREINO)/i.test(l)) { break; }
                     if (l === "REPETIÇÕES" || /^\d+°$/.test(l)) { continue; }
                     // Filtra fragmentos de logo/marca (ex: "4", "F", "our Fit", "c o n s u l t o r i a")
                     if (/^[A-Za-z0-9]$/.test(l)) { continue; } // caractere isolado (letra ou dígito de logo)
@@ -1002,11 +1006,11 @@
                     if (/^(our\s+Fit|Four\s*Fit|consultoria|Roberto\s+Oliveira)$/i.test(l)) { continue; } // nomes de marca/treinador
                     if (/^\(após\s/i.test(l)) { continue; } // notas tipo "(após 4 semanas adicionar carga)"
                     // "Supersérie" isolado: prefixar na próxima linha do warmup
-                    if (/^(Supersérie|Pós[- ]exaustão|Biset)$/i.test(l)) {
+                    if (/^(Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset)$/i.test(l)) {
                         if (i + 1 < linhas.length) {
                             // Pula - será juntado quando a próxima linha for processada
                             let nextLine = linhas[i + 1];
-                            if (!/^(SQ|EXERCÍCIOS|AERÓBIO|RELAXAMENTO|TREINO)/i.test(nextLine)) {
+                            if (!/^(SQ|EXERC[ÍI]CIOS|AER[ÓO]BIO|RELAXAMENTO|TREINO)/i.test(nextLine)) {
                                 linhas[i + 1] = l + ' ' + nextLine;
                             }
                         }
@@ -1033,12 +1037,12 @@
 
             // Aeróbio — extrai como array de exercícios com vídeo
             let aerobio = [];
-            let idxAero = linhas.findIndex(l => l.toUpperCase() === "AERÓBIO");
+            let idxAero = linhas.findIndex(l => /^AER[ÓO]BIO$/i.test(l));
             if (idxAero !== -1) {
                 let aeroLines = [];
                 for (let i = idxAero + 1; i < linhas.length && i < idxAero + 8; i++) {
                     let l = linhas[i];
-                    if (/^(SQ|EXERCÍCIOS|RELAXAMENTO|TREINO|WARM)/i.test(l)) { break; }
+                    if (/^(SQ|EXERC[ÍI]CIOS|RELAXAMENTO|TREINO|WARM)/i.test(l)) { break; }
                     if (l === "DURAÇÃO" || /^\d+°$/.test(l)) { continue; }
                     // Duração (ex: "15 a 20'", "15'")
                     if (/^\d+.*'$/.test(l)) {
@@ -1057,21 +1061,21 @@
                 aerobio = aeroLines;
             }
 
-            // Relaxamento — busca o bloco "SQ RELAXAMENTO REPETIÇÕES" (não o rótulo "RELAXAMENTO AERÓBIO")
+            // Relaxamento — busca o bloco "SQ RELAXAMENTO REPETIÇÕES" (não o rótulo "RELAXAMENTO AER[ÓO]BIO")
             let relaxamento = [];
             for (let ri = 0; ri < linhas.length - 1; ri++) {
                 // Padrão: "SQ" seguido por "RELAXAMENTO" seguido por "REPETIÇÕES"
-                if (linhas[ri] === "SQ" && linhas[ri + 1] === "RELAXAMENTO" && ri + 2 < linhas.length && linhas[ri + 2] === "REPETIÇÕES") {
+                if (linhas[ri] === "SQ" && linhas[ri + 1] === "RELAXAMENTO" && ri + 2 < linhas.length && /^REPETI[ÇC][ÕO]ES$/i.test(linhas[ri + 2])) {
                     let relaxLines = [];
                     for (let j = ri + 3; j < linhas.length && j < ri + 8; j++) {
                         let l = linhas[j];
-                        if (/^(SQ|EXERCÍCIOS|AERÓBIO|TREINO|WARM|RELAXAMENTO)/i.test(l)) { break; }
-                        if (/(?:Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo)/i.test(l)) { break; }
+                        if (/^(SQ|EXERC[ÍI]CIOS|AER[ÓO]BIO|TREINO|WARM|RELAXAMENTO)/i.test(l)) { break; }
+                        if (/(?:Segunda|Ter[cç]a|Quarta|Quinta|Sexta|S[aá]bado|Domingo)/i.test(l)) { break; }
                         if (/^Caso\s/i.test(l)) { break; } // "Caso treinar mais de 3x..."
                         if (/^\d+°$/.test(l)) { continue; }
                         // Foco entre parênteses sem "após" (ex: "(Dorsais, Deltoide e Bíceps)", "(MMII Completo)")
                         // Captura como dias_e_foco se ainda não tiver
-                        if (/^\((?!após)/.test(l) && /(?:Dorsais|Peito|Deltoide|Bíceps|Tríceps|MMII|MMSS|Completo)/i.test(l)) {
+                        if (/^\((?!após)/.test(l) && /(?:Dorsa[il]s?|Peito(?:ral)?|Deltoid[es]?|B[ií]ceps|Tr[ií]ceps|MMII|MMSS|Completo|Gl[úu]teos?|Coxas?|Panturrilha|Costas|Ombros?|Bra[cç]os?)/i.test(l)) {
                             if (!diasFoco) { diasFoco = l; }
                             break;
                         }
@@ -1101,7 +1105,7 @@
             // Exercícios — extrai do bloco entre "EXERCÍCIOS" e próxima seção
             // Cada sequência (1°, 2°...) pode conter sub-exercícios separados por "Supersérie" ou "Pós[- ]exaustão"
             let exercicios = [];
-            let idxExerc = linhas.findIndex(l => l.toUpperCase() === "EXERCÍCIOS");
+            let idxExerc = linhas.findIndex(l => /^EXERC[ÍI]CIOS$/i.test(l));
             if (idxExerc !== -1) {
                 let startIdx = idxExerc + 1;
                 while (startIdx < linhas.length && /^\d+\s*$/.test(linhas[startIdx])) { startIdx++; }
@@ -1113,7 +1117,7 @@
                 let seqGroups = [];
                 for (let i = startIdx; i < linhas.length; i++) {
                     let l = linhas[i];
-                    if (/^(SQ|WARM UP|AERÓBIO|RELAXAMENTO|TREINO)/i.test(l)) { break; }
+                    if (/^(SQ|WARM UP|AER[ÓO]BIO|RELAXAMENTO|TREINO)/i.test(l)) { break; }
                     if (/^\d+°$/.test(l)) {
                         if (currentLines) { seqGroups.push(currentLines); }
                         currentLines = [];
@@ -1134,7 +1138,7 @@
                     for (let li = 0; li < group.length; li++) {
                         let line = group[li];
                         // "Supersérie ..." ou "Pós[- ]exaustão ..." inicia novo sub-exercício
-                        let matchPrefix = line.match(/^(Supersérie|Pós[- ]exaustão|Biset)\s*(.*)/i);
+                        let matchPrefix = line.match(/^(Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset)\s*(.*)/i);
                         if (matchPrefix) {
                             current = { lines: [], tipo: matchPrefix[1] };
                             if (matchPrefix[2].trim()) { current.lines.push(matchPrefix[2].trim()); }
@@ -1174,7 +1178,7 @@
                     let video = findVideoByPosition(ex.nome, pageIdx, pageData);
                     if (!video) {
                         let searchName = ex.nome
-                            .replace(/^(Supersérie|Pós[- ]exaustão|Biset)\s*/i, '')
+                            .replace(/^(Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset)\s*/i, '')
                             .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
                             .replace(/\)$/, '')
                             .trim();
@@ -1189,7 +1193,7 @@
                     let video = findVideoByPosition(nome, pageIdx, pageData);
                     if (!video) {
                         // Tenta sem prefixo (ex: "Supersérie Adutora 45°" → "Adutora 45°")
-                        let cleaned = nome.replace(/^(Supersérie|Pós[- ]exaustão|Biset)\s*/i, '');
+                        let cleaned = nome.replace(/^(Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset)\s*/i, '');
                         if (cleaned !== nome) video = findVideoByPosition(cleaned, pageIdx, pageData);
                     }
                     return video ? { ...item, video } : item;
@@ -1217,7 +1221,7 @@
                 let video = findVideoByPosition(item.exercicio, alongPageNum, pageData);
                 if (!video) {
                     let searchName = item.exercicio
-                        .replace(/^(Supersérie|Pós[- ]exaustão|Biset)\s*/i, '')
+                        .replace(/^(Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset)\s*/i, '')
                         .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
                         .replace(/\)$/, '').trim();
                     video = findVideoByPosition(searchName, alongPageNum, pageData);
@@ -1228,7 +1232,7 @@
                 let video = findVideoByPosition(item.exercicio, alongPageNum, pageData);
                 if (!video) {
                     let searchName = item.exercicio
-                        .replace(/^(Supersérie|Pós[- ]exaustão|Biset)\s*/i, '')
+                        .replace(/^(Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset)\s*/i, '')
                         .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
                         .replace(/\)$/, '').trim();
                     video = findVideoByPosition(searchName, alongPageNum, pageData);
@@ -1238,7 +1242,7 @@
         }
 
         // 4. Periodização — tabela de semanas na página que contém "TABELA DE RM"
-        const pagePeriod = paginas.find(pg => /PERIODIZAÇÃO/i.test(pg) && /TABELA DE RM/i.test(pg));
+        const pagePeriod = paginas.find(pg => /PERIODIZA[ÇC][ÃA]O/i.test(pg) && /TABELA DE RM/i.test(pg));
         if (pagePeriod) {
             const pLines = pagePeriod.split("\n").map(l => l.trim()).filter(l => l.length > 0);
 
@@ -1253,7 +1257,7 @@
             let rmTableStart = pLines.length;
             for (let ri = lastWeekIdx + 1; ri < pLines.length; ri++) {
                 let l = pLines[ri];
-                if (/^\d+\s*%$/.test(l) || /^\d+-?\d*\s*RM$/i.test(l) || /^PERIODIZAÇÃO$/i.test(l) || /^TABELA DE RM$/i.test(l)) {
+                if (/^\d+\s*%$/.test(l) || /^\d+-?\d*\s*RM$/i.test(l) || /^PERIODIZA[ÇC][ÃA]O$/i.test(l) || /^TABELA DE RM$/i.test(l)) {
                     rmTableStart = ri;
                     break;
                 }
@@ -1662,7 +1666,7 @@
                             let id = treino.identificador || '';
                             if (!foco) return id;
                             // Se dias_e_foco não começa com dia da semana, prefixar com identificador
-                            if (!/^(Segunda|Terça|Quarta|Quinta|Sexta|Sábado|Domingo|Caso)/i.test(foco)) {
+                            if (!/^(Segunda|Ter[cç]a|Quarta|Quinta|Sexta|S[aá]bado|Domingo|Caso)/i.test(foco)) {
                                 return (id + '<br>' + foco);
                             }
                             return foco.replace(/\s*\(/, '<br>(');
