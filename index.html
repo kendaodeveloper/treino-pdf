@@ -1691,6 +1691,7 @@
 
         jsonData.treinos.forEach((treino, treinoIdx) => {
             let sectionId = 'section-treino-' + treinoIdx;
+            let anotacoes = loadAnotacoes();
             html += `
                 <div id="${sectionId}" class="section-card" data-dias-foco="${(treino.dias_e_foco || '').replace(/"/g, '&quot;')}">
                     <div class="section-header" onclick="toggleSection('${sectionId}')" style="background: #1b4332; color: #c8e6c9;">
@@ -1719,7 +1720,17 @@
                     let nome = typeof w === "object" ? w.nome : w;
                     let reps = (typeof w === "object" && w.reps) ? w.reps : "";
                     let video = (typeof w === "object") ? w.video : null;
-                    html += treinoRow(idx + 1, nome, reps, video);
+                    let videoBtn = video ? `<a href="${video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+                    let warmObsKey = `treino-${treinoIdx + 1}-warm-${idx + 1}`;
+                    let totalRows = 1 + 1 + (showObsFields ? 1 : 0);
+                    let repsSuffix = reps ? `<br><small style="color:#8899a6;">(${reps})</small>` : "";
+                    html += `<tr><td rowspan="${totalRows}" style="vertical-align:middle;">${idx + 1}</td><td>${nome}${repsSuffix}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
+                    html += buildWeightRow(warmObsKey, 2);
+                    if (showObsFields) {
+                        let obsValue = anotacoes.obs[warmObsKey] || '';
+                        let escapedObs = obsValue.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                        html += `<tr><td colspan="2" style="padding: 4px 6px;"><textarea class="obs-field" placeholder="Adicionar Observação..." oninput="onObsChange('${warmObsKey}', this.value)">${escapedObs}</textarea></td></tr>`;
+                    }
                 });
             }
 
@@ -1727,8 +1738,6 @@
             html += `<tr><td colspan="3" style="background:#0d253b; font-weight:bold; color:#64b5f6;">Exercícios</td></tr>`;
             let ei = 0;
             let seqGroupIdx = 0;
-            let anotacoes = loadAnotacoes();
-
             function buildWeightRow(obsKey, colspan) {
                 let pesos = (anotacoes.pesos && anotacoes.pesos[obsKey]) || {};
                 let repsArr = ['15', '12', '10', '8', '6'];

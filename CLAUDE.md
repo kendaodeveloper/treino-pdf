@@ -108,6 +108,7 @@ Cada pagina de treino contem: WARM UP, EXERCICIOS, AEROBIO, RELAXAMENTO.
 - `treino-pdf-data`: JSON completo do treino parseado
 - `treino-pdf-anotacoes`: `{ semanaAtual: N, obs: { "treino-X-ex-Y": "texto" }, pesos: { "treino-X-ex-Y": { "15": valor, "12": valor, ... } } }`
   - Pesos de sub-exercicios: chave `treino-X-ex-Y-sub-Z`
+  - Pesos e obs de aquecimento (warm up): chave `treino-X-warm-Y`
 - Checkbox "Manter anotacoes" controla se obs/pesos sao preservados ao reimportar
 
 ## Rendering (renderWorkoutVisual)
