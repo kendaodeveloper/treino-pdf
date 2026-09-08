@@ -1047,6 +1047,7 @@
                 for (let i = idxWarm + 1; i < linhas.length && i < idxWarm + 10; i++) {
                     let l = linhas[i];
                     if (/^(SQ|EXERC[ÍI]CIOS|AER[ÓO]BIO|RELAXAMENTO|TREINO)/i.test(l)) { break; }
+                    if (new RegExp('^' + RE_DIAS_SEMANA.source, 'i').test(l)) { break; }
                     if (l === "REPETIÇÕES" || /^\d+°$/.test(l)) { continue; }
                     // Filtra fragmentos de logo/marca (ex: "4", "F", "our Fit", "c o n s u l t o r i a")
                     if (/^[A-Za-z0-9]$/.test(l)) { continue; } // caractere isolado (letra ou dígito de logo)
@@ -1101,6 +1102,7 @@
                 for (let i = idxAero + 1; i < linhas.length && i < idxAero + 8; i++) {
                     let l = linhas[i];
                     if (/^(SQ|EXERC[ÍI]CIOS|RELAXAMENTO|TREINO|WARM)/i.test(l)) { break; }
+                    if (new RegExp('^' + RE_DIAS_SEMANA.source, 'i').test(l)) { break; }
                     if (l === "DURAÇÃO" || /^\d+°$/.test(l)) { continue; }
                     // Duração (ex: "15 a 20'", "15'")
                     if (/^\d+.*'$/.test(l)) {
@@ -1128,7 +1130,7 @@
                     for (let j = ri + 3; j < linhas.length && j < ri + 8; j++) {
                         let l = linhas[j];
                         if (/^(SQ|EXERC[ÍI]CIOS|AER[ÓO]BIO|TREINO|WARM|RELAXAMENTO)/i.test(l)) { break; }
-                        if (RE_DIAS_SEMANA.test(l)) { break; }
+                        if (new RegExp('^' + RE_DIAS_SEMANA.source, 'i').test(l)) { break; }
                         if (/^Caso\s/i.test(l)) { break; } // "Caso treinar mais de 3x..."
                         if (/^\d+°$/.test(l)) { continue; }
                         // Foco entre parênteses sem "após" (ex: "(Dorsais, Deltoide e Bíceps)", "(MMII Completo)")
@@ -1176,6 +1178,8 @@
                 for (let i = startIdx; i < linhas.length; i++) {
                     let l = linhas[i];
                     if (/^(SQ|WARM UP|AER[ÓO]BIO|RELAXAMENTO|TREINO)/i.test(l)) { break; }
+                    // Dia da semana/foco (ex: "Segunda - feira (...)") encerra o bloco de exercícios
+                    if (new RegExp('^' + RE_DIAS_SEMANA.source, 'i').test(l)) { break; }
                     if (/^\d+°$/.test(l)) {
                         if (currentLines) { seqGroups.push(currentLines); }
                         currentLines = [];

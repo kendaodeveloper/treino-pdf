@@ -13,7 +13,7 @@ Single-page app (index.html, ~1600 linhas) que importa PDFs de treino da consult
 Tudo em um unico arquivo. Ordem no codigo:
 1. CSS (estilos inline no `<style>`)
 2. HTML (estrutura basica, input file, botoes)
-3. JS: variaveis globais (todas no topo: `diaSemana`, `statusMsg`, `fileInput`, `convertBtn`, `visualOutput`, `showObsFields`), regex reutilizaveis (`RE_DIAS_SEMANA`, `RE_PREFIXO_EX`, `RE_MMII`, `RE_MMSS`, `RE_FOCO_MUSCULAR`, `RE_BODY_TYPE_MMII`, `RE_BODY_TYPE_MMSS`), `showErrorPopup`, helpers de localStorage/anotacoes/pesos/semanas
+3. JS: variaveis globais (todas no topo: `diaSemana`, `statusMsg`, `fileInput`, `convertBtn`, `visualOutput`, `showObsFields`), regex reutilizaveis (`RE_DIAS_SEMANA`, `RE_PREFIXO_EX`, `RE_MMII`, `RE_MMSS`, `RE_FOCO_MUSCULAR`, `RE_BODY_TYPE_MMII`, `RE_BODY_TYPE_MMSS`, `RE_SUB_APOS`), helper `getAfterWeek()` (extrai semana de "após X semanas" / "(ESSE EXERCÍCIO APÓS A Xª SEMANA)"), `showErrorPopup`, helpers de localStorage/anotacoes/pesos/semanas
 4. JS: `applyBodyTypeDimming()`, `applyExerciseDimming()`, load do localStorage
 5. JS: `processarPDF()` - extrai texto e links do PDF via PDF.js
 6. JS: `findTextY()`, `findVideoByPosition()` - associacao de videos por posicao Y
@@ -87,13 +87,15 @@ Semanas sem metodo ficam com metodo = "--------".
 Cada pagina de treino contem: WARM UP, EXERCICIOS, AEROBIO, RELAXAMENTO.
 - Identificador: "TREINO N" ou "TREINO N E M"
 - dias_e_foco: detecta dias da semana, "Caso treinar..."/"Treino extra caso...", ou foco entre parenteses no relaxamento (ex: "(Dorsais, Deltoide e Biceps)", "(MMII Completo)")
-- Warmup: filtra "(apos...)" como notas, "Superserie" isolado eh prefixado na proxima linha
+- Warmup: filtra "(apos...)" como notas, "Superserie" isolado eh prefixado na proxima linha, "ALONG"/"ALONG." isolado tambem eh prefixado (ex: "ALONG" + ". Trapézio superior" -> "ALONG. Trapézio superior")
+- Linhas iniciando com dia da semana (ex: "Terça-Feira (MMII Completo)") encerram o bloco em WARM UP, Exercicios, Aerobio e Relaxamento (o texto do dia/foco fica no fim da pagina em alguns PDFs e nao deve vazar para o ultimo item nome) — break ancorado em `^` no `RE_DIAS_SEMANA`
 - Aerobio: texto entre parenteses juntado com exercicio anterior (ex: "Livre (intensidade moderada a alta)")
 - Exercicios sao agrupados por seq (1°, 2°, ...) com sub-exercicios:
   - **Superserie**: prefixo "Superserie" no nome
   - **Pos exaustao**: prefixo "Pos exaustao" ou "Pos-exaustao" (com hifen) no nome
   - **Biset**: prefixo "Biset" (pode vir como linha separada ou mid-line)
-  - **(apos X semanas ...)**: exercicio substituto apos N semanas
+  - **"(apos X semanas ...)"**: exercicio substituto apos N semanas — vira sub-exercicio separado, com `data-after-weeks` no renderer
+  - **"(ESSE EXERCICIO APOS A X SEMANA)"**: NAO vira sub-exercicio — eh nota sem video proprio; fica na propria linha e o dimming (aparecer a partir da semana X) eh feito no renderer via `getAfterWeek`/`data-after-weeks` (selfAfterWeek), pois dividi-lo roubaria o link do exercicio seguinte na associacao por posicao Y
 
 ### Associacao de videos (findVideoByPosition)
 1. Encontra a posicao Y do texto do exercicio nos textItems da pagina
@@ -102,6 +104,7 @@ Cada pagina de treino contem: WARM UP, EXERCICIOS, AEROBIO, RELAXAMENTO.
 4. **Ordem de prioridade**: exercicios primeiro, depois warmup/aerobio/relaxamento (evita que aerobio "roube" links de exercicios)
 5. findTextY busca: substring completa -> primeiros 15 chars -> fallback por palavras (pontua por quantidade de matches)
 6. warmup/aerobio/relaxamento: se nome com prefixo (Superserie/Pos exaustao/Biset) nao encontra, tenta sem prefixo
+7. Busca tambem tenta sem "(ESSE EXERCICIO APOS...)" e sem prefixo "ALONG." (texto fica fragmentado no PDF)
 
 ## Persistencia (localStorage)
 
@@ -142,9 +145,10 @@ Cada pagina de treino contem: WARM UP, EXERCICIOS, AEROBIO, RELAXAMENTO.
 Duas logicas independentes aplicadas em sequencia:
 
 1. **applyExerciseDimming()** - baseado em semana atual:
-   - `data-after-weeks="N"`: se semanaAtual <= N, dim o sub (substituicao ainda nao ativa)
+   - `data-after-weeks="N"`: se semanaAtual <= N, dim a linha (sub ainda nao ativo). Usa `data-after-weeks` tanto no sub quanto na propria linha standalone com "(ESSE...)"/"(apos...)" (selfAfterWeek)
    - `data-has-replacement`: se semanaAtual > N, dim o exercicio principal (substituido)
    - Tambem dim/undim as weight rows adjacentes (nextElementSibling/previousElementSibling)
+   - A busca do main row NAO cruza o tbody atual (guarda `parentNode === tbody`) — evita escurecer o main de outro grupo
 
 2. **applyBodyTypeDimming()** - baseado no treino aberto (nao no dia da semana):
    - Detecta MMII ou MMSS pelo `dias_e_foco` do treino aberto (nao collapsed)
@@ -173,7 +177,8 @@ Fragmentos de logo/marca sao filtrados no warmup parser:
 
 ## JSONs de teste (pasta `teste/`)
 
-- `kenneth.json` - 3 treinos (1E5, 2E4, 3), periodizacao com Forca Pura, tem dias da semana
+- `kenneth-azevedo.json` - 3 treinos (1E5, 2E4, 3), periodizacao com Forca Pura, tem dias da semana
+- `john-eder.json` - 5 treinos, "(ESSE EXERCÍCIO APÓS A Xª SEMANA)" standalone no exercicio (dimming selfAfterWeek), warmup com "ALONG"/"ALONG." prefixado
 - `lucas-paim.json` - 4 treinos (1, 2E5, 3, 4 alternativo), Biset
 - `daniel-alves.json` - 3 treinos sem dias da semana (so foco), Pos-exaustao com hifen
 - `laryssa-siena.json` - 3 treinos (1E3, 2E4, 5), mobilidade dupla (MMII + MMSS)
