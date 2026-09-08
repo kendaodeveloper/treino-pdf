@@ -425,6 +425,14 @@
     var RE_FOCO_MUSCULAR = /(?:Dorsa[il]s?|Peito(?:ral)?|Deltoid[es]?|B[ií]ceps|Tr[ií]ceps|MMII|MMSS|Completo|Gl[úu]teos?|Coxas?|Panturrilha|Costas|Ombros?|Bra[cç]os?)/i;
     var RE_BODY_TYPE_MMII = /(?:DIAS\s+D[EO]S?\s+)?(?:\(?\s*)MMII/i;
     var RE_BODY_TYPE_MMSS = /(?:DIAS\s+D[EO]S?\s+)?(?:\(?\s*)MMSS/i;
+    // Sub-exercício de substituição "após X semanas" — captura a semana em [1].
+    // Casa "após 4 semanas ..." e "(ESSE EXERCÍCIO APÓS A 4ª SEMANA)".
+    var RE_SUB_APOS = /(?:ap[oó]s\s+(?:a\s+)?(\d+)\s*[ªº]?\s+semanas?)/i;
+
+    function getAfterWeek(nome) {
+        var m = String(nome || '').match(RE_SUB_APOS);
+        return m ? parseInt(m[1]) : null;
+    }
 
     function showErrorPopup(title, details) {
         var existing = document.querySelector('.error-popup-overlay');
@@ -619,11 +627,13 @@
             var afterWeightRow = row.nextElementSibling;
             if (afterWeightRow && !afterWeightRow.querySelector('.reps-row')) afterWeightRow = null;
 
-            // Acha o main row (volta até achar data-has-replacement)
+            // Acha o main row (volta até achar data-has-replacement) — não cruza o tbody atual
+            var tbody = row.closest('tbody');
             var mainRow = row.previousElementSibling;
-            while (mainRow && !mainRow.hasAttribute('data-has-replacement')) {
+            while (mainRow && mainRow.parentNode === tbody && !mainRow.hasAttribute('data-has-replacement')) {
                 mainRow = mainRow.previousElementSibling;
             }
+            if (mainRow && mainRow.parentNode !== tbody) mainRow = null;
             var mainWeightRow = mainRow ? mainRow.nextElementSibling : null;
             if (mainWeightRow && !mainWeightRow.querySelector('.reps-row')) mainWeightRow = null;
 
@@ -963,6 +973,11 @@
                                 subExercicios.push(cur);
                                 continue;
                             }
+                            // "(após X semanas ...)" inicia novo sub-exercício (alternativa).
+                            // NOTA: "(ESSE EXERCÍCIO APÓS A Xª SEMANA)" NÃO é dividido aqui — é nota
+                            // sem vídeo próprio; dividir roubaria o link do exercício seguinte na
+                            // associação por posição Y. O dimming dele é feito no renderer via
+                            // data-after-weeks (getAfterWeek) na própria linha, sem virar sub.
                             if (/^\(após\s/i.test(eline)) {
                                 cur = { lines: [eline], tipo: "" };
                                 subExercicios.push(cur);
@@ -1046,6 +1061,16 @@
                             if (!/^(SQ|EXERC[ÍI]CIOS|AER[ÓO]BIO|RELAXAMENTO|TREINO)/i.test(nextLine)) {
                                 linhas[i + 1] = l + ' ' + nextLine;
                             }
+                        }
+                        continue;
+                    }
+                    // "ALONG" / "ALONG." isolado (abreviação de Alongamento): prefixa a próxima linha
+                    // (ex: "ALONG" + ". Trapézio superior" -> "ALONG. Trapézio superior")
+                    if (/^ALONG\.?$/i.test(l)) {
+                        let nextLine = (i + 1 < linhas.length) ? linhas[i + 1] : '';
+                        if (nextLine && !/^(SQ|EXERC[ÍI]CIOS|AER[ÓO]BIO|RELAXAMENTO|TREINO|REPETI[ÇC][ÕO]ES)/i.test(nextLine)
+                            && !/^\d+°$/.test(nextLine) && !/^\d+\s*x\s*\d+\s*REPS/i.test(nextLine)) {
+                            linhas[i + 1] = 'ALONG. ' + nextLine.replace(/^\.\s*/, '');
                         }
                         continue;
                     }
@@ -1178,7 +1203,11 @@
                             exercises.push(current);
                             continue;
                         }
-                        // "(após X semanas ...)" inicia novo sub-exercício (alternativa)
+                        // "(após X semanas ...)" inicia novo sub-exercício (alternativa).
+                        // NOTA: "(ESSE EXERCÍCIO APÓS A Xª SEMANA)" NÃO é dividido aqui — é nota
+                        // sem vídeo próprio; dividir roubaria o link do exercício seguinte na
+                        // associação por posição Y. O dimming dele é feito no renderer via
+                        // data-after-weeks (getAfterWeek) na própria linha, sem virar sub.
                         if (/^\(após\s/i.test(line)) {
                             current = { lines: [line], tipo: "" };
                             exercises.push(current);
@@ -1213,6 +1242,7 @@
                         let searchName = ex.nome
                             .replace(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*', 'i'), '')
                             .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
+                            .replace(/^\(ESSE\s+EXERC[ÍI]CIO\s+AP[OÓ]S[^)]*\)\s*/i, '')
                             .replace(/\)$/, '')
                             .trim();
                         video = findVideoByPosition(searchName, pageIdx, pageData);
@@ -1227,6 +1257,8 @@
                     if (!video) {
                         // Tenta sem prefixo (ex: "Supersérie Adutora 45°" → "Adutora 45°")
                         let cleaned = nome.replace(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*', 'i'), '');
+                        // "ALONG. Tipo ..." → também tenta sem o "ALONG." (texto do PDF fica em fragmentos)
+                        cleaned = cleaned.replace(/^ALONG\.?\s*/i, '');
                         if (cleaned !== nome) video = findVideoByPosition(cleaned, pageIdx, pageData);
                     }
                     return video ? { ...item, video } : item;
@@ -1256,6 +1288,7 @@
                     let searchName = item.exercicio
                         .replace(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*', 'i'), '')
                         .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
+                        .replace(/^\(ESSE\s+EXERC[ÍI]CIO\s+AP[OÓ]S[^)]*\)\s*/i, '')
                         .replace(/\)$/, '').trim();
                     video = findVideoByPosition(searchName, alongPageNum, pageData);
                 }
@@ -1267,6 +1300,7 @@
                     let searchName = item.exercicio
                         .replace(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*', 'i'), '')
                         .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
+                        .replace(/^\(ESSE\s+EXERC[ÍI]CIO\s+AP[OÓ]S[^)]*\)\s*/i, '')
                         .replace(/\)$/, '').trim();
                     video = findVideoByPosition(searchName, alongPageNum, pageData);
                 }
@@ -1619,20 +1653,22 @@
                 while (ai + 1 + subCount < jsonData.alongamentos.length && jsonData.alongamentos[ai + 1 + subCount].isSubExercise) { subCount++; }
                 let hasReplacement = false;
                 for (let si = 0; si < subCount; si++) {
-                    if (/^\(após\s+\d+\s+semanas/i.test(jsonData.alongamentos[ai + 1 + si].exercicio)) { hasReplacement = true; }
+                    if (getAfterWeek(jsonData.alongamentos[ai + 1 + si].exercicio)) { hasReplacement = true; }
                 }
                 let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
                 let bodyTypeAttr = '';
                 if (RE_BODY_TYPE_MMII.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
                 else if (RE_BODY_TYPE_MMSS.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
 
-                let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
+                // Alongamento standalone com "(ESSE EXERCÍCIO APÓS A Xª SEMANA)": aparece a partir da semana X
+                let selfAfterWeek = hasReplacement ? null : getAfterWeek(item.exercicio);
+                let mainAttrs = hasReplacement ? ' data-has-replacement' : (selfAfterWeek ? ` data-after-weeks="${selfAfterWeek}"` : '');
                 html += `<tr${mainAttrs}${bodyTypeAttr}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.tempo}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
                 for (let si = 0; si < subCount; si++) {
                     let sub = jsonData.alongamentos[ai + 1 + si];
                     let subBtn = sub.video ? `<a href="${sub.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
-                    let afterMatch = sub.exercicio.match(/^\(após\s+(\d+)\s+semanas/i);
-                    let afterAttr = afterMatch ? ` data-after-weeks="${afterMatch[1]}"` : '';
+                    let afterWeek = getAfterWeek(sub.exercicio);
+                    let afterAttr = afterWeek ? ` data-after-weeks="${afterWeek}"` : '';
                     html += `<tr${afterAttr}${bodyTypeAttr}><td>${sub.exercicio}</td><td style="text-align:center;">${subBtn}</td></tr>`;
                 }
                 ai += 1 + subCount;
@@ -1660,7 +1696,7 @@
                 while (mi + 1 + subCount < jsonData.manobras.length && jsonData.manobras[mi + 1 + subCount].isSubExercise) { subCount++; }
                 let hasReplacement = false;
                 for (let si = 0; si < subCount; si++) {
-                    if (/^\(após\s+\d+\s+semanas/i.test(jsonData.manobras[mi + 1 + si].exercicio)) { hasReplacement = true; }
+                    if (getAfterWeek(jsonData.manobras[mi + 1 + si].exercicio)) { hasReplacement = true; }
                 }
                 let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
                 // Detecta se a manobra é específica para MMII ou MMSS
@@ -1668,13 +1704,15 @@
                 if (RE_BODY_TYPE_MMII.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
                 else if (RE_BODY_TYPE_MMSS.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
 
-                let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
+                // Manobra standalone com "(ESSE EXERCÍCIO APÓS A Xª SEMANA)": aparece a partir da semana X
+                let selfAfterWeek = hasReplacement ? null : getAfterWeek(item.exercicio);
+                let mainAttrs = hasReplacement ? ' data-has-replacement' : (selfAfterWeek ? ` data-after-weeks="${selfAfterWeek}"` : '');
                 html += `<tr${mainAttrs}${bodyTypeAttr}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.series}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
                 for (let si = 0; si < subCount; si++) {
                     let sub = jsonData.manobras[mi + 1 + si];
                     let subBtn = sub.video ? `<a href="${sub.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
-                    let afterMatch = sub.exercicio.match(/^\(após\s+(\d+)\s+semanas/i);
-                    let afterAttr = afterMatch ? ` data-after-weeks="${afterMatch[1]}"` : '';
+                    let afterWeek = getAfterWeek(sub.exercicio);
+                    let afterAttr = afterWeek ? ` data-after-weeks="${afterWeek}"` : '';
                     html += `<tr${afterAttr}${bodyTypeAttr}><td>${sub.exercicio}</td><td style="text-align:center;">${subBtn}</td></tr>`;
                 }
                 mi += 1 + subCount;
@@ -1768,12 +1806,15 @@
                 let hasReplacement = false;
                 for (let si = 0; si < subCount; si++) {
                     let subNome = typeof treino.exercicios[ei + 1 + si] === "object" ? treino.exercicios[ei + 1 + si].nome : treino.exercicios[ei + 1 + si];
-                    if (/^\(após\s+\d+\s+semanas/i.test(subNome)) { hasReplacement = true; }
+                    if (getAfterWeek(subNome)) { hasReplacement = true; }
                 }
 
                 let totalRows = 2 + subCount * 2 + (showObsFields ? 1 : 0);
                 let rowspan = ` rowspan="${totalRows}" style="vertical-align:middle;"`;
-                let mainAttrs = hasReplacement ? ' data-has-replacement' : '';
+                // Exercício standalone com "(ESSE EXERCÍCIO APÓS A Xª SEMANA)": só aparece a partir da semana X,
+                // sem exercício principal correspondente a escurecer (data-after-weeks direto na própria linha).
+                let selfAfterWeek = hasReplacement ? null : getAfterWeek(nome);
+                let mainAttrs = hasReplacement ? ' data-has-replacement' : (selfAfterWeek ? ` data-after-weeks="${selfAfterWeek}"` : '');
                 html += `<tbody class="exercise-group">`;
                 html += `<tr${mainAttrs}><td${rowspan}>${seq}</td><td>${nome}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
 
@@ -1790,8 +1831,8 @@
                     let subNome = typeof sub === "object" ? sub.nome : sub;
                     let subVideo = (typeof sub === "object") ? sub.video : null;
                     let subBtn = subVideo ? `<a href="${subVideo}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
-                    let afterMatch = subNome.match(/^\(após\s+(\d+)\s+semanas/i);
-                    let afterAttr = afterMatch ? ` data-after-weeks="${afterMatch[1]}"` : '';
+                    let afterWeek = getAfterWeek(subNome);
+                    let afterAttr = afterWeek ? ` data-after-weeks="${afterWeek}"` : '';
                     html += `<tr${afterAttr}><td>${subNome}</td><td style="text-align:center;">${subBtn}</td></tr>`;
 
                     // Peso do sub-exercício
