@@ -368,9 +368,58 @@
         tr[data-has-replacement].exercise-dimmed.dimmed-by-weeks td[rowspan] {
             color: inherit !important;
         }
+        .stopwatch {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            background: #1a1a2e;
+            border: 1px solid #3a3a5a;
+            border-radius: 8px;
+            padding: 10px 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .stopwatch .timer-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4caf50;
+            font-variant-numeric: tabular-nums;
+            min-width: 120px;
+            text-align: center;
+        }
+        .stopwatch button {
+            background: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            width: 44px;
+            height: 44px;
+            font-size: 18px;
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+        .stopwatch button:hover {
+            background: #2980b9;
+        }
+        .stopwatch .btn-reset {
+            background: #e74c3c;
+        }
+        .stopwatch .btn-reset:hover {
+            background: #c0392b;
+        }
     </style>
 </head>
 <body>
+
+<div class="stopwatch" id="stopwatch">
+    <button id="timer-toggle" onclick="toggleTimer()" title="Play / Pausa">▶</button>
+    <span class="timer-display" id="timer-display">00:00:000</span>
+    <button class="btn-reset" onclick="resetTimer()" title="Resetar">⟲</button>
+</div>
 
 <div class="container">
     <h1 style="display: flex; align-items: center; justify-content: center; gap: 12px;">
@@ -416,6 +465,58 @@
     var convertBtn = document.getElementById('btn-convert');
     var visualOutput = document.getElementById('visual-output');
     var showObsFields = true;
+
+    // === CRONÔMETRO FLUTUANTE ===
+    var timerElapsed = 0;
+    var timerRunning = false;
+    var timerLast = 0;
+    var timerInterval = null;
+    var timerMaxMinutes = 30; // limite máximo do cronômetro, em minutos
+
+    function formatTimer(totalMs) {
+        var mins = Math.floor(totalMs / 60000);
+        var secs = Math.floor((totalMs % 60000) / 1000);
+        var ms = Math.floor(totalMs % 1000);
+        return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0') + ':' + String(ms).padStart(3, '0');
+    }
+
+    function updateTimerDisplay() {
+        document.getElementById('timer-display').textContent = formatTimer(timerElapsed);
+    }
+
+    function pauseTimer() {
+        timerRunning = false;
+        clearInterval(timerInterval);
+        document.getElementById('timer-toggle').textContent = '▶';
+    }
+
+    function toggleTimer() {
+        if (timerRunning) {
+            timerElapsed += Date.now() - timerLast;
+            if (timerElapsed > timerMaxMinutes * 60000) { timerElapsed = timerMaxMinutes * 60000; }
+            pauseTimer();
+            updateTimerDisplay();
+        } else {
+            timerRunning = true;
+            timerLast = Date.now();
+            timerInterval = setInterval(function() {
+                timerElapsed += Date.now() - timerLast;
+                timerLast = Date.now();
+                if (timerElapsed >= timerMaxMinutes * 60000) {
+                    timerElapsed = timerMaxMinutes * 60000;
+                    pauseTimer();
+                }
+                updateTimerDisplay();
+            }, 10);
+            document.getElementById('timer-toggle').textContent = '⏸';
+        }
+    }
+
+    function resetTimer() {
+        pauseTimer();
+        timerElapsed = 0;
+        updateTimerDisplay();
+    }
 
     // === REGEX REUTILIZÁVEIS ===
     var RE_DIAS_SEMANA = /(?:Segunda|Ter[cç]a|Quarta|Quinta|Sexta|S[aá]bado|Domingo)/i;
@@ -1891,6 +1992,8 @@
 
         html += '<br>';
         visualOutput.innerHTML = html;
+        // Espaço extra no final para o contador flutuante não cobrir o último conteúdo
+        visualOutput.insertAdjacentHTML('beforeend', '<br><br><br>');
         applySectionVisibility();
         applyExerciseDimming();
         applyBodyTypeDimming();
