@@ -808,7 +808,7 @@
                 localStorage.removeItem('treino-pdf-anotacoes');
             }
 
-            showStatus("Lendo " + file.name + "...", "ok");
+            showStatus("Lendo arquivo " + file.name + "...", "ok");
             visualOutput.innerHTML = "";
 
             var arrayBuffer = await new Promise(function(resolve, reject) {
@@ -818,7 +818,7 @@
                 reader.readAsArrayBuffer(file);
             });
 
-            showStatus("Processando PDF (" + file.name + ")...", "ok");
+            showStatus("Processando arquivo " + file.name + "...", "ok");
             var pdfData = new Uint8Array(arrayBuffer);
             await processarPDF(pdfData);
             showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
@@ -827,7 +827,7 @@
             var detail = (err.message || String(err));
             // if (err.stack) detail += '\n\n' + err.stack;
             showErrorPopup('Erro ao importar o PDF', detail);
-            showStatus("Erro: " + (err.message || err), "error");
+            showStatus("Erro ao importar o PDF: " + (err.message || err), "error");
         }
     }
 
