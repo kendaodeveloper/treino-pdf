@@ -825,12 +825,12 @@
 
         } catch (err) {
             // Restaura o treino anterior da tela (que foi limpo antes de processar) se existir
-            try {
-                var saved = localStorage.getItem('treino-pdf-data');
-                if (saved) {
-                    renderWorkoutVisual(JSON.parse(saved));
-                }
-            } catch(restoreErr) {}
+            // try {
+            //     var saved = localStorage.getItem('treino-pdf-data');
+            //     if (saved) {
+            //         renderWorkoutVisual(JSON.parse(saved));
+            //     }
+            // } catch(restoreErr) {}
 
             var detail = (err.message || String(err));
             // if (err.stack) detail += '\n\n' + err.stack;
@@ -879,20 +879,21 @@
             }
         }
 
-        // Segurança: exige "four fit" no PDF
-        // Normaliza o texto removendo todo whitespace para tolerar quebras de linha
-        // e letras espacadas do logo (ex: "F" + "our Fit", "F o u r F i t")
-        var temFourFit = /fourfit/i.test(fullText.replace(/\s+/g, ''));
-        if (!temFourFit) {
-            throw new Error("Falha na importação do PDF. Este site é exclusivo para treinos da consultoria Four Fit.");
-        }
-
-        const parsedTrainingData = parseWorkoutTextByBlocks(fullText, pageData);
-
         // NÃO REMOVER ESSES LOGS!
         console.log('--- fullText completo ---');
         console.log(fullText);
         console.log('--- Dados parseados ---');
+
+        // Segurança: exige "four fit" no PDF
+        // Normaliza o texto removendo todo whitespace para tolerar quebras de linha
+        // e letras espacadas do logo (ex: "F" + "our Fit", "F o u r F i t")
+        // var temFourFit = /fourfit/i.test(fullText.replace(/\s+/g, ''));
+        // if (!temFourFit) {
+        //     throw new Error("Falha na importação do PDF. Este site é exclusivo para treinos da consultoria Four Fit.");
+        // }
+
+        const parsedTrainingData = parseWorkoutTextByBlocks(fullText, pageData);
+
         console.log(JSON.stringify(parsedTrainingData, null, 2));
 
         // Salva no localStorage com tratamento de quota
