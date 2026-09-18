@@ -907,10 +907,8 @@
                 showErrorPopup('Erro ao processar algumas páginas do PDF', pageErrors.join('\n'));
             }
         } catch (error) {
-            var detail = (error.message || String(error));
-            // if (error.stack) detail += '\n\n' + error.stack;
-            showErrorPopup('Erro ao processar o PDF', detail);
-            showStatus("Erro ao processar o PDF: " + (error.message || error), "error");
+            // Re-lança para o iniciarConversao exibir o popup e o status de erro
+            throw error;
         }
     }
 
