@@ -824,6 +824,14 @@
             showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
 
         } catch (err) {
+            // Restaura o treino anterior da tela (que foi limpo antes de processar) se existir
+            try {
+                var saved = localStorage.getItem('treino-pdf-data');
+                if (saved) {
+                    renderWorkoutVisual(JSON.parse(saved));
+                }
+            } catch(restoreErr) {}
+
             var detail = (err.message || String(err));
             // if (err.stack) detail += '\n\n' + err.stack;
             showErrorPopup('Erro ao importar o PDF', detail);
@@ -833,82 +841,76 @@
 
     async function processarPDF(pdfData) {
         var pageErrors = [];
-        try {
-            const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
-            let fullText = "";
-            let pageData = {};
+        const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+        let fullText = "";
+        let pageData = {};
 
-            for (let i = 1; i <= pdf.numPages; i++) {
-                try {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    const pageText = textContent.items.map(item => item.str).join("\n");
-                    fullText += `\n--- SECAO_PAGINA_${i} ---\n` + pageText + "\n";
-
-                    let textItems = textContent.items
-                        .filter(item => item.str.trim().length > 0)
-                        .map(item => ({
-                            str: item.str.trim(),
-                            y: (item.transform && item.transform.length > 5) ? item.transform[5] : 0
-                        }));
-
-                    let links = [];
-                    try {
-                        const annotations = await page.getAnnotations();
-                        for (const ann of annotations) {
-                            if (ann.subtype === "Link" && ann.url && isVideoUrl(ann.url)) {
-                                let centerY = (ann.rect && ann.rect.length >= 4) ? (ann.rect[1] + ann.rect[3]) / 2 : 0;
-                                links.push({ url: ann.url, y: centerY });
-                            }
-                        }
-                    } catch(annErr) {
-                        pageErrors.push('Pg ' + i + ' links: ' + (annErr.message || annErr));
-                    }
-
-                    pageData[i] = { textItems, links };
-                } catch(pageErr) {
-                    pageErrors.push('Pg ' + i + ': ' + (pageErr.message || pageErr));
-                    fullText += `\n--- SECAO_PAGINA_${i} ---\n`;
-                }
-            }
-
-            // Segurança: exige "four fit" em pelo menos uma linha do PDF
-            // (variações de maiúsculas/minúsculas, com ou sem espaço entre "four" e "fit")
-            var temFourFit = fullText.split("\n").some(function(line) {
-                return /four\s*fit/i.test(line);
-            });
-            if (!temFourFit) {
-                throw new Error("Falha na importação do PDF. Este site é exclusivo para treinos da consultoria Four Fit.");
-            }
-
-            const parsedTrainingData = parseWorkoutTextByBlocks(fullText, pageData);
-
-            // NÃO REMOVER ESSES LOGS!
-            console.log('--- fullText completo ---');
-            console.log(fullText);
-            console.log('--- Dados parseados ---');
-            console.log(JSON.stringify(parsedTrainingData, null, 2));
-
-            // Salva no localStorage com tratamento de quota
+        for (let i = 1; i <= pdf.numPages; i++) {
             try {
-                localStorage.setItem('treino-pdf-data', JSON.stringify(parsedTrainingData));
-            } catch(storageErr) {
-                showErrorPopup('Erro ao salvar o treino', 'Armazenamento cheio. O treino foi carregado mas não será salvo entre as sessões.');
-            }
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join("\n");
+                fullText += `\n--- SECAO_PAGINA_${i} ---\n` + pageText + "\n";
 
-            if (!localStorage.getItem('treino-pdf-anotacoes')) {
-                saveAnotacoes({ semanaAtual: 1, obs: {} });
-            }
+                let textItems = textContent.items
+                    .filter(item => item.str.trim().length > 0)
+                    .map(item => ({
+                        str: item.str.trim(),
+                        y: (item.transform && item.transform.length > 5) ? item.transform[5] : 0
+                    }));
 
-            renderWorkoutVisual(parsedTrainingData);
+                let links = [];
+                try {
+                    const annotations = await page.getAnnotations();
+                    for (const ann of annotations) {
+                        if (ann.subtype === "Link" && ann.url && isVideoUrl(ann.url)) {
+                            let centerY = (ann.rect && ann.rect.length >= 4) ? (ann.rect[1] + ann.rect[3]) / 2 : 0;
+                            links.push({ url: ann.url, y: centerY });
+                        }
+                    }
+                } catch(annErr) {
+                    pageErrors.push('Pg ' + i + ' links: ' + (annErr.message || annErr));
+                }
 
-            // Mostra avisos de páginas com erro (parcial)
-            if (pageErrors.length > 0) {
-                showErrorPopup('Erro ao processar algumas páginas do PDF', pageErrors.join('\n'));
+                pageData[i] = { textItems, links };
+            } catch(pageErr) {
+                pageErrors.push('Pg ' + i + ': ' + (pageErr.message || pageErr));
+                fullText += `\n--- SECAO_PAGINA_${i} ---\n`;
             }
-        } catch (error) {
-            // Re-lança para o iniciarConversao exibir o popup e o status de erro
-            throw error;
+        }
+
+        // Segurança: exige "four fit" no PDF
+        // Normaliza o texto removendo todo whitespace para tolerar quebras de linha
+        // e letras espacadas do logo (ex: "F" + "our Fit", "F o u r F i t")
+        var temFourFit = /fourfit/i.test(fullText.replace(/\s+/g, ''));
+        if (!temFourFit) {
+            throw new Error("Falha na importação do PDF. Este site é exclusivo para treinos da consultoria Four Fit.");
+        }
+
+        const parsedTrainingData = parseWorkoutTextByBlocks(fullText, pageData);
+
+        // NÃO REMOVER ESSES LOGS!
+        console.log('--- fullText completo ---');
+        console.log(fullText);
+        console.log('--- Dados parseados ---');
+        console.log(JSON.stringify(parsedTrainingData, null, 2));
+
+        // Salva no localStorage com tratamento de quota
+        try {
+            localStorage.setItem('treino-pdf-data', JSON.stringify(parsedTrainingData));
+        } catch(storageErr) {
+            showErrorPopup('Erro ao salvar o treino', 'Armazenamento cheio. O treino foi carregado mas não será salvo entre as sessões.');
+        }
+
+        if (!localStorage.getItem('treino-pdf-anotacoes')) {
+            saveAnotacoes({ semanaAtual: 1, obs: {} });
+        }
+
+        renderWorkoutVisual(parsedTrainingData);
+
+        // Mostra avisos de páginas com erro (parcial)
+        if (pageErrors.length > 0) {
+            showErrorPopup('Erro ao processar algumas páginas do PDF', pageErrors.join('\n'));
         }
     }
 
