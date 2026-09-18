@@ -808,17 +808,17 @@
                 localStorage.removeItem('treino-pdf-anotacoes');
             }
 
-            showStatus("Lendo arquivo " + file.name + "...", "ok");
+            showStatus("Lendo " + file.name + "...", "ok");
             visualOutput.innerHTML = "";
 
             var arrayBuffer = await new Promise(function(resolve, reject) {
                 var reader = new FileReader();
                 reader.onload = function(evt) { resolve(evt.target.result); };
-                reader.onerror = function() { reject(new Error("Falha ao ler arquivo")); };
+                reader.onerror = function() { reject(new Error("Falha ao ler o arquivo")); };
                 reader.readAsArrayBuffer(file);
             });
 
-            showStatus("Processando arquivo " + file.name + "...", "ok");
+            showStatus("Processando " + file.name + "...", "ok");
             var pdfData = new Uint8Array(arrayBuffer);
             await processarPDF(pdfData);
             showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
