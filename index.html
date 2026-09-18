@@ -582,7 +582,7 @@
         try {
             localStorage.setItem('treino-pdf-anotacoes', JSON.stringify(anotacoes));
         } catch(e) {
-            showErrorPopup('Erro ao salvar dados', 'Armazenamento cheio. Tente limpar dados do navegador.\n\n' + (e.message || e));
+            showErrorPopup('Erro ao salvar os dados', 'Armazenamento cheio. Tente limpar os dados do navegador.');
         }
         updateKeepNotesVisibility();
     }
@@ -767,7 +767,7 @@
                 showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
             } catch(e) {
                 localStorage.removeItem('treino-pdf-data');
-                showErrorPopup('Erro ao carregar treino salvo', 'Os dados salvos estavam corrompidos e foram removidos. Importe o PDF novamente.\n\n' + (e.message || e));
+                showErrorPopup('Erro ao carregar o treino salvo', 'Os dados salvos estavam corrompidos e foram removidos. Importe o PDF novamente.');
             }
         }
     })();
@@ -825,8 +825,8 @@
 
         } catch (err) {
             var detail = (err.message || String(err));
-            if (err.stack) detail += '\n\n' + err.stack;
-            showErrorPopup('Erro ao importar PDF', detail);
+            // if (err.stack) detail += '\n\n' + err.stack;
+            showErrorPopup('Erro ao importar o PDF', detail);
             showStatus("Erro: " + (err.message || err), "error");
         }
     }
@@ -872,6 +872,15 @@
                 }
             }
 
+            // Segurança: exige "four fit" em pelo menos uma linha do PDF
+            // (variações de maiúsculas/minúsculas, com ou sem espaço entre "four" e "fit")
+            var temFourFit = fullText.split("\n").some(function(line) {
+                return /four\s*fit/i.test(line);
+            });
+            if (!temFourFit) {
+                throw new Error("Falha na importação do PDF. Este site é exclusivo para treinos da consultoria Four Fit.");
+            }
+
             const parsedTrainingData = parseWorkoutTextByBlocks(fullText, pageData);
 
             // NÃO REMOVER ESSES LOGS!
@@ -884,7 +893,7 @@
             try {
                 localStorage.setItem('treino-pdf-data', JSON.stringify(parsedTrainingData));
             } catch(storageErr) {
-                showErrorPopup('Erro ao salvar treino', 'Armazenamento cheio. O treino foi carregado mas não será salvo entre sessões.\n\n' + (storageErr.message || storageErr));
+                showErrorPopup('Erro ao salvar o treino', 'Armazenamento cheio. O treino foi carregado mas não será salvo entre as sessões.');
             }
 
             if (!localStorage.getItem('treino-pdf-anotacoes')) {
@@ -895,12 +904,11 @@
 
             // Mostra avisos de páginas com erro (parcial)
             if (pageErrors.length > 0) {
-                showErrorPopup('Aviso: algumas páginas tiveram problemas', pageErrors.join('\n'));
+                showErrorPopup('Erro ao processar algumas páginas do PDF', pageErrors.join('\n'));
             }
-
         } catch (error) {
             var detail = (error.message || String(error));
-            if (error.stack) detail += '\n\n' + error.stack;
+            // if (error.stack) detail += '\n\n' + error.stack;
             showErrorPopup('Erro ao processar o PDF', detail);
             showStatus("Erro ao processar o PDF: " + (error.message || error), "error");
         }
