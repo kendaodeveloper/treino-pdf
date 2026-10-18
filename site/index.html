@@ -529,6 +529,7 @@
         </div>
         <div class="panel">
             <h3>Meus alunos</h3>
+            <input type="search" id="search-students" class="text-input" placeholder="Buscar por nome" oninput="filterStudents()">
             <div id="students-list"></div>
         </div>
     </div>
@@ -2284,7 +2285,7 @@
                 ? '<button class="btn btn-success" onclick="copyLink(\'' + s.access_token + '\', \'' + nomeArg + '\')">Copiar link</button>' +
                   '<button class="btn btn-gray" onclick="regenerateLink(\'' + s.id + '\', \'' + nomeArg + '\')">Gerar novo link</button>'
                 : '';
-            return '<div class="student-item">' +
+            return '<div class="student-item" data-name="' + escapeHtml(normalizeName(s.name)) + '">' +
                 '<strong>' + escapeHtml(s.name) + '</strong><br><small>' + info + '</small>' +
                 '<div class="student-actions">' +
                     '<button class="btn" onclick="openStudentById(\'' + s.id + '\')">' + (s.workout_updated_at ? 'Exibir treino' : 'Importar treino') + '</button>' +
@@ -2293,6 +2294,19 @@
                 '</div>' +
             '</div>';
         }).join('');
+        filterStudents();
+    }
+
+    function normalizeName(s) {
+        return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    // Filtro local por nome (ignora maiúsculas e acentos)
+    function filterStudents() {
+        var q = normalizeName(document.getElementById('search-students').value.trim());
+        document.querySelectorAll('#students-list .student-item').forEach(function(item) {
+            item.style.display = item.getAttribute('data-name').includes(q) ? '' : 'none';
+        });
     }
 
     async function createStudent() {
