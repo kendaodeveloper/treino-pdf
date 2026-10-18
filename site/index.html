@@ -466,15 +466,25 @@
             cursor: pointer;
             padding: 6px 4px;
         }
-        .btn-danger { color: #e74c3c; }
         .student-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 0;
+            padding: 12px 0;
             border-bottom: 1px solid #2a2a4a;
         }
+        .student-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .student-actions .btn {
+            min-height: 44px;
+            padding: 8px;
+            font-size: 15px;
+        }
+        .btn-gray { background-color: #3a3a5a; }
+        .btn-gray:hover { background-color: #4a4a6a; }
+        .btn-red { background-color: #c0392b; }
+        .btn-red:hover { background-color: #a93226; }
         .student-item:last-child { border-bottom: none; }
         .student-item small { color: #8899a6; }
     </style>
@@ -2268,13 +2278,17 @@
                 ? 'Treino importado em ' + new Date(s.workout_updated_at).toLocaleDateString('pt-BR')
                 : 'Sem treino importado';
             var nomeArg = escapeHtml(s.name).replace(/'/g, '');
+            // Link só faz sentido depois que o aluno tem treino importado
+            var linkBtns = s.workout_updated_at
+                ? '<button class="btn btn-success" onclick="copyLink(\'' + s.access_token + '\', \'' + nomeArg + '\')">Copiar link</button>' +
+                  '<button class="btn btn-gray" onclick="regenerateLink(\'' + s.id + '\', \'' + nomeArg + '\')">Gerar novo link</button>'
+                : '';
             return '<div class="student-item">' +
-                '<div><strong>' + escapeHtml(s.name) + '</strong><br><small>' + info + '</small></div>' +
-                '<div style="display:flex; flex-direction:column; align-items:flex-end;">' +
-                    '<button class="btn" onclick="openStudentById(\'' + s.id + '\')">Abrir</button>' +
-                    '<button class="btn-link" onclick="copyLink(\'' + s.access_token + '\', \'' + nomeArg + '\')">Copiar link</button>' +
-                    '<button class="btn-link" onclick="regenerateLink(\'' + s.id + '\', \'' + nomeArg + '\')">Gerar novo link</button>' +
-                    '<button class="btn-link btn-danger" onclick="removeStudent(\'' + s.id + '\', \'' + nomeArg + '\')">Remover</button>' +
+                '<strong>' + escapeHtml(s.name) + '</strong><br><small>' + info + '</small>' +
+                '<div class="student-actions">' +
+                    '<button class="btn" onclick="openStudentById(\'' + s.id + '\')">' + (s.workout_updated_at ? 'Abrir' : 'Importar treino') + '</button>' +
+                    linkBtns +
+                    '<button class="btn btn-red" onclick="removeStudent(\'' + s.id + '\', \'' + nomeArg + '\')">Remover</button>' +
                 '</div>' +
             '</div>';
         }).join('');
@@ -2286,7 +2300,7 @@
         setMsg('new-msg', 'Cadastrando...');
         var ins = await sb.from('students').insert({ trainer_id: currentTrainer.id, name: nome });
         if (ins.error) { setMsg('new-msg', 'Erro: ' + ins.error.message, 'error'); return; }
-        setMsg('new-msg', 'Aluno cadastrado. Clique em "Abrir" para importar o PDF e em "Copiar link" para enviar ao aluno.', 'ok');
+        setMsg('new-msg', 'Aluno cadastrado. Clique em "Importar treino" para importar o PDF; depois o link do aluno fica disponível.', 'ok');
         document.getElementById('new-name').value = '';
         await loadStudents();
     }
