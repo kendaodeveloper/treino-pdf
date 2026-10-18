@@ -1,10 +1,15 @@
 # Four Fit - Protocolo de Treino
 
-Single-page app (index.html, ~1600 linhas) que importa PDFs de treino da consultoria Four Fit e renderiza um dashboard interativo mobile-first.
+Single-page app (index.html, ~2000 linhas) que importa PDFs de treino da consultoria Four Fit e renderiza um dashboard interativo mobile-first.
 
 ## Versao web com login (`site/`)
 
 `site/index.html` eh uma copia do `index.html` com Supabase: treinador com login (email/senha) e painel (cadastra aluno, importa PDF, copia/regenera link); aluno sem login, acessa por `?t=<students.access_token>` via funcoes `student_by_token`/`save_annotations_by_token` (anon nao tem acesso a tabelas). Treino fica em `students.workout` (jsonb) e anotacoes em `annotations` (no lugar do localStorage). Schema/seed em `supabase/`, setup em `docs/site-setup.md`. Mudancas no parser/renderer devem ser replicadas nos dois arquivos.
+
+- Anotacoes salvas com debounce de 600ms (`saveAnotacoes` -> `flushAnotacoes`) e flush ao esconder a aba/trocar de tela. Aluno grava por `save_annotations_by_token` (limite ~200KB); treinador grava direto em `annotations` (upsert)
+- `student_by_token` retorna tambem `trainer_name` (exibido no topo para o aluno)
+- Painel do treinador: busca por nome (ignora acentos) e paginacao local (25 por pagina), "Trocar senha", "Gerar novo link" (novo `access_token`), "Remover aluno", e pagamentos por mes em `students.payments` (`{ "2026-10": true }`). Copiar/gerar link e pagamentos so aparecem depois que o aluno tem treino importado
+- Deploy: Cloudflare (Workers ou Pages, raiz `site/`). `site/build.sh` gera `site/config.js` a partir de `SUPABASE_URL`/`SUPABASE_ANON_KEY` (publishable key); `config.js` fica no `.gitignore` (local: copiar `config.example.js`)
 
 ## Stack
 
@@ -17,7 +22,7 @@ Single-page app (index.html, ~1600 linhas) que importa PDFs de treino da consult
 Tudo em um unico arquivo. Ordem no codigo:
 1. CSS (estilos inline no `<style>`)
 2. HTML (estrutura basica, input file, botoes)
-3. JS: variaveis globais (todas no topo: `diaSemana`, `statusMsg`, `fileInput`, `convertBtn`, `visualOutput`, `showObsFields`), regex reutilizaveis (`RE_DIAS_SEMANA`, `RE_PREFIXO_EX`, `RE_MMII`, `RE_MMSS`, `RE_FOCO_MUSCULAR`, `RE_BODY_TYPE_MMII`, `RE_BODY_TYPE_MMSS`, `RE_SUB_APOS`), helper `getAfterWeek()` (extrai semana de "após X semanas" / "(ESSE EXERCÍCIO APÓS A Xª SEMANA)"), `showErrorPopup`, helpers de localStorage/anotacoes/pesos/semanas
+3. JS: variaveis globais (todas no topo: `diaSemana`, `statusMsg`, `fileInput`, `convertBtn`, `visualOutput`, `showObsFields`), cronometro flutuante (play/pausa/reset, limite `timerMaxMinutes` = 30min), regex reutilizaveis (`RE_DIAS_SEMANA`, `RE_PREFIXO_EX`, `RE_MMII`, `RE_MMSS`, `RE_FOCO_MUSCULAR`, `RE_BODY_TYPE_MMII`, `RE_BODY_TYPE_MMSS`, `RE_SUB_APOS`), helper `getAfterWeek()` (extrai semana de "após X semanas" / "(ESSE EXERCÍCIO APÓS A Xª SEMANA)"), `showErrorPopup`, helpers de localStorage/anotacoes/pesos/semanas
 4. JS: `applyBodyTypeDimming()`, `applyExerciseDimming()`, load do localStorage
 5. JS: `processarPDF()` - extrai texto e links do PDF via PDF.js
 6. JS: `findTextY()`, `findVideoByPosition()` - associacao de videos por posicao Y
@@ -182,6 +187,7 @@ Fragmentos de logo/marca sao filtrados no warmup parser:
 ## JSONs de teste (pasta `teste/`)
 
 - `kenneth-azevedo.json` - 3 treinos (1E5, 2E4, 3), periodizacao com Forca Pura, tem dias da semana
+- `kenneth-azevedo-2.json` - 5 treinos (1 a 5, um por dia), dias com espaco no hifen ("Segunda - feira"), treino 5 misto ("Misto ombro. triceps e perna")
 - `john-eder.json` - 5 treinos, "(ESSE EXERCÍCIO APÓS A Xª SEMANA)" standalone no exercicio (dimming selfAfterWeek), warmup com "ALONG"/"ALONG." prefixado
 - `lucas-paim.json` - 4 treinos (1, 2E5, 3, 4 alternativo), Biset
 - `daniel-alves.json` - 3 treinos sem dias da semana (so foco), Pos-exaustao com hifen
@@ -193,9 +199,9 @@ Fragmentos de logo/marca sao filtrados no warmup parser:
 
 ## Debug
 
-Logs no console (comentados com "NAO REMOVER"):
-- fullText completo e JSON parseado apos importar PDF
-- Para reativar: descomentar as linhas ~649-652
+Logs no console (ativos, marcados com "NÃO REMOVER ESSES LOGS!" em `processarPDF`):
+- fullText completo e JSON parseado apos importar PDF (`index.html` ~linha 902, `site/index.html` ~linha 1154)
+- `index.html` tambem loga o JSON ao carregar do localStorage
 
 Variaveis de teste:
-- `diaSemana` (topo do script, linha ~409): `null` por default (usa dia real). Setar para `'segunda'`, `'terca'`, `'quarta'`, `'quinta'`, `'sexta'`, `'sabado'` ou `'domingo'` para simular outro dia. DEVE ficar no topo do script (antes do load do localStorage) por causa de hoisting.
+- `diaSemana` (topo do script, linha ~462 no `index.html` e ~664 no `site/index.html`): `null` por default (usa dia real). Setar para `'segunda'`, `'terca'`, `'quarta'`, `'quinta'`, `'sexta'`, `'sabado'` ou `'domingo'` para simular outro dia. DEVE ficar no topo do script (antes do load do localStorage) por causa de hoisting.

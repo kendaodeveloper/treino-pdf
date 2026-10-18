@@ -18,6 +18,7 @@ O que vai pro ar eh a pasta `site/`. O `index.html` da raiz (GitHub Pages) conti
 ### 1.2 Criar as tabelas
 - [ ] **SQL Editor** > **New query** > colar todo o `supabase/schema.sql` > **Run**
 - [ ] Deve aparecer "Success. No rows returned"
+- O `schema.sql` eh para projeto limpo (os `create table` falham se as tabelas ja existem). Se o banco ja esta no ar e o `schema.sql` mudou, rode so o trecho alterado (ex: os `create or replace function` e o `drop policy` + `create policy` correspondentes) em vez do `reset.sql`, que apaga alunos e logins
 
 ### 1.3 Cadastrar empresa e treinadores
 - [ ] Conferir nomes/emails em `supabase/seed.sql` (emails em minusculo)
@@ -103,8 +104,8 @@ Tela **sem** Deploy command (Pages):
 - [ ] **<- Alunos** > **Exibir treino**: peso/observacao salvos
 
 ### 4.2 Aluno
-- [ ] Na lista, **Copiar link** do aluno
-- [ ] Abrir o link no celular (ou aba anonima): deve abrir direto o treino, sem login e sem a parte de importar PDF
+- [ ] Na lista, **Copiar link** do aluno (o botao so aparece depois que o aluno tem treino importado)
+- [ ] Abrir o link no celular (ou aba anonima): deve abrir direto o treino, sem login e sem a parte de importar PDF, com o nome do treinador no topo
 - [ ] Os pesos/obs do 4.1 aparecem; mudar um peso, recarregar a pagina: continua salvo
 - [ ] Salvar o link nos favoritos / tela inicial do celular
 
@@ -119,7 +120,8 @@ Tela **sem** Deploy command (Pages):
 - **Novo treinador**: inserir em `trainers` (Table Editor ou SQL, email minusculo) + criar o login dele (passo 1.5)
 - **Novo aluno**: treinador cadastra pelo site e envia o link (**Copiar link**)
 - **Treino novo**: treinador abre o aluno e importa o PDF de novo (desmarque "Manter anotacoes" para zerar pesos/obs)
-- **Link vazou / aluno saiu**: **Gerar novo link** (o antigo para de funcionar) ou **Remover** o aluno
+- **Link vazou / aluno saiu**: **Gerar novo link** (o antigo para de funcionar) ou **Remover aluno** (apaga treino e anotacoes)
+- **Pagamentos**: na lista de alunos, marcar os meses pagos (setas trocam o ano)
 - **Treinador esqueceu a senha**: Supabase > Authentication > Users > clicar no usuario > definir nova senha
 - **Atualizar o site**: qualquer push na `main` publica sozinho
 
