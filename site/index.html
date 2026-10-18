@@ -1039,7 +1039,7 @@
             showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
             // Não cobre o popup de páginas com erro (importação parcial)
             if (!document.querySelector('.error-popup-overlay')) {
-                showSuccessPopup('Treino importado!', 'O treino de ' + escapeHtml(currentStudent.name) + ' foi salvo. Use "Copiar link" na lista de alunos para enviar a ele.');
+                showSuccessPopup('Treino importado!', 'O treino foi salvo com sucesso.<br>Use a função "Copiar link" na lista de alunos para enviar o treino para o aluno.');
             }
 
         } catch (err) {
