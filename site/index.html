@@ -878,6 +878,26 @@
         saveAnotacoes(a);
     }
 
+    // Selects de peso são preenchidos sob demanda: renderizar 500 opções x 5 selects x N exercícios
+    // de uma vez deixava a abertura do treino lenta no celular.
+    var WEIGHT_OPTIONS_HTML = null;
+    function fillWeightSelect(sel) {
+        if (sel.dataset.filled) return;
+        sel.dataset.filled = '1';
+        if (!WEIGHT_OPTIONS_HTML) {
+            WEIGHT_OPTIONS_HTML = '';
+            for (var w = 1; w <= 500; w++) WEIGHT_OPTIONS_HTML += '<option value="' + w + '">' + w + 'kg</option>';
+        }
+        var val = sel.value;
+        sel.innerHTML = '<option value="">-</option>' + WEIGHT_OPTIONS_HTML;
+        sel.value = val;
+    }
+    ['focusin', 'pointerdown', 'mousedown', 'touchstart'].forEach(function(evName) {
+        document.addEventListener(evName, function(e) {
+            if (e.target && e.target.classList && e.target.classList.contains('weight-select')) fillWeightSelect(e.target);
+        }, { capture: true, passive: true });
+    });
+
     function onWeightChange(obsKey, reps, value) {
         var a = loadAnotacoes();
         if (!a.pesos) a.pesos = {};
@@ -2132,12 +2152,10 @@
                 let cs = colspan || 3;
                 let repsCols = repsArr.map(r => {
                     let savedVal = pesos[r] || '';
+                    // Só o valor salvo é renderizado; as 500 opções entram ao tocar no select (fillWeightSelect)
                     let opts = '<option value="">-</option>';
-                    for (let w = 1; w <= 500; w++) {
-                        let selected = (String(w) === String(savedVal)) ? ' selected' : '';
-                        opts += `<option value="${w}"${selected}>${w}kg</option>`;
-                    }
-                    return `<div class="reps-col"><label>${r} reps</label><select onchange="onWeightChange('${obsKey}','${r}',this.value)">${opts}</select></div>`;
+                    if (savedVal) opts += `<option value="${savedVal}" selected>${savedVal}kg</option>`;
+                    return `<div class="reps-col"><label>${r} reps</label><select class="weight-select" onchange="onWeightChange('${obsKey}','${r}',this.value)">${opts}</select></div>`;
                 }).join('');
                 return `<tr><td colspan="${cs}" style="padding: 4px 6px;"><div class="reps-row">${repsCols}</div></td></tr>`;
             }
