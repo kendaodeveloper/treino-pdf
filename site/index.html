@@ -508,6 +508,12 @@
             min-height: 44px;
             padding: 0;
         }
+        .payments-box {
+            margin-top: 12px;
+            padding: 10px;
+            border: 1px solid #3a3a5a;
+            border-radius: 6px;
+        }
         .payments {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -2327,10 +2333,10 @@
     function paymentsHtml(s) {
         var now = new Date();
         var paymentsYear = paymentsYears[s.id] || now.getFullYear();
-        return '<div id="pay-' + s.id + '">' +
-            '<div class="year-nav" style="margin-top:10px;">' +
+        return '<div id="pay-' + s.id + '" class="payments-box">' +
+            '<div class="year-nav">' +
                 '<button class="btn btn-gray" onclick="changePaymentsYear(\'' + s.id + '\', -1)">&#9664;</button>' +
-                '<span>Pagamentos <strong>' + paymentsYear + '</strong> <small style="color:#8899a6;">(verde = pago)</small></span>' +
+                '<span>Pagamentos <strong>' + paymentsYear + '</strong></span>' +
                 '<button class="btn btn-gray" onclick="changePaymentsYear(\'' + s.id + '\', 1)">&#9654;</button>' +
             '</div>' +
             '<div class="payments">' + MESES.map(function(mes, i) {
