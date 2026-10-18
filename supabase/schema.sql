@@ -84,12 +84,14 @@ create or replace function public.student_by_token(p_token uuid) returns json
 language sql stable security definer set search_path = public as $$
   select json_build_object(
     'name', s.name,
+    'trainer_name', t.name,
     'workout', s.workout,
     'semana_atual', coalesce(a.semana_atual, 1),
     'obs', coalesce(a.obs, '{}'::jsonb),
     'pesos', coalesce(a.pesos, '{}'::jsonb)
   )
   from students s
+  join trainers t on t.id = s.trainer_id
   left join annotations a on a.student_id = s.id
   where s.access_token = p_token
 $$;

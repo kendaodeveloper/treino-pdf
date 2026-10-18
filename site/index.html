@@ -588,6 +588,7 @@
             <span style="color:#555;">/</span>
             <button class="btn-link" onclick="doLogout()">Sair</button>
         </span>
+        <span id="topbar-trainer" style="display: none;"></span>
     </div>
 
     <div id="trainer-view" style="display: none;">
@@ -2355,6 +2356,11 @@
         currentRole = 'student';
         document.getElementById('topbar-user').textContent = 'Aluno: ' + r.data.name;
         document.getElementById('topbar-actions').style.display = 'none';
+        if (r.data.trainer_name) {
+            var trainerEl = document.getElementById('topbar-trainer');
+            trainerEl.textContent = 'Treinador: ' + r.data.trainer_name;
+            trainerEl.style.display = '';
+        }
         await openStudent({
             token: token,
             name: r.data.name,
