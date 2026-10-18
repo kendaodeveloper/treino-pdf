@@ -617,7 +617,7 @@
         }
         @keyframes pay-spin { to { transform: rotate(360deg); } }
         /* botão aguardando o banco: mesmo spinner dos pagamentos */
-        .btn.btn-loading { position: relative; color: transparent; pointer-events: none; }
+        .btn.btn-loading { position: relative; color: transparent !important; pointer-events: none; }
         .btn.btn-loading::after {
             content: '';
             position: absolute;
@@ -1255,7 +1255,15 @@
         statusMsg.style.display = 'none';
     }
 
-    async function iniciarConversao() {
+    function iniciarConversao() {
+        // Botão desabilitado com spinner e seletor de arquivo travado enquanto importa (evita importar 2x)
+        fileInput.disabled = true;
+        return withBtnLoading(convertBtn, importarPDF).finally(function() {
+            fileInput.disabled = false;
+        });
+    }
+
+    async function importarPDF() {
         try {
             showStatus("Verificando arquivo...", "ok");
 
@@ -1289,13 +1297,15 @@
             }
 
         } catch (err) {
-            // Restaura o treino anterior da tela (que foi limpo antes de processar) se existir
-            // try {
-            //     var saved = localStorage.getItem('treino-pdf-data');
-            //     if (saved) {
-            //         renderWorkoutVisual(JSON.parse(saved));
-            //     }
-            // } catch(restoreErr) {}
+            // Restaura o treino anterior na tela (foi limpo antes de processar)
+            if (currentStudent && currentStudent.workout) {
+                try {
+                    renderWorkoutVisual(currentStudent.workout);
+                    applyEditLock();
+                } catch (restoreErr) {
+                    console.error('Falha ao restaurar o treino anterior', restoreErr);
+                }
+            }
 
             var detail = (err.message || String(err));
             // if (err.stack) detail += '\n\n' + err.stack;
