@@ -2950,6 +2950,7 @@
             if (!r.data.length) { showErrorPopup('Erro ao remover aluno', 'O aluno não foi removido. Recarregue a página e tente de novo.'); return; }
             studentsData = studentsData.filter(function(x) { return x.id !== id; });
             renderStudents();
+            showToast(nome + ' removido com sucesso.');
         });
     }
 
