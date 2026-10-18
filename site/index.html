@@ -2688,7 +2688,7 @@
     function confirmPopup(title, message, confirmLabel) {
         return new Promise(function(resolve) {
             var overlay = openFormPopup(escapeHtml(title),
-                '<p>' + escapeHtml(message) + '</p>' +
+                '<p>' + escapeHtml(message).replace(/\n/g, '<br>') + '</p>' +
                 '<button class="btn-danger" data-confirm>' + escapeHtml(confirmLabel) + '</button>' +
                 '<button class="btn-cancel" data-close>Cancelar</button>');
             overlay.querySelector('[data-confirm]').onclick = function() {
@@ -2717,7 +2717,7 @@
     }
 
     async function regenerateLink(id, nome, btn) {
-        if (!await confirmPopup('Gerar novo link', 'Gerar um novo link para ' + nome + '? O link atual deixa de funcionar.', 'Gerar novo link')) return;
+        if (!await confirmPopup('Gerar novo link', 'Gerar um novo link para ' + nome + '?\nO link atual deixa de funcionar.', 'Gerar novo link')) return;
         var ok = await withBtnLoading(btn, async function() {
             // Retorna o token gravado no banco e atualiza a lista local com ele (não depende de recarregar)
             var r = await sb.from('students').update({ access_token: crypto.randomUUID() }).eq('id', id).select('access_token').single();
@@ -2862,7 +2862,7 @@
                     '<small>' + info + '</small>' +
                 '</div>' +
                 '<div class="student-actions">' +
-                    '<button class="btn" onclick="openStudentById(\'' + s.id + '\')">' + (s.workout_updated_at ? 'Exibir treino' : 'Importar treino') + '</button>' +
+                    '<button class="btn" onclick="openStudentById(\'' + s.id + '\', this)">' + (s.workout_updated_at ? 'Exibir treino' : 'Importar treino') + '</button>' +
                     linkBtns +
                     '<button class="btn btn-red" onclick="removeStudent(\'' + s.id + '\', \'' + nomeArg + '\', this)">Remover aluno</button>' +
                 '</div>' +
@@ -2925,7 +2925,7 @@
     }
 
     async function removeStudent(id, nome, btn) {
-        if (!await confirmPopup('Remover aluno', 'Remover ' + nome + '? O treino e as anotações dele serão apagados.', 'Remover')) return;
+        if (!await confirmPopup('Remover aluno', 'Remover ' + nome + '?\nO treino e as anotações dele serão apagados.', 'Remover')) return;
         await withBtnLoading(btn, async function() {
             // .select confirma que a linha saiu mesmo (RLS pode bloquear sem retornar erro)
             var r = await sb.from('students').delete().eq('id', id).select('id');
@@ -2936,21 +2936,24 @@
         });
     }
 
-    async function openStudentById(id) {
-        var r = await sb.from('students').select('*').eq('id', id).maybeSingle();
-        if (r.error) {
-            await showTrainerHome();
-            showErrorPopup('Erro ao abrir o aluno', r.error.message);
-            return;
-        }
-        if (!r.data) {
-            studentsData = studentsData.filter(function(x) { return x.id !== id; });
-            await showTrainerHome();
-            showErrorPopup('Aluno não encontrado', 'Ele pode ter sido removido.');
-            return;
-        }
-        if (studentsLoaded) upsertStudentInList(r.data);  // aproveita a leitura para atualizar a lista
-        await openStudent(r.data);
+    async function openStudentById(id, btn) {
+        // btn: botão "Exibir/Importar treino" da lista (spinner enquanto busca o aluno)
+        await withBtnLoading(btn, async function() {
+            var r = await sb.from('students').select('*').eq('id', id).maybeSingle();
+            if (r.error) {
+                await showTrainerHome();
+                showErrorPopup('Erro ao abrir o aluno', r.error.message);
+                return;
+            }
+            if (!r.data) {
+                studentsData = studentsData.filter(function(x) { return x.id !== id; });
+                await showTrainerHome();
+                showErrorPopup('Aluno não encontrado', 'Ele pode ter sido removido.');
+                return;
+            }
+            if (studentsLoaded) upsertStudentInList(r.data);  // aproveita a leitura para atualizar a lista
+            await openStudent(r.data);
+        });
     }
 
     // "Copiar link" no banner do treinador: só depois que o aluno tem treino
