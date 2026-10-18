@@ -426,6 +426,8 @@
             flex-direction: column;
             gap: 10px;
         }
+        .panel-new { background: #1d3a34; }   /* cadastrar aluno: verde escuro */
+        .panel-list { background: #252f55; }  /* meus alunos: azul um pouco mais claro */
         .panel h3 {
             margin: 0 0 4px;
             font-size: 1.05em;
@@ -586,13 +588,13 @@
     </div>
 
     <div id="trainer-view" style="display: none;">
-        <div class="panel">
+        <div class="panel panel-new">
             <h3>Novo aluno</h3>
             <input type="text" id="new-name" class="text-input" placeholder="Nome" onkeydown="if (event.key === 'Enter') createStudent()">
             <button class="btn" onclick="createStudent()">Cadastrar</button>
             <div id="new-msg" class="form-msg"></div>
         </div>
-        <div class="panel">
+        <div class="panel panel-list">
             <h3>Meus alunos</h3>
             <input type="search" id="search-students" class="text-input" placeholder="Buscar por nome" oninput="filterStudents()">
             <div id="students-list"></div>
