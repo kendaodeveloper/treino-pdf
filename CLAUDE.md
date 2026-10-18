@@ -2,6 +2,10 @@
 
 Single-page app (index.html, ~1600 linhas) que importa PDFs de treino da consultoria Four Fit e renderiza um dashboard interativo mobile-first.
 
+## Versao web com login (`site/`)
+
+`site/index.html` eh uma copia do `index.html` com Supabase: login (email/senha), painel do treinador (cadastra aluno + importa PDF por aluno) e aluno vendo o proprio treino. Treino fica em `students.workout` (jsonb) e anotacoes em `annotations` (no lugar do localStorage). Schema/seed em `supabase/`, setup em `docs/site-setup.md`. Mudancas no parser/renderer devem ser replicadas nos dois arquivos.
+
 ## Stack
 
 - **HTML/CSS/JS** puro, tudo em `index.html` (sem build, sem framework)

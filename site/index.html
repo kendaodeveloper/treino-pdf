@@ -1,0 +1,2339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Four Fit - Protocolo de Treino</title>
+    <link rel="icon" type="image/jpeg" href="logo.jpg">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #16213e;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 15px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: transparent;
+            padding: 15px 15px 25px;
+            border-radius: 0;
+            box-shadow: none;
+            overflow-x: hidden;
+            box-sizing: border-box;
+        }
+        h1, h2 {
+            color: #e0e0e0;
+            border-bottom: 2px solid #2a2a4a;
+            padding-bottom: 25px;
+            margin-bottom: 10px;
+            font-size: 1.4em;
+            margin-top: 10px;
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            body { padding: 0; }
+            .container {
+                border-radius: 0;
+                box-shadow: none;
+                padding: 12px;
+            }
+            h1 { font-size: 1.2em; margin-top: 5px; }
+        }
+        .actions {
+            margin: 20px 0;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px dashed #3a3a5a;
+            border-radius: 5px;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn-success {
+            background-color: #2ecc71;
+        }
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+.workout-section h3 {
+            margin-top: 0;
+        }
+        .workout-section {
+            margin-top: 30px;
+            padding: 15px;
+            background: #1e2a4a;
+            border-left: 5px solid #3498db;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid #4a4a6a;
+            padding: 6px 8px;
+            text-align: left;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        th {
+            background-color: #1a1a2e;
+            font-size: 0.85em;
+            color: #b0b0b0;
+        }
+        .col-seq { width: 30px; text-align: center; }
+        .col-tempo { width: 65px; }
+        .col-video { width: 35px; text-align: center; }
+
+        .section-card {
+            margin-top: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            background: #1e2a4a;
+            border: none;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 1em;
+            font-weight: bold;
+            color: #e0e0e0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .section-header:active {
+            background: #253557;
+        }
+        .section-header .chevron {
+            margin-left: auto;
+            font-size: 16px;
+            line-height: 1;
+            transition: transform 0.3s ease;
+            transform: rotate(90deg);
+            opacity: 0.5;
+        }
+        .section-card.collapsed .section-header .chevron {
+            transform: rotate(0deg);
+        }
+        .section-body {
+            overflow: hidden;
+            transition: max-height 0.35s ease, padding 0.35s ease;
+        }
+        .section-card.collapsed .section-body {
+            max-height: 0 !important;
+            overflow: hidden;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            border: none;
+        }
+        .weeks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 10px 0;
+        }
+        .week-check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+            padding: 4px 0;
+        }
+        .week-check input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .obs-field {
+            width: 100%;
+            min-height: 40px;
+            padding: 8px;
+            border: 1px solid #2a2a4a;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 13px;
+            resize: vertical;
+            box-sizing: border-box;
+            margin-top: 6px;
+            margin-bottom: 4px;
+            background: #1a1a2e;
+            color: #e0e0e0;
+        }
+        .obs-field::placeholder {
+            color: #666;
+        }
+        tbody.exercise-group {
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .reps-row {
+            display: flex;
+            gap: 4px;
+            margin-top: 6px;
+            margin-bottom: 2px;
+        }
+        .reps-col {
+            flex: 1;
+            text-align: center;
+            min-width: 0;
+        }
+        .reps-col label {
+            display: block;
+            font-size: 11px;
+            color: #8899a6;
+            margin-bottom: 3px;
+            font-weight: bold;
+        }
+        .reps-col select {
+            width: 100%;
+            height: 44px;
+            padding: 4px 2px;
+            font-size: 14px;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            border: 1px solid #2a2a4a;
+            border-radius: 4px;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            appearance: none;
+            text-align: center;
+        }
+        .period-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .period-card {
+            display: grid;
+            grid-template-columns: 42px 1fr;
+            gap: 0;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #1e1e3a;
+            border: 1px solid #3a3a5a;
+        }
+        .period-card.period-current {
+            border-color: #2e7d32;
+            box-shadow: 0 0 8px rgba(46,125,50,0.4);
+        }
+        .period-card.period-past {
+            opacity: 0.4;
+        }
+        .period-week-num {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #2a2a4a;
+            font-weight: bold;
+            font-size: 15px;
+            color: #aaa;
+        }
+        .period-current .period-week-num {
+            background: #1b5e20;
+            color: #fff;
+        }
+        .period-details {
+            padding: 8px 10px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px 12px;
+            font-size: 13px;
+        }
+        .period-details .pd-label {
+            color: #777;
+            font-size: 11px;
+        }
+        .period-details .pd-value {
+            color: #ddd;
+        }
+        .period-current .period-details .pd-value {
+            color: #fff;
+            font-weight: bold;
+        }
+        .period-details .pd-periodo {
+            grid-column: 1 / -1;
+            color: #bb86fc;
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+        .period-current .period-details .pd-periodo {
+            color: #81c784;
+        }
+        .error-popup-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .error-popup {
+            background: #1e1e3a;
+            border: 2px solid #e74c3c;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 400px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: #e0e0e0;
+        }
+        .error-popup h3 {
+            color: #e74c3c;
+            margin: 0 0 10px;
+            border: none;
+            text-align: left;
+            font-size: 1.1em;
+        }
+        .error-popup pre {
+            background: #0d0d1a;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #ff6b6b;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .error-popup button {
+            margin-top: 12px;
+            padding: 10px 20px;
+            background: #e74c3c;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .exercise-dimmed td {
+            color: #555 !important;
+        }
+        .exercise-dimmed td a {
+            opacity: 0.4;
+        }
+        .exercise-dimmed .reps-row {
+            opacity: 0.35;
+        }
+        .exercise-dimmed .reps-row select {
+            color: #555;
+            border-color: #1a1a2e;
+        }
+        .exercise-dimmed .reps-row label {
+            color: #555;
+        }
+        tr[data-has-replacement].exercise-dimmed td[rowspan] {
+            color: #555 !important;
+        }
+        tr[data-has-replacement].exercise-dimmed.dimmed-by-weeks td[rowspan] {
+            color: inherit !important;
+        }
+        .stopwatch {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            background: #1a1a2e;
+            border: 1px solid #3a3a5a;
+            border-radius: 8px;
+            padding: 10px 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .stopwatch .timer-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4caf50;
+            font-variant-numeric: tabular-nums;
+            min-width: 120px;
+            text-align: center;
+        }
+        .stopwatch button {
+            background: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            width: 44px;
+            height: 44px;
+            font-size: 18px;
+            cursor: pointer;
+            -webkit-appearance: none;
+        }
+        .stopwatch button:hover {
+            background: #2980b9;
+        }
+        .stopwatch .btn-reset {
+            background: #e74c3c;
+        }
+        .stopwatch .btn-reset:hover {
+            background: #c0392b;
+        }
+        .panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: #1e2a4a;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .panel h3 {
+            margin: 0 0 4px;
+            font-size: 1.05em;
+        }
+        .text-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            border: 1px solid #3a3a5a;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .form-msg {
+            font-size: 14px;
+            min-height: 1em;
+        }
+        .form-msg.error { color: #e74c3c; }
+        .form-msg.ok { color: #4caf50; }
+        .topbar, .viewing-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #aaa;
+            margin-top: 10px;
+        }
+        .viewing-banner {
+            background: #3d3200;
+            color: #ffc107;
+            padding: 10px 12px;
+            border-radius: 6px;
+        }
+        .btn-link {
+            background: none;
+            border: none;
+            color: #64b5f6;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 6px 4px;
+        }
+        .btn-danger { color: #e74c3c; }
+        .student-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        .student-item:last-child { border-bottom: none; }
+        .student-item small { color: #8899a6; }
+    </style>
+</head>
+<body>
+
+<div class="stopwatch" id="stopwatch" style="display: none;">
+    <button id="timer-toggle" onclick="toggleTimer()" title="Play / Pausa">▶</button>
+    <span class="timer-display" id="timer-display">00:00:000</span>
+    <button class="btn-reset" onclick="resetTimer()" title="Resetar">⟲</button>
+</div>
+
+<div class="container">
+    <h1 style="display: flex; align-items: center; justify-content: center; gap: 12px;">
+        <img src="logo.jpg" alt="Logo" style="height: 2.4em; border-radius: 6px;">
+        <span style="text-align: left; line-height: 1.2;">Four Fit<br><span style="font-size: 0.65em; font-weight: normal; color: #aaa;">Protocolo de Treino</span></span>
+    </h1>
+
+    <div id="login-view" class="panel" style="display: none;">
+        <h3>Entrar</h3>
+        <input type="email" id="login-email" class="text-input" placeholder="Email" autocomplete="username">
+        <input type="password" id="login-senha" class="text-input" placeholder="Senha" autocomplete="current-password" onkeydown="if (event.key === 'Enter') doLogin()">
+        <button class="btn" onclick="doLogin()">Entrar</button>
+        <div id="login-msg" class="form-msg"></div>
+    </div>
+
+    <div id="topbar" class="topbar" style="display: none;">
+        <span id="topbar-user"></span>
+        <span>
+            <button class="btn-link" onclick="changePassword()">Trocar senha</button>
+            <button class="btn-link" onclick="doLogout()">Sair</button>
+        </span>
+    </div>
+
+    <div id="trainer-view" style="display: none;">
+        <div class="panel">
+            <h3>Novo aluno</h3>
+            <input type="text" id="new-name" class="text-input" placeholder="Nome">
+            <input type="email" id="new-email" class="text-input" placeholder="Email (login do aluno)">
+            <input type="text" id="new-senha" class="text-input" placeholder="Senha inicial (mín. 6 caracteres)" autocomplete="off">
+            <button class="btn" onclick="createStudent()">Cadastrar</button>
+            <div id="new-msg" class="form-msg"></div>
+        </div>
+        <div class="panel">
+            <h3>Meus alunos</h3>
+            <div id="students-list"></div>
+        </div>
+    </div>
+
+    <div id="student-view" style="display: none;">
+    <div id="viewing-banner" class="viewing-banner" style="display: none;">
+        <span id="viewing-name"></span>
+        <button class="btn-link" onclick="showTrainerHome()">&larr; Alunos</button>
+    </div>
+
+    <div id="section-converter" class="section-card">
+        <div class="section-header" onclick="toggleSection('section-converter')">
+            <span>Importar PDF</span>
+            <span class="chevron">❯</span>
+        </div>
+        <div class="section-body" style="padding: 15px;">
+            <div id="browser-warning" style="display: none; background: #3d3200; color: #ffc107; padding: 12px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #665200;">
+                <strong>Aviso:</strong> Para funcionar corretamente, abra esta página no <strong>Safari</strong> ou <strong>Chrome</strong>.
+                No iPhone: toque no ícone de compartilhar (quadrado com seta) e selecione "Abrir no Safari".
+            </div>
+
+            <p style="margin-top:0;">Selecione o PDF do treino deste aluno:</p>
+
+            <div class="actions" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                <input type="file" id="pdf-file" accept=".pdf,application/pdf">
+                <label id="keep-notes-label" style="display: none; align-items: center; gap: 8px; font-size: 14px; color: #aaa; cursor: pointer;">
+                    <input type="checkbox" id="keep-notes" checked style="width: 18px; height: 18px;">
+                    Manter anotações ao re-importar
+                </label>
+                <button id="btn-convert" class="btn" style="padding: 15px; font-size: 18px; -webkit-appearance: none; background-color: #3a3a5a; cursor: not-allowed; color: #888;" disabled ontouchstart="" onclick="iniciarConversao()">Converter</button>
+            </div>
+
+            <div id="status-msg" style="margin: 10px 0; padding: 10px; border-radius: 5px;"></div>
+        </div>
+    </div>
+
+    <div id="visual-output"></div>
+    </div>
+</div>
+
+<script>
+    // === VARIÁVEIS GLOBAIS (todas no topo) ===
+    // Para testes: setar diaSemana = 'quarta' (ou segunda, terca, quinta, sexta, sabado, domingo)
+    var diaSemana = null;
+    var statusMsg = document.getElementById('status-msg');
+    var fileInput = document.getElementById('pdf-file');
+    var convertBtn = document.getElementById('btn-convert');
+    var visualOutput = document.getElementById('visual-output');
+    var showObsFields = true;
+
+    // === CRONÔMETRO FLUTUANTE ===
+    var timerElapsed = 0;
+    var timerRunning = false;
+    var timerLast = 0;
+    var timerInterval = null;
+    var timerMaxMinutes = 30; // limite máximo do cronômetro, em minutos
+
+    function formatTimer(totalMs) {
+        var mins = Math.floor(totalMs / 60000);
+        var secs = Math.floor((totalMs % 60000) / 1000);
+        var ms = Math.floor(totalMs % 1000);
+        return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0') + ':' + String(ms).padStart(3, '0');
+    }
+
+    function updateTimerDisplay() {
+        document.getElementById('timer-display').textContent = formatTimer(timerElapsed);
+    }
+
+    function pauseTimer() {
+        timerRunning = false;
+        clearInterval(timerInterval);
+        document.getElementById('timer-toggle').textContent = '▶';
+    }
+
+    function toggleTimer() {
+        if (timerRunning) {
+            timerElapsed += Date.now() - timerLast;
+            if (timerElapsed > timerMaxMinutes * 60000) { timerElapsed = timerMaxMinutes * 60000; }
+            pauseTimer();
+            updateTimerDisplay();
+        } else {
+            timerRunning = true;
+            timerLast = Date.now();
+            timerInterval = setInterval(function() {
+                timerElapsed += Date.now() - timerLast;
+                timerLast = Date.now();
+                if (timerElapsed >= timerMaxMinutes * 60000) {
+                    timerElapsed = timerMaxMinutes * 60000;
+                    pauseTimer();
+                }
+                updateTimerDisplay();
+            }, 10);
+            document.getElementById('timer-toggle').textContent = '⏸';
+        }
+    }
+
+    function resetTimer() {
+        pauseTimer();
+        timerElapsed = 0;
+        updateTimerDisplay();
+    }
+
+    // === REGEX REUTILIZÁVEIS ===
+    var RE_DIAS_SEMANA = /(?:Segunda|Ter[cç]a|Quarta|Quinta|Sexta|S[aá]bado|Domingo)/i;
+    var RE_PREFIXO_EX = /Supers[eé]rie|P[oó]s[- ]exaust[aã]o|Biset/i;
+    var RE_MMII = /mmii|perna|inferior|panturrilha|gl[úu]teo|coxa/i;
+    var RE_MMSS = /mmss|superior|dorsa[il]s?|peito(?:ral)?|costas|b[ií]ceps|tr[ií]ceps|ombro|deltoid|bra[cç]o/i;
+    var RE_FOCO_MUSCULAR = /(?:Dorsa[il]s?|Peito(?:ral)?|Deltoid[es]?|B[ií]ceps|Tr[ií]ceps|MMII|MMSS|Completo|Gl[úu]teos?|Coxas?|Panturrilha|Costas|Ombros?|Bra[cç]os?)/i;
+    var RE_BODY_TYPE_MMII = /(?:DIAS\s+D[EO]S?\s+)?(?:\(?\s*)MMII/i;
+    var RE_BODY_TYPE_MMSS = /(?:DIAS\s+D[EO]S?\s+)?(?:\(?\s*)MMSS/i;
+    // Sub-exercício de substituição "após X semanas" — captura a semana em [1].
+    // Casa "após 4 semanas ..." e "(ESSE EXERCÍCIO APÓS A 4ª SEMANA)".
+    var RE_SUB_APOS = /(?:ap[oó]s\s+(?:a\s+)?(\d+)\s*[ªº]?\s+semanas?)/i;
+
+    function getAfterWeek(nome) {
+        var m = String(nome || '').match(RE_SUB_APOS);
+        return m ? parseInt(m[1]) : null;
+    }
+
+    function showErrorPopup(title, details) {
+        var existing = document.querySelector('.error-popup-overlay');
+        if (existing) existing.remove();
+        var overlay = document.createElement('div');
+        overlay.className = 'error-popup-overlay';
+        overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+        overlay.innerHTML = '<div class="error-popup">' +
+            '<h3>' + title + '</h3>' +
+            '<p style="font-size:13px;color:#aaa;">Detalhes do erro:</p>' +
+            '<pre>' + details + '</pre>' +
+            '<p style="font-size:12px;color:#888;margin-top:8px;">Navegador: ' + (navigator.userAgent || 'desconhecido') + '</p>' +
+            '<button onclick="this.closest(\'.error-popup-overlay\').remove()">Fechar</button>' +
+            '</div>';
+        document.body.appendChild(overlay);
+    }
+
+    // Detecta WebView (WhatsApp, Instagram, Facebook, etc.)
+    var ua = navigator.userAgent || '';
+    var isWebView = /FBAN|FBAV|Instagram|Line\/|WhatsApp|wv\)/i.test(ua);
+    if (isWebView) {
+        document.getElementById('browser-warning').style.display = 'block';
+    }
+
+    // Verifica se PDF.js carregou
+    if (typeof pdfjsLib === 'undefined') {
+        statusMsg.textContent = "Erro: biblioteca PDF.js não carregou. Abra no Safari ou no Chrome.";
+        statusMsg.style.display = 'block';
+        statusMsg.style.background = '#3d1515';
+        statusMsg.style.color = '#e74c3c';
+    } else {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        statusMsg.style.display = 'none';
+    }
+
+    // === SUPABASE / SESSÃO ===
+    var sb = (window.supabase && window.SUPABASE_URL && window.SUPABASE_ANON_KEY)
+        ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
+        : null;
+    var currentRole = null;     // 'trainer' | 'student'
+    var currentTrainer = null;  // row de trainers
+    var currentStudent = null;  // row de students (aluno sendo visualizado)
+
+    // Anotações em memória, sincronizadas com a tabela annotations (debounce)
+    var anotacoesCache = null;
+    var saveTimer = null;
+    var saveDirty = false;
+
+    function defaultAnotacoes() {
+        return { semanaAtual: 1, obs: {}, pesos: {} };
+    }
+
+    function loadAnotacoes() {
+        if (!anotacoesCache) anotacoesCache = defaultAnotacoes();
+        return anotacoesCache;
+    }
+
+    function saveAnotacoes(anotacoes) {
+        anotacoesCache = anotacoes;
+        saveDirty = true;
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(flushAnotacoes, 600);
+    }
+
+    async function flushAnotacoes() {
+        clearTimeout(saveTimer);
+        if (!saveDirty || !currentStudent || !anotacoesCache) return;
+        saveDirty = false;
+        var a = anotacoesCache;
+        var res = await sb.from('annotations').upsert({
+            student_id: currentStudent.id,
+            semana_atual: a.semanaAtual || 1,
+            obs: a.obs || {},
+            pesos: a.pesos || {},
+            updated_at: new Date().toISOString()
+        });
+        if (res.error) {
+            saveDirty = true;
+            showErrorPopup('Erro ao salvar anotações', res.error.message);
+        }
+    }
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') flushAnotacoes();
+    });
+
+    function updateKeepNotesVisibility() {
+        var label = document.getElementById('keep-notes-label');
+        if (label) {
+            label.style.display = (currentStudent && currentStudent.workout) ? 'flex' : 'none';
+        }
+    }
+
+    function getCurrentWeek() {
+        var a = loadAnotacoes();
+        return a.semanaAtual || 1;
+    }
+
+    function onWeekChange(weekNum) {
+        var a = loadAnotacoes();
+        a.semanaAtual = weekNum;
+        saveAnotacoes(a);
+        applyExerciseDimming();
+        applyBodyTypeDimming();
+        // Update semanas section title with current week
+        var semanas = document.getElementById('section-semanas');
+        if (semanas) {
+            var titleSpan = semanas.querySelector('.section-header span:first-child');
+            if (titleSpan) titleSpan.textContent = 'Semana Atual (' + weekNum + ')';
+            // Collapse the section after selecting a week
+            if (!semanas.classList.contains('collapsed')) {
+                toggleSection('section-semanas');
+            }
+        }
+        // Update periodização highlight
+        updatePeriodHighlight(weekNum);
+    }
+
+    function updatePeriodHighlight(weekNum) {
+        document.querySelectorAll('.period-card').forEach(function(card) {
+            var sem = parseInt(card.getAttribute('data-period-week'));
+            card.className = 'period-card' + (sem === weekNum ? ' period-current' : (sem < weekNum ? ' period-past' : ''));
+        });
+    }
+
+    function onObsChange(obsKey, value) {
+        var a = loadAnotacoes();
+        a.obs[obsKey] = value;
+        saveAnotacoes(a);
+    }
+
+    function onWeightChange(obsKey, reps, value) {
+        var a = loadAnotacoes();
+        if (!a.pesos) a.pesos = {};
+        if (!a.pesos[obsKey]) a.pesos[obsKey] = {};
+        a.pesos[obsKey][reps] = value;
+        saveAnotacoes(a);
+    }
+
+    function applyBodyTypeDimming() {
+        // Detecta o tipo pelo treino aberto (não collapsed)
+        var todayType = null;
+        var treinoCards = document.querySelectorAll('[id^="section-treino-"]');
+        treinoCards.forEach(function(card) {
+            if (!card.classList.contains('collapsed')) {
+                var dias = (card.getAttribute('data-dias-foco') || '').toLowerCase();
+                var isMMII = RE_MMII.test(dias);
+                var isMMSS = RE_MMSS.test(dias);
+                if (isMMII && isMMSS) {
+                    todayType = null;
+                } else if (isMMII) {
+                    todayType = 'mmii';
+                } else if (isMMSS) {
+                    todayType = 'mmss';
+                } else {
+                    todayType = null;
+                }
+            }
+        });
+
+        var currentWeek = getCurrentWeek();
+        document.querySelectorAll('[data-body-type]').forEach(function(row) {
+            var bodyType = row.getAttribute('data-body-type');
+
+            // Não desfazer dimming de "após X semanas" (sub que ainda não chegou)
+            var afterWeeks = row.getAttribute('data-after-weeks');
+            if (afterWeeks && currentWeek <= parseInt(afterWeeks)) {
+                row.classList.add('exercise-dimmed');
+                return;
+            }
+
+            // Não desfazer dimming de main com replacement ativo (semana já passou)
+            if (row.hasAttribute('data-has-replacement')) {
+                // Procura o sub "(após X semanas)" dentro do mesmo tbody
+                var tbody = row.closest('tbody');
+                if (tbody) {
+                    var afterRow = tbody.querySelector('[data-after-weeks]');
+                    if (afterRow) {
+                        var aw = parseInt(afterRow.getAttribute('data-after-weeks'));
+                        if (currentWeek > aw) {
+                            row.classList.add('exercise-dimmed');
+                            return;
+                        }
+                    }
+                }
+            }
+
+            if (todayType && bodyType !== todayType) {
+                row.classList.add('exercise-dimmed');
+            } else {
+                row.classList.remove('exercise-dimmed');
+            }
+        });
+
+        // Se todos os exercícios de um grupo (rowspan) estão dimmed, dim o seq/séries também
+        document.querySelectorAll('td[rowspan]').forEach(function(seqCell) {
+            var span = parseInt(seqCell.getAttribute('rowspan'));
+            var row = seqCell.closest('tr');
+            if (!row) return;
+            var allDimmed = true;
+            var current = row;
+            for (var i = 0; i < span && current; i++) {
+                if (!current.classList.contains('exercise-dimmed')) {
+                    allDimmed = false;
+                    break;
+                }
+                current = current.nextElementSibling;
+            }
+            var seriesCell = seqCell.nextElementSibling;
+            if (allDimmed) {
+                seqCell.style.setProperty('color', '#555', 'important');
+                if (seriesCell) seriesCell.style.setProperty('color', '#555', 'important');
+            } else {
+                seqCell.style.removeProperty('color');
+                if (seriesCell) seriesCell.style.removeProperty('color');
+            }
+        });
+    }
+
+    function applyExerciseDimming() {
+        var currentWeek = getCurrentWeek();
+        document.querySelectorAll('[data-after-weeks]').forEach(function(row) {
+            var afterWeek = parseInt(row.getAttribute('data-after-weeks'));
+            // Só considera weight row se tiver .reps-row (evita pegar exercício seguinte nas manobras)
+            var afterWeightRow = row.nextElementSibling;
+            if (afterWeightRow && !afterWeightRow.querySelector('.reps-row')) afterWeightRow = null;
+
+            // Acha o main row (volta até achar data-has-replacement) — não cruza o tbody atual
+            var tbody = row.closest('tbody');
+            var mainRow = row.previousElementSibling;
+            while (mainRow && mainRow.parentNode === tbody && !mainRow.hasAttribute('data-has-replacement')) {
+                mainRow = mainRow.previousElementSibling;
+            }
+            if (mainRow && mainRow.parentNode !== tbody) mainRow = null;
+            var mainWeightRow = mainRow ? mainRow.nextElementSibling : null;
+            if (mainWeightRow && !mainWeightRow.querySelector('.reps-row')) mainWeightRow = null;
+
+            if (currentWeek > afterWeek) {
+                // Passou o threshold: dim o main + peso do main, mostrar o replacement
+                row.classList.remove('exercise-dimmed');
+                if (afterWeightRow) afterWeightRow.classList.remove('exercise-dimmed');
+                if (mainRow) { mainRow.classList.add('exercise-dimmed'); mainRow.classList.add('dimmed-by-weeks'); }
+                if (mainWeightRow) mainWeightRow.classList.add('exercise-dimmed');
+            } else {
+                // Antes do threshold: dim o replacement + peso, mostrar o main
+                row.classList.add('exercise-dimmed');
+                if (afterWeightRow) afterWeightRow.classList.add('exercise-dimmed');
+                if (mainRow) { mainRow.classList.remove('exercise-dimmed'); mainRow.classList.remove('dimmed-by-weeks'); }
+                if (mainWeightRow) mainWeightRow.classList.remove('exercise-dimmed');
+            }
+        });
+    }
+
+    fileInput.addEventListener('change', function() {
+        if (fileInput.files[0]) {
+            convertBtn.disabled = false;
+            convertBtn.style.backgroundColor = '#2ecc71';
+            convertBtn.style.color = '#fff';
+            convertBtn.style.cursor = 'pointer';
+        }
+    });
+
+    function showStatus(msg, color) {
+        statusMsg.textContent = msg;
+        statusMsg.style.display = 'block';
+        statusMsg.style.background = color === 'error' ? '#3d1515' : '#1a3d1a';
+        statusMsg.style.color = color === 'error' ? '#e74c3c' : '#4caf50';
+    }
+
+    function hideStatus() {
+        statusMsg.style.display = 'none';
+    }
+
+    async function iniciarConversao() {
+        try {
+            showStatus("Verificando arquivo...", "ok");
+
+            var file = fileInput.files[0];
+            if (!file) {
+                showStatus("Selecione um arquivo PDF primeiro.", "error");
+                return;
+            }
+
+            // Anotações são zeradas após importar se o checkbox estiver desmarcado
+            var keepNotes = document.getElementById('keep-notes').checked;
+
+            showStatus("Lendo " + file.name + "...", "ok");
+            visualOutput.innerHTML = "";
+
+            var arrayBuffer = await new Promise(function(resolve, reject) {
+                var reader = new FileReader();
+                reader.onload = function(evt) { resolve(evt.target.result); };
+                reader.onerror = function() { reject(new Error("Falha ao ler o arquivo")); };
+                reader.readAsArrayBuffer(file);
+            });
+
+            showStatus("Processando " + file.name + "...", "ok");
+            var pdfData = new Uint8Array(arrayBuffer);
+            await processarPDF(pdfData, keepNotes);
+            showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
+
+        } catch (err) {
+            // Restaura o treino anterior da tela (que foi limpo antes de processar) se existir
+            // try {
+            //     var saved = localStorage.getItem('treino-pdf-data');
+            //     if (saved) {
+            //         renderWorkoutVisual(JSON.parse(saved));
+            //     }
+            // } catch(restoreErr) {}
+
+            var detail = (err.message || String(err));
+            // if (err.stack) detail += '\n\n' + err.stack;
+            showErrorPopup('Erro ao importar o PDF', detail);
+            showStatus("Erro ao importar o PDF: " + (err.message || err), "error");
+        }
+    }
+
+    async function processarPDF(pdfData, keepNotes) {
+        var pageErrors = [];
+        const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+        let fullText = "";
+        let pageData = {};
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+            try {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join("\n");
+                fullText += `\n--- SECAO_PAGINA_${i} ---\n` + pageText + "\n";
+
+                let textItems = textContent.items
+                    .filter(item => item.str.trim().length > 0)
+                    .map(item => ({
+                        str: item.str.trim(),
+                        y: (item.transform && item.transform.length > 5) ? item.transform[5] : 0
+                    }));
+
+                let links = [];
+                try {
+                    const annotations = await page.getAnnotations();
+                    for (const ann of annotations) {
+                        if (ann.subtype === "Link" && ann.url && isVideoUrl(ann.url)) {
+                            let centerY = (ann.rect && ann.rect.length >= 4) ? (ann.rect[1] + ann.rect[3]) / 2 : 0;
+                            links.push({ url: ann.url, y: centerY });
+                        }
+                    }
+                } catch(annErr) {
+                    pageErrors.push('Pg ' + i + ' links: ' + (annErr.message || annErr));
+                }
+
+                pageData[i] = { textItems, links };
+            } catch(pageErr) {
+                pageErrors.push('Pg ' + i + ': ' + (pageErr.message || pageErr));
+                fullText += `\n--- SECAO_PAGINA_${i} ---\n`;
+            }
+        }
+
+        // NÃO REMOVER ESSES LOGS!
+        console.log('--- fullText completo ---');
+        console.log(fullText);
+        console.log('--- Dados parseados ---');
+
+        // Segurança: exige "four fit" no PDF
+        // Normaliza o texto removendo todo whitespace para tolerar quebras de linha
+        // e letras espacadas do logo (ex: "F" + "our Fit", "F o u r F i t")
+        // var temFourFit = /fourfit/i.test(fullText.replace(/\s+/g, ''));
+        // if (!temFourFit) {
+        //     throw new Error("Falha na importação do PDF. Este site é exclusivo para treinos da consultoria Four Fit.");
+        // }
+
+        const parsedTrainingData = parseWorkoutTextByBlocks(fullText, pageData);
+
+        console.log(JSON.stringify(parsedTrainingData, null, 2));
+
+        // Salva o treino no cadastro do aluno
+        var upd = await sb.from('students')
+            .update({ workout: parsedTrainingData, workout_updated_at: new Date().toISOString() })
+            .eq('id', currentStudent.id)
+            .select('id')
+            .single();
+        if (upd.error) {
+            throw new Error('Falha ao salvar o treino: ' + upd.error.message);
+        }
+        currentStudent.workout = parsedTrainingData;
+
+        if (!keepNotes) {
+            saveAnotacoes(defaultAnotacoes());
+            await flushAnotacoes();
+        }
+        updateKeepNotesVisibility();
+
+        renderWorkoutVisual(parsedTrainingData);
+
+        // Mostra avisos de páginas com erro (parcial)
+        if (pageErrors.length > 0) {
+            showErrorPopup('Erro ao processar algumas páginas do PDF', pageErrors.join('\n'));
+        }
+    }
+
+    function isVideoUrl(url) {
+        return /drive\.google\.com|youtube\.com|youtu\.be|vimeo\.com|streamable\.com|loom\.com/i.test(url);
+    }
+
+    /**
+     * Encontra a posição Y de um texto na página.
+     * Retorna o Y do primeiro item cujo str contém o início do texto buscado.
+     */
+    function findTextY(textItems, searchText) {
+        if (!searchText || !textItems) { return null; }
+        let searchLower = searchText.toLowerCase();
+
+        // 1. Busca exata com substring completa
+        for (const item of textItems) {
+            if (item.str.toLowerCase().includes(searchLower)) {
+                return item.y;
+            }
+        }
+
+        // 2. Busca com primeiros 15 chars
+        let searchShort = searchLower.substring(0, 15);
+        for (const item of textItems) {
+            if (item.str.toLowerCase().includes(searchShort)) {
+                return item.y;
+            }
+        }
+
+        // 3. Fallback: pontua itens por número de palavras coincidentes (>3 chars)
+        let palavras = searchText.split(/\s+/).filter(p => p.length > 3).map(p => p.toLowerCase());
+        if (palavras.length === 0) { return null; }
+        let bestItem = null;
+        let bestScore = 0;
+        for (const item of textItems) {
+            let itemLower = item.str.toLowerCase();
+            let score = 0;
+            for (const p of palavras) {
+                if (itemLower.includes(p)) { score++; }
+            }
+            if (score > bestScore) {
+                bestScore = score;
+                bestItem = item;
+            }
+        }
+        if (bestItem && bestScore > 0) { return bestItem.y; }
+        return null;
+    }
+
+    /**
+     * Busca o link de vídeo mais próximo (por posição Y) de um exercício na página.
+     * Cada link só pode ser usado uma vez (removido do array após uso).
+     */
+    function findVideoByPosition(exercicioNome, pageNum, pageData) {
+        if (!pageData || !pageData[pageNum]) { return null; }
+        let pd = pageData[pageNum];
+        if (!pd.links || pd.links.length === 0) { return null; }
+
+        let textY = findTextY(pd.textItems, exercicioNome);
+        if (textY === null) { return null; }
+
+        // Encontra o link mais próximo por Y (tolerância máxima de 30 unidades)
+        let bestIdx = -1;
+        let bestDist = Infinity;
+        for (let i = 0; i < pd.links.length; i++) {
+            let dist = Math.abs(pd.links[i].y - textY);
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestIdx = i;
+            }
+        }
+        if (bestIdx !== -1 && bestDist < 50) {
+            let url = pd.links[bestIdx].url;
+            pd.links.splice(bestIdx, 1); // Remove para não reusar
+            return url;
+        }
+        return null;
+    }
+
+    /**
+     * PARSER GENÉRICO — extrai dados dinamicamente do PDF sem depender de exercícios hardcoded.
+     * Funciona para qualquer aluno/protocolo que siga o mesmo layout.
+     */
+    function parseWorkoutTextByBlocks(text, pageData) {
+        const data = {
+            treinador: "",
+            aluno: "",
+            idade: "",
+            objetivo: "",
+            frequencia: "",
+            duracao_total: "",
+            descanso: "",
+            periodizacao: [],
+            metodos: [],
+            alongamentos: [],
+            manobras: [],
+            treinos: []
+        };
+
+        // Normaliza quebras de linha consecutivas e espaços extras para facilitar regex
+        const norm = text.replace(/\r/g, '');
+
+        // 1. Metadados do cabeçalho
+        const matchTreinador = norm.match(/TREINADORA?\s*\n[\s\n]*([^\n]+)/i);
+        if (matchTreinador) { data.treinador = matchTreinador[1].trim(); }
+
+        const matchAluno = norm.match(/ALUN[OA]\s*\n([\s\S]*?)(?=\nOBJETIVO|\nPER[ÍI]ODO|\nFREQU[ÊE]NCIA|\nDURA[ÇC][ÃA]O|\nCARGA|\nDESCANSO|\n---)/i);
+        if (matchAluno) {
+            let alunoText = matchAluno[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+            let parts = alunoText.split("|");
+            data.aluno = parts[0].trim();
+            if (parts[1]) { data.idade = parts[1].trim(); }
+        }
+
+        // Objetivo — captura múltiplas linhas até encontrar próximo campo
+        const matchObjetivo = norm.match(/OBJETIVO\s*\n([\s\S]*?)(?=\nPER[ÍI]ODO|\nFREQU[ÊE]NCIA|\nDURA[ÇC][ÃA]O|\nCARGA\s*\||\nDESCANSO|\nM[ÉE]DIA|\n---)/i);
+        if (matchObjetivo) { data.objetivo = matchObjetivo[1].replace(/\n/g, ' ').replace(/\s+/g, ' ').trim(); }
+
+        const matchFreq = norm.match(/FREQU[ÊE]NCIA\s*\n\s*([^\n]+)/i);
+        if (matchFreq) { data.frequencia = matchFreq[1].trim(); }
+
+        const matchDuracao = norm.match(/DURA[ÇC][ÃA]O TOTAL\s*\n\s*([^\n]+)/i);
+        if (matchDuracao) { data.duracao_total = matchDuracao[1].trim(); }
+
+        const matchDescanso = norm.match(/DESCANSO ENTRE\s*\n\s*OS EXERC[ÍI]CIOS\s*\n\s*([^\n]+)/i);
+        if (matchDescanso) { data.descanso = matchDescanso[1].trim(); }
+
+        // Divide por páginas uma vez (usado por alongamentos e treinos)
+        const paginas = norm.split(/--- SECAO_PAGINA_\d+ ---/);
+
+        // 2. Alongamentos e Manobras — na página 4, os dados aparecem ANTES dos rótulos
+        // Estrutura PDF.js: "1\n \n1 x 20"\n \nSóleo\n\n2\n \n..." seguido por "ALONGAMENTOS\n \nE MOBILIDADES"
+        // Estratégia: pegar a página que contém "ALONGAMENTOS" e parsear sequencialmente
+        const pageAlong = paginas.find(pg => /ALONGAMENTOS/i.test(pg));
+        if (pageAlong) {
+            const aLines = pageAlong.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+            let i = 0;
+            let phase = "along"; // começa em alongamentos
+            let seenMobilidade = false;
+            while (i < aLines.length) {
+                let line = aLines[i];
+                // Detecta fim das seções de interesse
+                if (/^CONSULTORIA/i.test(line) || /^ALONGAMENTOS/i.test(line)) { break; }
+                // Detecta seq: número isolado ou "Mobilidade"
+                if (/^\d+$/.test(line) || /^Mobilidade$/i.test(line)) {
+                    let seq = line;
+                    // Próxima linha: tempo/séries (contém "x" e número)
+                    if (i + 1 < aLines.length && /\d+\s*[xX]\s*\d+/i.test(aLines[i + 1])) {
+                        let tempo = aLines[i + 1].replace(/[\u201C\u201D\u201E\u201F]/g, '"').replace(/\s+"/g, '"');
+                        // Coleta linhas do exercício até próxima seq ou seção
+                        let exLines = [];
+                        let j = i + 2;
+                        while (j < aLines.length) {
+                            let next = aLines[j];
+                            if (/^\d+$/.test(next) || /^Mobilidade$/i.test(next) || /^CONSULTORIA|^ALONGAMENTOS|^MANOBRAS/i.test(next)) { break; }
+                            exLines.push(next);
+                            j++;
+                        }
+                        // Separa sub-exercícios por palavras-chave
+                        let subExercicios = [{ lines: [], tipo: "" }];
+                        let cur = subExercicios[0];
+                        for (let el = 0; el < exLines.length; el++) {
+                            let eline = exLines[el];
+                            let matchPfx = eline.match(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*(.*)', 'i'));
+                            if (matchPfx) {
+                                cur = { lines: [], tipo: matchPfx[1] };
+                                if (matchPfx[2].trim()) { cur.lines.push(matchPfx[2].trim()); }
+                                subExercicios.push(cur);
+                                continue;
+                            }
+                            // "(após X semanas ...)" inicia novo sub-exercício (alternativa).
+                            // NOTA: "(ESSE EXERCÍCIO APÓS A Xª SEMANA)" NÃO é dividido aqui — é nota
+                            // sem vídeo próprio; dividir roubaria o link do exercício seguinte na
+                            // associação por posição Y. O dimming dele é feito no renderer via
+                            // data-after-weeks (getAfterWeek) na própria linha, sem virar sub.
+                            if (/^\(após\s/i.test(eline)) {
+                                cur = { lines: [eline], tipo: "" };
+                                subExercicios.push(cur);
+                                continue;
+                            }
+                            cur.lines.push(eline);
+                        }
+
+                        // Transiciona para manobras quando encontra numero apos Mobilidade
+                        if (seenMobilidade && /^\d+$/.test(seq) && phase === "along") {
+                            phase = "manobras";
+                        }
+
+                        subExercicios.forEach((sub, si) => {
+                            let nome = sub.lines.join(" ").trim();
+                            if (!nome) return;
+                            let exercicio = sub.tipo ? sub.tipo + " " + nome : nome;
+                            if (phase === "along") {
+                                data.alongamentos.push({ seq: si === 0 ? seq : "", tempo: si === 0 ? tempo : "", exercicio, isSubExercise: si > 0 });
+                            } else {
+                                data.manobras.push({ seq: si === 0 ? seq : "", series: si === 0 ? tempo : "", exercicio, isSubExercise: si > 0 });
+                            }
+                        });
+
+                        if (/^Mobilidade$/i.test(seq)) { seenMobilidade = true; }
+                        i = j;
+                    } else {
+                        i++;
+                    }
+                } else {
+                    i++;
+                }
+            }
+        }
+
+        // 3. Treinos — extração genérica por página
+
+        paginas.forEach((p, pageIdx) => {
+            // Identifica páginas de treino pela presença de "EXERCÍCIOS" (tabela de exercícios)
+            if (!/EXERC[ÍI]CIOS/i.test(p)) { return; }
+
+            // Identifica qual treino — lida com quebras de linha do PDF.js
+            // Ex: "TREINO 1\n \nE 5" ou "TREINO\n \n3"
+            let idMatch = p.match(/TREINO\s*\n?\s*(\d+)\s*\n?\s*(?:[Ee]\s*\n?\s*(\d+))?/i);
+            if (!idMatch) { return; }
+            let identificador = idMatch[2]
+                ? `TREINO ${idMatch[1]} E ${idMatch[2]}`
+                : `TREINO ${idMatch[1]}`;
+
+            let linhas = p.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+
+            // Dias/foco — texto próximo ao identificador do treino (ex: "Segunda e Sexta-Feira (...)")
+            let diasFoco = "";
+            const diasRegex = p.match(new RegExp(RE_DIAS_SEMANA.source + '[^\\n]*', 'i'));
+            if (diasRegex) { diasFoco = diasRegex[0].trim(); }
+            // Fallback: "Caso treinar..." ou "Treino extra caso..."
+            if (!diasFoco) {
+                const casoRegex = p.match(/(?:Caso\s+treinar|Treino\s+extra\s+caso)[^\n]*/i);
+                if (casoRegex) { diasFoco = casoRegex[0].trim(); }
+            }
+
+            // Warm Up — extrai como array de exercícios com vídeo
+            let aquecimento = [];
+            let idxWarm = linhas.findIndex(l => l.toUpperCase().includes("WARM UP"));
+            if (idxWarm !== -1) {
+                let warmLines = [];
+                for (let i = idxWarm + 1; i < linhas.length && i < idxWarm + 10; i++) {
+                    let l = linhas[i];
+                    if (/^(SQ|EXERC[ÍI]CIOS|AER[ÓO]BIO|RELAXAMENTO|TREINO)/i.test(l)) { break; }
+                    if (new RegExp('^' + RE_DIAS_SEMANA.source, 'i').test(l)) { break; }
+                    if (l === "REPETIÇÕES" || /^\d+°$/.test(l)) { continue; }
+                    // Filtra fragmentos de logo/marca (ex: "4", "F", "our Fit", "c o n s u l t o r i a")
+                    if (/^[A-Za-z0-9]$/.test(l)) { continue; } // caractere isolado (letra ou dígito de logo)
+                    if (/^([A-Za-z]\s){3,}[A-Za-z]?$/.test(l)) { continue; } // letras espaçadas (logo tipo "c o n s u l t o r i a")
+                    if (/^(our\s+Fit|Four\s*Fit|consultoria)$/i.test(l)) { continue; } // nomes de marca/treinador
+                    if (/^\(após\s/i.test(l)) { continue; } // notas tipo "(após 4 semanas adicionar carga)"
+                    // "Supersérie" isolado: prefixar na próxima linha do warmup
+                    if (new RegExp('^(' + RE_PREFIXO_EX.source + ')$', 'i').test(l)) {
+                        if (i + 1 < linhas.length) {
+                            // Pula - será juntado quando a próxima linha for processada
+                            let nextLine = linhas[i + 1];
+                            if (!/^(SQ|EXERC[ÍI]CIOS|AER[ÓO]BIO|RELAXAMENTO|TREINO)/i.test(nextLine)) {
+                                linhas[i + 1] = l + ' ' + nextLine;
+                            }
+                        }
+                        continue;
+                    }
+                    // "ALONG" / "ALONG." isolado (abreviação de Alongamento): prefixa a próxima linha
+                    // (ex: "ALONG" + ". Trapézio superior" -> "ALONG. Trapézio superior")
+                    if (/^ALONG\.?$/i.test(l)) {
+                        let nextLine = (i + 1 < linhas.length) ? linhas[i + 1] : '';
+                        if (nextLine && !/^(SQ|EXERC[ÍI]CIOS|AER[ÓO]BIO|RELAXAMENTO|TREINO|REPETI[ÇC][ÕO]ES)/i.test(nextLine)
+                            && !/^\d+°$/.test(nextLine) && !/^\d+\s*x\s*\d+\s*REPS/i.test(nextLine)) {
+                            linhas[i + 1] = 'ALONG. ' + nextLine.replace(/^\.\s*/, '');
+                        }
+                        continue;
+                    }
+                    // Captura info de reps/cadência (ex: "2 x 15 REPS | Cadência 3:3")
+                    if (/^\d+\s*x\s*\d+\s*REPS/i.test(l)) {
+                        // Junta com próxima linha se for continuação de cadência
+                        let repsInfo = l;
+                        if (i + 1 < linhas.length && /^Cadência/i.test(linhas[i + 1])) {
+                            repsInfo += " | " + linhas[i + 1];
+                            i++;
+                        }
+                        // Associa reps ao último exercício adicionado
+                        if (warmLines.length > 0) {
+                            warmLines[warmLines.length - 1].reps = repsInfo;
+                        }
+                        continue;
+                    }
+                    warmLines.push({ nome: l });
+                }
+                aquecimento = warmLines;
+            }
+
+            // Aeróbio — extrai como array de exercícios com vídeo
+            let aerobio = [];
+            let idxAero = linhas.findIndex(l => /^AER[ÓO]BIO$/i.test(l));
+            if (idxAero !== -1) {
+                let aeroLines = [];
+                for (let i = idxAero + 1; i < linhas.length && i < idxAero + 8; i++) {
+                    let l = linhas[i];
+                    if (/^(SQ|EXERC[ÍI]CIOS|RELAXAMENTO|TREINO|WARM)/i.test(l)) { break; }
+                    if (new RegExp('^' + RE_DIAS_SEMANA.source, 'i').test(l)) { break; }
+                    if (l === "DURAÇÃO" || /^\d+°$/.test(l)) { continue; }
+                    // Duração (ex: "15 a 20'", "15'")
+                    if (/^\d+.*'$/.test(l)) {
+                        if (aeroLines.length > 0) {
+                            aeroLines[aeroLines.length - 1].duracao = l;
+                        }
+                        continue;
+                    }
+                    // Texto entre parênteses (ex: "(intensidade moderada a alta)") — junta com exercício anterior
+                    if (/^\(/.test(l) && aeroLines.length > 0) {
+                        aeroLines[aeroLines.length - 1].nome += ' ' + l;
+                        continue;
+                    }
+                    aeroLines.push({ nome: l });
+                }
+                aerobio = aeroLines;
+            }
+
+            // Relaxamento — busca o bloco "SQ RELAXAMENTO REPETIÇÕES" (não o rótulo "RELAXAMENTO AER[ÓO]BIO")
+            let relaxamento = [];
+            for (let ri = 0; ri < linhas.length - 1; ri++) {
+                // Padrão: "SQ" seguido por "RELAXAMENTO" seguido por "REPETIÇÕES"
+                if (linhas[ri] === "SQ" && linhas[ri + 1] === "RELAXAMENTO" && ri + 2 < linhas.length && /^REPETI[ÇC][ÕO]ES$/i.test(linhas[ri + 2])) {
+                    let relaxLines = [];
+                    for (let j = ri + 3; j < linhas.length && j < ri + 8; j++) {
+                        let l = linhas[j];
+                        if (/^(SQ|EXERC[ÍI]CIOS|AER[ÓO]BIO|TREINO|WARM|RELAXAMENTO)/i.test(l)) { break; }
+                        if (new RegExp('^' + RE_DIAS_SEMANA.source, 'i').test(l)) { break; }
+                        if (/^Caso\s/i.test(l)) { break; } // "Caso treinar mais de 3x..."
+                        if (/^\d+°$/.test(l)) { continue; }
+                        // Foco entre parênteses sem "após" (ex: "(Dorsais, Deltoide e Bíceps)", "(MMII Completo)")
+                        // Captura como dias_e_foco se ainda não tiver
+                        if (/^\((?!após)/.test(l) && RE_FOCO_MUSCULAR.test(l)) {
+                            if (!diasFoco) { diasFoco = l; }
+                            break;
+                        }
+                        // Reps info (ex: "1 x 40"")
+                        if (/^\d+\s*x\s*\d+/i.test(l)) {
+                            if (relaxLines.length > 0) {
+                                relaxLines[relaxLines.length - 1].reps = l;
+                            }
+                            continue;
+                        }
+                        relaxLines.push({ nome: l });
+                    }
+                    // Junta fragmentos curtos (ex: "Ca" + "deia posterior" → "Cadeia posterior")
+                    for (let ri = 0; ri < relaxLines.length - 1; ri++) {
+                        if (relaxLines[ri].nome.length <= 3 && !relaxLines[ri].reps) {
+                            relaxLines[ri + 1].nome = relaxLines[ri].nome + relaxLines[ri + 1].nome;
+                            if (relaxLines[ri].video) relaxLines[ri + 1].video = relaxLines[ri].video;
+                            relaxLines.splice(ri, 1);
+                            ri--;
+                        }
+                    }
+                    relaxamento = relaxLines;
+                    break;
+                }
+            }
+
+            // Exercícios — extrai do bloco entre "EXERCÍCIOS" e próxima seção
+            // Cada sequência (1°, 2°...) pode conter sub-exercícios separados por "Supersérie" ou "Pós[- ]exaustão"
+            let exercicios = [];
+            let idxExerc = linhas.findIndex(l => /^EXERC[ÍI]CIOS$/i.test(l));
+            if (idxExerc !== -1) {
+                let startIdx = idxExerc + 1;
+                while (startIdx < linhas.length && /^\d+\s*$/.test(linhas[startIdx])) { startIdx++; }
+                while (startIdx < linhas.length && /^REPS$/i.test(linhas[startIdx])) { startIdx++; }
+                while (startIdx < linhas.length && (/^\d+\s*$/.test(linhas[startIdx]) || /^REPS$/i.test(linhas[startIdx]))) { startIdx++; }
+
+                // Coleta linhas brutas por sequência
+                let currentLines = null;
+                let seqGroups = [];
+                for (let i = startIdx; i < linhas.length; i++) {
+                    let l = linhas[i];
+                    if (/^(SQ|WARM UP|AER[ÓO]BIO|RELAXAMENTO|TREINO)/i.test(l)) { break; }
+                    // Dia da semana/foco (ex: "Segunda - feira (...)") encerra o bloco de exercícios
+                    if (new RegExp('^' + RE_DIAS_SEMANA.source, 'i').test(l)) { break; }
+                    if (/^\d+°$/.test(l)) {
+                        if (currentLines) { seqGroups.push(currentLines); }
+                        currentLines = [];
+                        continue;
+                    }
+                    if (/^\d{2}\s*$/.test(l) || /^REPS$/i.test(l)) { continue; }
+                    if (currentLines !== null) { currentLines.push(l); }
+                }
+                if (currentLines) { seqGroups.push(currentLines); }
+
+                // Separa sub-exercícios dentro de cada grupo linha por linha
+                seqGroups.forEach((group, gIdx) => {
+                    let seq = (gIdx + 1) + "°";
+                    let exercises = []; // array de { lines: [], tipo: "" }
+                    let current = { lines: [], tipo: "" };
+                    exercises.push(current);
+
+                    for (let li = 0; li < group.length; li++) {
+                        let line = group[li];
+                        // "Supersérie ..." ou "Pós[- ]exaustão ..." inicia novo sub-exercício
+                        let matchPrefix = line.match(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*(.*)', 'i'));
+                        if (matchPrefix) {
+                            current = { lines: [], tipo: matchPrefix[1] };
+                            if (matchPrefix[2].trim()) { current.lines.push(matchPrefix[2].trim()); }
+                            exercises.push(current);
+                            continue;
+                        }
+                        // "(após X semanas ...)" inicia novo sub-exercício (alternativa).
+                        // NOTA: "(ESSE EXERCÍCIO APÓS A Xª SEMANA)" NÃO é dividido aqui — é nota
+                        // sem vídeo próprio; dividir roubaria o link do exercício seguinte na
+                        // associação por posição Y. O dimming dele é feito no renderer via
+                        // data-after-weeks (getAfterWeek) na própria linha, sem virar sub.
+                        if (/^\(após\s/i.test(line)) {
+                            current = { lines: [line], tipo: "" };
+                            exercises.push(current);
+                            continue;
+                        }
+                        // Verifica se "Biset" aparece no meio da linha (ex: "Pull down barra Biset Remada curvada")
+                        let bisetMid = line.match(/^(.+?)\s+Biset\s+(.+)$/i);
+                        if (bisetMid) {
+                            current.lines.push(bisetMid[1].trim());
+                            current = { lines: [bisetMid[2].trim()], tipo: "Biset" };
+                            exercises.push(current);
+                            continue;
+                        }
+                        // Continuação de linha (ex: "invertido)" após "(após ... Hack angular")
+                        current.lines.push(line);
+                    }
+
+                    exercises.forEach((ex, exIdx) => {
+                        let nome = ex.lines.join(" ").trim();
+                        if (!nome) return;
+                        let fullNome = ex.tipo ? ex.tipo + " " + nome : nome;
+                        exercicios.push({ seq, nome: fullNome, isSubExercise: exIdx > 0 });
+                    });
+                });
+            }
+
+            if (exercicios.length > 0) {
+                // 1. EXERCÍCIOS primeiro (prioridade nos links)
+                let exerciciosComVideo = exercicios.map(ex => {
+                    let video = findVideoByPosition(ex.nome, pageIdx, pageData);
+                    if (!video) {
+                        let searchName = ex.nome
+                            .replace(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*', 'i'), '')
+                            .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
+                            .replace(/^\(ESSE\s+EXERC[ÍI]CIO\s+AP[OÓ]S[^)]*\)\s*/i, '')
+                            .replace(/\)$/, '')
+                            .trim();
+                        video = findVideoByPosition(searchName, pageIdx, pageData);
+                    }
+                    return video ? { ...ex, video } : ex;
+                });
+
+                // 2. Depois warmup/aeróbio/relaxamento (com links restantes)
+                let assignVideo = (item, nameField) => {
+                    let nome = item[nameField || 'nome'];
+                    let video = findVideoByPosition(nome, pageIdx, pageData);
+                    if (!video) {
+                        // Tenta sem prefixo (ex: "Supersérie Adutora 45°" → "Adutora 45°")
+                        let cleaned = nome.replace(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*', 'i'), '');
+                        // "ALONG. Tipo ..." → também tenta sem o "ALONG." (texto do PDF fica em fragmentos)
+                        cleaned = cleaned.replace(/^ALONG\.?\s*/i, '');
+                        if (cleaned !== nome) video = findVideoByPosition(cleaned, pageIdx, pageData);
+                    }
+                    return video ? { ...item, video } : item;
+                };
+                aquecimento = aquecimento.map(item => assignVideo(item));
+                aerobio = aerobio.map(item => assignVideo(item));
+                relaxamento = relaxamento.map(item => assignVideo(item));
+
+                let treino = {
+                    identificador: identificador,
+                    dias_e_foco: diasFoco,
+                    aquecimento: aquecimento,
+                    exercicios: exerciciosComVideo,
+                    aerobio: aerobio
+                };
+                if (relaxamento.length > 0) { treino.relaxamento = relaxamento; }
+                data.treinos.push(treino);
+            }
+        });
+
+        // Associa links de vídeo aos alongamentos e manobras (procura na página que contém ALONGAMENTOS)
+        let alongPageNum = paginas.findIndex(pg => /ALONGAMENTOS/i.test(pg));
+        if (alongPageNum > 0) {
+            data.alongamentos = data.alongamentos.map(item => {
+                let video = findVideoByPosition(item.exercicio, alongPageNum, pageData);
+                if (!video) {
+                    let searchName = item.exercicio
+                        .replace(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*', 'i'), '')
+                        .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
+                        .replace(/^\(ESSE\s+EXERC[ÍI]CIO\s+AP[OÓ]S[^)]*\)\s*/i, '')
+                        .replace(/\)$/, '').trim();
+                    video = findVideoByPosition(searchName, alongPageNum, pageData);
+                }
+                return video ? { ...item, video } : item;
+            });
+            data.manobras = data.manobras.map(item => {
+                let video = findVideoByPosition(item.exercicio, alongPageNum, pageData);
+                if (!video) {
+                    let searchName = item.exercicio
+                        .replace(new RegExp('^(' + RE_PREFIXO_EX.source + ')\\s*', 'i'), '')
+                        .replace(/^\(após\s.*?(realizar|fazer)\s*/i, '')
+                        .replace(/^\(ESSE\s+EXERC[ÍI]CIO\s+AP[OÓ]S[^)]*\)\s*/i, '')
+                        .replace(/\)$/, '').trim();
+                    video = findVideoByPosition(searchName, alongPageNum, pageData);
+                }
+                return video ? { ...item, video } : item;
+            });
+        }
+
+        // 4. Periodização — tabela de semanas na página que contém "TABELA DE RM"
+        const pagePeriod = paginas.find(pg => /PERIODIZA[ÇC][ÃA]O/i.test(pg) && /TABELA DE RM/i.test(pg));
+        if (pagePeriod) {
+            const pLines = pagePeriod.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+
+            // Encontra marcadores de semana (1ª, 2ª, ..., 12ª)
+            let weekIndices = [];
+            pLines.forEach((l, i) => {
+                if (/^\d{1,2}ª$/.test(l)) weekIndices.push(i);
+            });
+
+            // Para a última semana, encontra onde termina seus dados (antes de conteúdo RM/header que vem DEPOIS dela)
+            let lastWeekIdx = weekIndices.length > 0 ? weekIndices[weekIndices.length - 1] : 0;
+            let rmTableStart = pLines.length;
+            for (let ri = lastWeekIdx + 1; ri < pLines.length; ri++) {
+                let l = pLines[ri];
+                if (/^\d+\s*%$/.test(l) || /^\d+-?\d*\s*RM$/i.test(l) || /^PERIODIZA[ÇC][ÃA]O$/i.test(l) || /^TABELA DE RM$/i.test(l)) {
+                    rmTableStart = ri;
+                    break;
+                }
+            }
+
+            weekIndices.forEach((wi, idx) => {
+                let endIdx = idx + 1 < weekIndices.length ? weekIndices[idx + 1] : rmTableStart;
+                let weekLines = pLines.slice(wi + 1, endIdx);
+                let weekNum = parseInt(pLines[wi]);
+
+                // Remove padrões conhecidos
+                let remaining = weekLines.filter(l =>
+                    !/D \| S/.test(l) &&
+                    !/\d+:\d+:\d+:\d+/.test(l) &&
+                    !/^-{4,}$/.test(l)
+                );
+                let cadencia = weekLines.find(l => /\d+:\d+:\d+:\d+/.test(l)) || '';
+
+                // remaining: [periodo..., series, descanso, falha...]
+                let seriesIdx = remaining.findIndex(l => /\d+\s*(?:a\s*\d+\s*)?x\s*\d+/i.test(l));
+                let descansoIdx = remaining.findIndex(l => /\d+.*[\u201D"]/i.test(l));
+
+                let periodo = seriesIdx >= 0 ? remaining.slice(0, seriesIdx).join(' ').trim() : '';
+                let series = seriesIdx >= 0 ? remaining[seriesIdx] : '';
+                let descanso = descansoIdx >= 0 ? remaining[descansoIdx] : '';
+                let falha = '';
+                let metodo = '';
+                if (descansoIdx >= 0 && descansoIdx + 1 < remaining.length) {
+                    let falhaLines = remaining.slice(descansoIdx + 1);
+                    // Junta tudo e corrige "Concêntr ica" / "Concêntr\nica" → "Concêntrica"
+                    let falhaRaw = falhaLines.join(' ').trim();
+                    falhaRaw = falhaRaw.replace(/Conc[eê]ntr\s*ica/gi, 'Concêntrica');
+                    // Separa falha do método: falha termina em "Concêntrica" ou "Submáxima" etc
+                    let falhaMatch = falhaRaw.match(/^(.*(?:Conc[eê]ntrica|Subm[aá]xima))\s*(.*)?$/i);
+                    if (falhaMatch) {
+                        falha = falhaMatch[1].trim();
+                        metodo = (falhaMatch[2] || '').trim();
+                    } else {
+                        falha = falhaRaw;
+                    }
+                }
+
+                data.periodizacao.push({
+                    semana: weekNum,
+                    periodo: periodo,
+                    series: series,
+                    descanso: descanso,
+                    cadencia: cadencia,
+                    falha: falha,
+                    metodo: metodo
+                });
+            });
+        }
+
+        // 5. Métodos — página com "MÉTODOS" + semanas (1ª, 2ª...) mas SEM "TABELA DE RM"
+        const pageMetodos = paginas.find(pg => /M[ÉE]TODOS/i.test(pg) && /\d{1,2}ª/.test(pg) && !/TABELA DE RM/i.test(pg));
+        if (pageMetodos) {
+            const mLines = pageMetodos.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+            // Filtra linhas de logo/marca e headers
+            const filtered = mLines.filter(l =>
+                !/^M[ÉE]TODOS$/i.test(l) &&
+                !/^[A-Za-z0-9]$/.test(l) &&
+                !/^([A-Za-z]\s){3,}[A-Za-z]?$/.test(l) &&
+                !/our Fit|Four Fit|consultoria/i.test(l) &&
+                !/CONSULTORIA ONLINE/i.test(l) &&
+                !/^SEMA(NAS?)?$/i.test(l) &&
+                !/^PER[ÍI]ODO$/i.test(l) &&
+                !/^M[ÉE]TODO$/i.test(l) &&
+                !/^DESCRI[ÇC][ÃA]O$/i.test(l) &&
+                !/^NAS?$/i.test(l)
+            );
+
+            // Parseia blocos: cada bloco começa com "Nª" (semana)
+            let currentMetodo = null;
+            let gotMetodo = false;
+            filtered.forEach(l => {
+                if (/^\d{1,2}ª$/.test(l)) {
+                    if (currentMetodo) data.metodos.push(currentMetodo);
+                    currentMetodo = { semana: parseInt(l), periodo: '', metodo: '', descricao: '' };
+                    gotMetodo = false;
+                } else if (currentMetodo) {
+                    // Linhas de traço separador
+                    if (/^-{4,}$/.test(l)) {
+                        if (!gotMetodo) {
+                            currentMetodo.metodo = '--------';
+                            gotMetodo = true;
+                        }
+                        return;
+                    }
+                    // Detecta periodo (pode ser multiline: "Princípio de" + "Força")
+                    if (!gotMetodo && /Resist[eê]ncia|Pr[ií]nc[ií]pio|For[cç]a|Hipertrofia/i.test(l)) {
+                        currentMetodo.periodo = currentMetodo.periodo ? currentMetodo.periodo + ' ' + l : l;
+                    } else if (!gotMetodo && currentMetodo.periodo) {
+                        // Primeira linha que não é período nem traço = nome do método
+                        currentMetodo.metodo = l;
+                        gotMetodo = true;
+                    } else if (gotMetodo && currentMetodo.metodo !== '--------') {
+                        // Linhas de descrição
+                        if (currentMetodo.descricao) currentMetodo.descricao += ' ';
+                        currentMetodo.descricao += l;
+                    }
+                }
+            });
+            if (currentMetodo) data.metodos.push(currentMetodo);
+        }
+
+        return data;
+    }
+
+    function toggleSection(id) {
+        var card = document.getElementById(id);
+        if (!card) return;
+        var body = card.querySelector('.section-body');
+        var isOpening = card.classList.contains('collapsed');
+        if (isOpening) {
+            // Se é uma seção de treino, fecha as outras antes de abrir
+            if (id.startsWith('section-treino-')) {
+                document.querySelectorAll('[id^="section-treino-"]').forEach(function(other) {
+                    if (other.id !== id && !other.classList.contains('collapsed')) {
+                        var otherBody = other.querySelector('.section-body');
+                        otherBody.style.maxHeight = otherBody.scrollHeight + 'px';
+                        otherBody.offsetHeight;
+                        otherBody.style.maxHeight = '0';
+                        other.classList.add('collapsed');
+                    }
+                });
+            }
+            card.classList.remove('collapsed');
+            body.style.maxHeight = body.scrollHeight + 'px';
+            setTimeout(function() { body.style.maxHeight = 'none'; }, 350);
+        } else {
+            body.style.maxHeight = body.scrollHeight + 'px';
+            body.offsetHeight;
+            body.style.maxHeight = '0';
+            card.classList.add('collapsed');
+        }
+        // Atualiza dimming de alongamentos/manobras baseado no treino aberto
+        if (id.startsWith('section-treino-')) {
+            applyBodyTypeDimming();
+        }
+    }
+
+    function getDayOfWeek() {
+        if (diaSemana) return diaSemana;
+        var days = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+        return days[new Date().getDay()];
+    }
+
+    function treinoMatchesToday(diasFoco) {
+        if (!diasFoco) return false;
+        var today = getDayOfWeek();
+        var normalized = diasFoco.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return normalized.includes(today);
+    }
+
+    function applySectionVisibility() {
+        document.getElementById('section-converter').classList.add('collapsed');
+
+        var openedOne = false;
+        var treinoCards = document.querySelectorAll('.section-card[data-dias-foco]');
+        treinoCards.forEach(function(card) {
+            var dias = card.getAttribute('data-dias-foco');
+            var isToday = treinoMatchesToday(dias);
+
+            // Destaca o treino do dia com verde mais escuro
+            if (isToday) {
+                card.querySelector('.section-header').style.background = '#1b5e20';
+                card.querySelector('.section-header').style.color = '#e0e0e0';
+            }
+
+            // Abre só o treino do dia (e só o primeiro match)
+            if (isToday && !openedOne) {
+                openedOne = true;
+            } else {
+                card.classList.add('collapsed');
+            }
+        });
+
+        // Set initial max-height for open sections
+        document.querySelectorAll('.section-card').forEach(function(card) {
+            var body = card.querySelector('.section-body');
+            if (body) {
+                body.style.maxHeight = card.classList.contains('collapsed') ? '0' : 'none';
+            }
+        });
+    }
+
+    /**
+     * RENDERIZADOR VISUAL
+     */
+    function renderWorkoutVisual(jsonData) {
+        let html = '';
+
+        // Seção 2: Info do aluno (card azul)
+        html += `
+        <div id="section-info" class="section-card">
+            <div class="section-header" onclick="toggleSection('section-info')" style="background: #4a2d8a; color: #e0e0e0;">
+                <span>Informações do Protocolo</span>
+                <span class="chevron">❯</span>
+            </div>
+            <div class="section-body" style="background: #2a1f4e; padding: 15px;">
+                ${jsonData.treinador ? `<strong>Treinador(a):</strong> ${jsonData.treinador} <br>` : ""}
+                <strong>Aluno(a):</strong> ${jsonData.aluno || "Não identificado"} <br>
+                ${jsonData.idade ? `<strong>Idade:</strong> ${jsonData.idade} <br>` : ""}
+                <strong>Duração do Protocolo:</strong> ${jsonData.duracao_total || "Não identificada"} <br>
+                <strong>Frequência Semanal:</strong> ${jsonData.frequencia || "Não identificada"} <br>
+                ${jsonData.descanso ? `<strong>Descanso entre exercícios:</strong> ${jsonData.descanso} <br>` : ""}
+                <strong>Objetivos:</strong> ${jsonData.objetivo || "Não especificado"}
+            </div>
+        </div>
+        `;
+
+        // Seção de Semanas — checkboxes de 1 até duracao_total
+        let numSemanas = 0;
+        if (jsonData.duracao_total) {
+            let match = jsonData.duracao_total.match(/(\d+)/);
+            if (match) numSemanas = parseInt(match[1]);
+        }
+        if (numSemanas > 0) {
+            let anotacoes = loadAnotacoes();
+            let currentWeek = anotacoes.semanaAtual || 1;
+            let weeksHtml = '';
+            for (let w = 1; w <= numSemanas; w++) {
+                let checked = w === currentWeek ? ' checked' : '';
+                weeksHtml += `<label class="week-check"><input type="radio" name="semana-atual" onchange="onWeekChange(${w})"${checked}> Semana ${w}</label>`;
+            }
+            html += `
+            <div id="section-semanas" class="section-card collapsed">
+                <div class="section-header" onclick="toggleSection('section-semanas')" style="background: #b8860b; color: #e0e0e0;">
+                    <span>Semana Atual (${currentWeek})</span>
+                    <span class="chevron">❯</span>
+                </div>
+                <div class="section-body" style="background: #2a2510; padding: 15px; max-height: 0;">
+                    <div class="weeks-list">${weeksHtml}</div>
+                </div>
+            </div>
+            `;
+        }
+
+        let anotPeriod = loadAnotacoes();
+        let curWeek = anotPeriod.semanaAtual || 1;
+
+        // Seção de Periodização
+        if (jsonData.periodizacao && jsonData.periodizacao.length > 0) {
+            let periodCards = jsonData.periodizacao.map(p => {
+                let cls = 'period-card';
+                if (p.semana === curWeek) cls += ' period-current';
+                else if (p.semana < curWeek) cls += ' period-past';
+                return `<div class="${cls}" data-period-week="${p.semana}">
+                    <div class="period-week-num">${p.semana}ª</div>
+                    <div class="period-details">
+                        <div class="pd-periodo">${p.periodo}</div>
+                        <div><span class="pd-label">Séries</span><br><span class="pd-value">${p.series}</span></div>
+                        <div><span class="pd-label">Descanso</span><br><span class="pd-value">${p.descanso}</span></div>
+                        <div><span class="pd-label">Cadência</span><br><span class="pd-value">${p.cadencia}</span></div>
+                        <div><span class="pd-label">Falha</span><br><span class="pd-value">${p.falha}</span></div>
+                        ${p.metodo ? `<div><span class="pd-label">Método</span><br><span class="pd-value">${p.metodo}</span></div>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+
+            html += `
+            <div id="section-periodizacao" class="section-card collapsed">
+                <div class="section-header" onclick="toggleSection('section-periodizacao')" style="background: #4a1942; color: #e0e0e0;">
+                    <span>Periodização</span>
+                    <span class="chevron">❯</span>
+                </div>
+                <div class="section-body" style="background: #2a1028; padding: 15px; max-height: 0;">
+                    <div class="period-list">${periodCards}</div>
+                </div>
+            </div>
+            `;
+        }
+
+        // Seção de Métodos
+        if (jsonData.metodos && jsonData.metodos.length > 0) {
+            let hasAnyMetodo = jsonData.metodos.some(m => m.metodo && m.metodo !== '--------');
+            if (hasAnyMetodo) {
+                let metodoCards = jsonData.metodos.map(m => {
+                    let cls = 'period-card';
+                    if (m.semana === curWeek) cls += ' period-current';
+                    else if (m.semana < curWeek) cls += ' period-past';
+                    let metodoDisplay = (m.metodo && m.metodo !== '--------') ? m.metodo : '---';
+                    return `<div class="${cls}" data-period-week="${m.semana}">
+                        <div class="period-week-num">${m.semana}ª</div>
+                        <div class="period-details">
+                            <div class="pd-periodo">${m.periodo}</div>
+                            <div><span class="pd-label">Método</span><br><span class="pd-value">${metodoDisplay}</span></div>
+                            ${m.descricao ? `<div style="grid-column: 1 / -1;"><span class="pd-value" style="font-size: 0.82em; opacity: 0.85;">${m.descricao}</span></div>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+
+                html += `
+                <div id="section-metodos" class="section-card collapsed">
+                    <div class="section-header" onclick="toggleSection('section-metodos')" style="background: #4a3728; color: #e0e0e0;">
+                        <span>Métodos</span>
+                        <span class="chevron">❯</span>
+                    </div>
+                    <div class="section-body" style="background: #2a2018; padding: 15px; max-height: 0;">
+                        <div class="period-list">${metodoCards}</div>
+                    </div>
+                </div>
+                `;
+            }
+        }
+
+        if(jsonData.alongamentos.length > 0) {
+            html += `
+                <div id="section-alongamentos" class="section-card">
+                    <div class="section-header" onclick="toggleSection('section-alongamentos')" style="background: #1a5276; color: #e0e0e0;">
+                        <span>Alongamentos e Mobilidade</span>
+                        <span class="chevron">❯</span>
+                    </div>
+                    <div class="section-body workout-section" style="margin-top:0; border-radius:0;">
+                    <table>
+                        <thead><tr><th class="col-seq">Seq</th><th class="col-tempo">Tempo / Reps</th><th>Exercício</th><th class="col-video">Link</th></tr></thead>
+                        <tbody>
+            `;
+            let ai = 0;
+            while (ai < jsonData.alongamentos.length) {
+                let item = jsonData.alongamentos[ai];
+                let videoBtn = item.video ? `<a href="${item.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+                let subCount = 0;
+                while (ai + 1 + subCount < jsonData.alongamentos.length && jsonData.alongamentos[ai + 1 + subCount].isSubExercise) { subCount++; }
+                let hasReplacement = false;
+                for (let si = 0; si < subCount; si++) {
+                    if (getAfterWeek(jsonData.alongamentos[ai + 1 + si].exercicio)) { hasReplacement = true; }
+                }
+                let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
+                let bodyTypeAttr = '';
+                if (RE_BODY_TYPE_MMII.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
+                else if (RE_BODY_TYPE_MMSS.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
+
+                // Alongamento standalone com "(ESSE EXERCÍCIO APÓS A Xª SEMANA)": aparece a partir da semana X
+                let selfAfterWeek = hasReplacement ? null : getAfterWeek(item.exercicio);
+                let mainAttrs = hasReplacement ? ' data-has-replacement' : (selfAfterWeek ? ` data-after-weeks="${selfAfterWeek}"` : '');
+                html += `<tr${mainAttrs}${bodyTypeAttr}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.tempo}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
+                for (let si = 0; si < subCount; si++) {
+                    let sub = jsonData.alongamentos[ai + 1 + si];
+                    let subBtn = sub.video ? `<a href="${sub.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+                    let afterWeek = getAfterWeek(sub.exercicio);
+                    let afterAttr = afterWeek ? ` data-after-weeks="${afterWeek}"` : '';
+                    html += `<tr${afterAttr}${bodyTypeAttr}><td>${sub.exercicio}</td><td style="text-align:center;">${subBtn}</td></tr>`;
+                }
+                ai += 1 + subCount;
+            }
+            html += `</tbody></table></div></div>`;
+        }
+
+        if(jsonData.manobras.length > 0) {
+            html += `
+                <div id="section-manobras" class="section-card">
+                    <div class="section-header" onclick="toggleSection('section-manobras')" style="background: #1a5276; color: #e0e0e0;">
+                        <span>Manobras Respiratórias e Abdominais</span>
+                        <span class="chevron">❯</span>
+                    </div>
+                    <div class="section-body workout-section" style="margin-top:0; border-radius:0;">
+                    <table>
+                        <thead><tr><th class="col-seq">Seq</th><th class="col-tempo">Séries x Tempo</th><th>Exercício</th><th class="col-video">Link</th></tr></thead>
+                        <tbody>
+            `;
+            let mi = 0;
+            while (mi < jsonData.manobras.length) {
+                let item = jsonData.manobras[mi];
+                let videoBtn = item.video ? `<a href="${item.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+                let subCount = 0;
+                while (mi + 1 + subCount < jsonData.manobras.length && jsonData.manobras[mi + 1 + subCount].isSubExercise) { subCount++; }
+                let hasReplacement = false;
+                for (let si = 0; si < subCount; si++) {
+                    if (getAfterWeek(jsonData.manobras[mi + 1 + si].exercicio)) { hasReplacement = true; }
+                }
+                let rowspan = subCount > 0 ? ` rowspan="${1 + subCount}" style="vertical-align:middle;"` : "";
+                // Detecta se a manobra é específica para MMII ou MMSS
+                let bodyTypeAttr = '';
+                if (RE_BODY_TYPE_MMII.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmii"';
+                else if (RE_BODY_TYPE_MMSS.test(item.exercicio)) bodyTypeAttr = ' data-body-type="mmss"';
+
+                // Manobra standalone com "(ESSE EXERCÍCIO APÓS A Xª SEMANA)": aparece a partir da semana X
+                let selfAfterWeek = hasReplacement ? null : getAfterWeek(item.exercicio);
+                let mainAttrs = hasReplacement ? ' data-has-replacement' : (selfAfterWeek ? ` data-after-weeks="${selfAfterWeek}"` : '');
+                html += `<tr${mainAttrs}${bodyTypeAttr}><td${rowspan}>${item.seq}</td><td${rowspan}>${item.series}</td><td>${item.exercicio}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
+                for (let si = 0; si < subCount; si++) {
+                    let sub = jsonData.manobras[mi + 1 + si];
+                    let subBtn = sub.video ? `<a href="${sub.video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+                    let afterWeek = getAfterWeek(sub.exercicio);
+                    let afterAttr = afterWeek ? ` data-after-weeks="${afterWeek}"` : '';
+                    html += `<tr${afterAttr}${bodyTypeAttr}><td>${sub.exercicio}</td><td style="text-align:center;">${subBtn}</td></tr>`;
+                }
+                mi += 1 + subCount;
+            }
+            html += `</tbody></table></div></div>`;
+        }
+
+        // Helper para gerar linha de tabela
+        function treinoRow(seq, nome, info, video) {
+            let videoBtn = video ? `<a href="${video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+            let infoSuffix = info ? `<br><small style="color:#8899a6;">(${info})</small>` : "";
+            return `<tr><td>${seq}</td><td>${nome}${infoSuffix}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
+        }
+
+        jsonData.treinos.forEach((treino, treinoIdx) => {
+            let sectionId = 'section-treino-' + treinoIdx;
+            let anotacoes = loadAnotacoes();
+            html += `
+                <div id="${sectionId}" class="section-card" data-dias-foco="${(treino.dias_e_foco || '').replace(/"/g, '&quot;')}">
+                    <div class="section-header" onclick="toggleSection('${sectionId}')" style="background: #1b4332; color: #c8e6c9;">
+                        <span>${(() => {
+                            let foco = treino.dias_e_foco || '';
+                            let id = treino.identificador || '';
+                            if (!foco) return id;
+                            // Se dias_e_foco não começa com dia da semana, prefixar com identificador
+                            if (!RE_DIAS_SEMANA.test(foco) && !/^Caso/i.test(foco)) {
+                                return (id + '<br>' + foco);
+                            }
+                            return foco.replace(/\s*\(/, '<br>(');
+                        })()}</span>
+                        <span class="chevron">❯</span>
+                    </div>
+                    <div class="section-body workout-section" style="margin-top:0; border-radius:0; border-left-color: #2e7d32;">
+                    <table>
+                        <thead><tr><th class="col-seq">Seq</th><th>Exercício</th><th class="col-video">Link</th></tr></thead>
+                        <tbody>
+            `;
+
+            // Aquecimento
+            if (Array.isArray(treino.aquecimento) && treino.aquecimento.length > 0) {
+                html += `<tr><td colspan="3" style="background:#0d3b2e; font-weight:bold; color:#81c784;">Aquecimento (Warm Up)</td></tr>`;
+                treino.aquecimento.forEach((w, idx) => {
+                    let nome = typeof w === "object" ? w.nome : w;
+                    let reps = (typeof w === "object" && w.reps) ? w.reps : "";
+                    let video = (typeof w === "object") ? w.video : null;
+                    let videoBtn = video ? `<a href="${video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+                    let warmObsKey = `treino-${treinoIdx + 1}-warm-${idx + 1}`;
+                    let totalRows = 1 + 1 + (showObsFields ? 1 : 0);
+                    let repsSuffix = reps ? `<br><small style="color:#8899a6;">(${reps})</small>` : "";
+                    html += `<tr><td rowspan="${totalRows}" style="vertical-align:middle;">${idx + 1}</td><td>${nome}${repsSuffix}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
+                    html += buildWeightRow(warmObsKey, 2);
+                    if (showObsFields) {
+                        let obsValue = anotacoes.obs[warmObsKey] || '';
+                        let escapedObs = obsValue.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                        html += `<tr><td colspan="2" style="padding: 4px 6px;"><textarea class="obs-field" placeholder="Adicionar Observação..." oninput="onObsChange('${warmObsKey}', this.value)">${escapedObs}</textarea></td></tr>`;
+                    }
+                });
+            }
+
+            // Exercícios — agrupa principal + sub-exercícios com rowspan
+            html += `<tr><td colspan="3" style="background:#0d253b; font-weight:bold; color:#64b5f6;">Exercícios</td></tr>`;
+            let ei = 0;
+            let seqGroupIdx = 0;
+            function buildWeightRow(obsKey, colspan) {
+                let pesos = (anotacoes.pesos && anotacoes.pesos[obsKey]) || {};
+                let repsArr = ['15', '12', '10', '8', '6'];
+                let cs = colspan || 3;
+                let repsCols = repsArr.map(r => {
+                    let savedVal = pesos[r] || '';
+                    let opts = '<option value="">-</option>';
+                    for (let w = 1; w <= 500; w++) {
+                        let selected = (String(w) === String(savedVal)) ? ' selected' : '';
+                        opts += `<option value="${w}"${selected}>${w}kg</option>`;
+                    }
+                    return `<div class="reps-col"><label>${r} reps</label><select onchange="onWeightChange('${obsKey}','${r}',this.value)">${opts}</select></div>`;
+                }).join('');
+                return `<tr><td colspan="${cs}" style="padding: 4px 6px;"><div class="reps-row">${repsCols}</div></td></tr>`;
+            }
+
+            while (ei < treino.exercicios.length) {
+                let ex = treino.exercicios[ei];
+                let nome = typeof ex === "object" ? ex.nome : ex;
+                let video = (typeof ex === "object") ? ex.video : null;
+                let seq = (typeof ex === "object" && ex.seq) ? ex.seq : "";
+                let videoBtn = video ? `<a href="${video}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+                // Conta sub-exercícios seguintes
+                let subCount = 0;
+                while (ei + 1 + subCount < treino.exercicios.length && treino.exercicios[ei + 1 + subCount].isSubExercise) { subCount++; }
+
+                // Check if any sub has "(após X semanas" — mark main as having replacement
+                let hasReplacement = false;
+                for (let si = 0; si < subCount; si++) {
+                    let subNome = typeof treino.exercicios[ei + 1 + si] === "object" ? treino.exercicios[ei + 1 + si].nome : treino.exercicios[ei + 1 + si];
+                    if (getAfterWeek(subNome)) { hasReplacement = true; }
+                }
+
+                let totalRows = 2 + subCount * 2 + (showObsFields ? 1 : 0);
+                let rowspan = ` rowspan="${totalRows}" style="vertical-align:middle;"`;
+                // Exercício standalone com "(ESSE EXERCÍCIO APÓS A Xª SEMANA)": só aparece a partir da semana X,
+                // sem exercício principal correspondente a escurecer (data-after-weeks direto na própria linha).
+                let selfAfterWeek = hasReplacement ? null : getAfterWeek(nome);
+                let mainAttrs = hasReplacement ? ' data-has-replacement' : (selfAfterWeek ? ` data-after-weeks="${selfAfterWeek}"` : '');
+                html += `<tbody class="exercise-group">`;
+                html += `<tr${mainAttrs}><td${rowspan}>${seq}</td><td>${nome}</td><td style="text-align:center;">${videoBtn}</td></tr>`;
+
+                // Linhas internas usam colspan 2 (coluna seq ocupada pelo rowspan)
+                let innerColspan = 2;
+
+                // Peso do exercício principal
+                let mainObsKey = `treino-${treinoIdx + 1}-ex-${seqGroupIdx + 1}`;
+                html += buildWeightRow(mainObsKey, innerColspan);
+
+                // Sub-exercícios com seus próprios pesos
+                for (let si = 0; si < subCount; si++) {
+                    let sub = treino.exercicios[ei + 1 + si];
+                    let subNome = typeof sub === "object" ? sub.nome : sub;
+                    let subVideo = (typeof sub === "object") ? sub.video : null;
+                    let subBtn = subVideo ? `<a href="${subVideo}" target="_blank" style="color: #e74c3c; text-decoration: none; font-size: 18px;" title="Ver vídeo">&#9654;</a>` : "";
+                    let afterWeek = getAfterWeek(subNome);
+                    let afterAttr = afterWeek ? ` data-after-weeks="${afterWeek}"` : '';
+                    html += `<tr${afterAttr}><td>${subNome}</td><td style="text-align:center;">${subBtn}</td></tr>`;
+
+                    // Peso do sub-exercício
+                    let subObsKey = `treino-${treinoIdx + 1}-ex-${seqGroupIdx + 1}-sub-${si + 1}`;
+                    html += buildWeightRow(subObsKey, innerColspan);
+                }
+
+                // Observação do grupo (se habilitado)
+                if (showObsFields) {
+                    let obsValue = anotacoes.obs[mainObsKey] || '';
+                    let escapedObs = obsValue.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                    html += `<tr><td colspan="${innerColspan}" style="padding: 4px 6px;"><textarea class="obs-field" placeholder="Adicionar Observação..." oninput="onObsChange('${mainObsKey}', this.value)">${escapedObs}</textarea></td></tr>`;
+                }
+                html += `</tbody>`;
+
+                seqGroupIdx++;
+                ei += 1 + subCount;
+            }
+
+            // Aeróbio
+            if (Array.isArray(treino.aerobio) && treino.aerobio.length > 0) {
+                html += `<tr><td colspan="3" style="background:#3b2e0d; font-weight:bold; color:#ffd54f;">Cardio / Aeróbio</td></tr>`;
+                treino.aerobio.forEach((a, idx) => {
+                    let nome = typeof a === "object" ? a.nome : a;
+                    let duracao = (typeof a === "object" && a.duracao) ? a.duracao : "";
+                    let video = (typeof a === "object") ? a.video : null;
+                    html += treinoRow(idx + 1, nome, duracao, video);
+                });
+            } else if (typeof treino.aerobio === "string" && treino.aerobio) {
+                html += `<tr><td colspan="3" style="background:#3b2e0d; font-weight:bold; color:#ffd54f;">Cardio / Aeróbio</td></tr>`;
+                html += `<tr><td>1</td><td>${treino.aerobio}</td><td></td></tr>`;
+            }
+
+            // Relaxamento
+            if (treino.relaxamento) {
+                html += `<tr><td colspan="3" style="background:#2a1f3b; font-weight:bold; color:#ce93d8;">Relaxamento</td></tr>`;
+                if (Array.isArray(treino.relaxamento)) {
+                    treino.relaxamento.forEach((r, idx) => {
+                        let nome = typeof r === "object" ? r.nome : r;
+                        let reps = (typeof r === "object" && r.reps) ? r.reps : "";
+                        let video = (typeof r === "object") ? r.video : null;
+                        html += treinoRow(idx + 1, nome, reps, video);
+                    });
+                } else {
+                    html += `<tr><td>1</td><td>${treino.relaxamento}</td><td></td></tr>`;
+                }
+            }
+
+            html += `</tbody></table></div></div>`;
+
+        });
+
+        html += '<br>';
+        visualOutput.innerHTML = html;
+        // Espaço extra no final para o contador flutuante não cobrir o último conteúdo
+        visualOutput.insertAdjacentHTML('beforeend', '<br><br><br>');
+        applySectionVisibility();
+        applyExerciseDimming();
+        applyBodyTypeDimming();
+    }
+
+    // === LOGIN / TREINADOR / ALUNO ===
+    function escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function setMsg(id, text, type) {
+        var el = document.getElementById(id);
+        el.textContent = text || '';
+        el.className = 'form-msg' + (type ? ' ' + type : '');
+    }
+
+    function showView(name) {
+        document.getElementById('login-view').style.display = name === 'login' ? 'flex' : 'none';
+        document.getElementById('topbar').style.display = name === 'login' ? 'none' : 'flex';
+        document.getElementById('trainer-view').style.display = name === 'trainer' ? 'block' : 'none';
+        document.getElementById('student-view').style.display = name === 'student' ? 'block' : 'none';
+        document.getElementById('stopwatch').style.display = name === 'student' ? 'flex' : 'none';
+    }
+
+    async function doLogin() {
+        var email = document.getElementById('login-email').value.trim().toLowerCase();
+        var senha = document.getElementById('login-senha').value;
+        if (!email || !senha) { setMsg('login-msg', 'Preencha email e senha.', 'error'); return; }
+        setMsg('login-msg', 'Entrando...');
+        var r = await sb.auth.signInWithPassword({ email: email, password: senha });
+        if (r.error) { setMsg('login-msg', 'Email ou senha inválidos.', 'error'); return; }
+        setMsg('login-msg', '');
+        await onLoggedIn(r.data.user);
+    }
+
+    async function doLogout() {
+        await flushAnotacoes();
+        await sb.auth.signOut();
+        location.hash = '';
+        location.reload();
+    }
+
+    async function changePassword() {
+        var nova = prompt('Nova senha (mínimo 6 caracteres):');
+        if (!nova) return;
+        if (nova.length < 6) { alert('A senha precisa ter pelo menos 6 caracteres.'); return; }
+        var r = await sb.auth.updateUser({ password: nova });
+        alert(r.error ? 'Erro ao trocar a senha: ' + r.error.message : 'Senha alterada.');
+    }
+
+    async function onLoggedIn(user) {
+        var email = (user.email || '').toLowerCase();
+
+        var t = await sb.from('trainers').select('*').eq('email', email).maybeSingle();
+        if (t.error) { showErrorPopup('Erro ao carregar o cadastro', t.error.message); return; }
+        if (t.data) {
+            currentRole = 'trainer';
+            currentTrainer = t.data;
+            document.getElementById('topbar-user').textContent = t.data.name + ' (treinador)';
+            var m = location.hash.match(/^#aluno=([0-9a-f-]+)$/i);
+            if (m) { await openStudentById(m[1]); } else { await showTrainerHome(); }
+            return;
+        }
+
+        var s = await sb.from('students').select('*').eq('email', email).maybeSingle();
+        if (s.error) { showErrorPopup('Erro ao carregar o cadastro', s.error.message); return; }
+        if (s.data) {
+            currentRole = 'student';
+            document.getElementById('topbar-user').textContent = s.data.name;
+            await openStudent(s.data);
+            return;
+        }
+
+        await sb.auth.signOut();
+        showView('login');
+        setMsg('login-msg', 'Este email não está cadastrado. Fale com seu treinador.', 'error');
+    }
+
+    async function showTrainerHome() {
+        await flushAnotacoes();
+        currentStudent = null;
+        anotacoesCache = null;
+        resetTimer();
+        if (location.hash) history.replaceState(null, '', location.pathname);
+        showView('trainer');
+        await loadStudents();
+    }
+
+    async function loadStudents() {
+        var list = document.getElementById('students-list');
+        list.innerHTML = '<small>Carregando...</small>';
+        var r = await sb.from('students')
+            .select('id, name, email, workout_updated_at')
+            .eq('trainer_id', currentTrainer.id)
+            .order('name');
+        if (r.error) { list.innerHTML = ''; showErrorPopup('Erro ao carregar alunos', r.error.message); return; }
+        if (r.data.length === 0) { list.innerHTML = '<small>Nenhum aluno cadastrado.</small>'; return; }
+        list.innerHTML = r.data.map(function(s) {
+            var info = s.workout_updated_at
+                ? 'Treino importado em ' + new Date(s.workout_updated_at).toLocaleDateString('pt-BR')
+                : 'Sem treino importado';
+            return '<div class="student-item">' +
+                '<div><strong>' + escapeHtml(s.name) + '</strong><br><small>' + escapeHtml(s.email) + '</small><br><small>' + info + '</small></div>' +
+                '<div style="display:flex; flex-direction:column; align-items:flex-end;">' +
+                    '<button class="btn" onclick="openStudentById(\'' + s.id + '\')">Abrir</button>' +
+                    '<button class="btn-link btn-danger" onclick="removeStudent(\'' + s.id + '\', \'' + escapeHtml(s.name).replace(/'/g, '') + '\')">Remover</button>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
+
+    async function createStudent() {
+        var nome = document.getElementById('new-name').value.trim();
+        var email = document.getElementById('new-email').value.trim().toLowerCase();
+        var senha = document.getElementById('new-senha').value;
+        if (!nome || !email || !senha) { setMsg('new-msg', 'Preencha nome, email e senha.', 'error'); return; }
+        if (senha.length < 6) { setMsg('new-msg', 'A senha precisa ter pelo menos 6 caracteres.', 'error'); return; }
+        setMsg('new-msg', 'Cadastrando...');
+
+        // Cria o login do aluno num client separado (não troca a sessão do treinador)
+        var tmp = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+            auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'fourfit-signup' }
+        });
+        var su = await tmp.auth.signUp({ email: email, password: senha });
+        var jaTinhaConta = su.error && /already|registered|exists/i.test(su.error.message);
+        if (su.error && !jaTinhaConta) { setMsg('new-msg', 'Erro ao criar o login: ' + su.error.message, 'error'); return; }
+
+        var ins = await sb.from('students').insert({ trainer_id: currentTrainer.id, name: nome, email: email });
+        if (ins.error) {
+            setMsg('new-msg', ins.error.code === '23505' ? 'Já existe um aluno com esse email.' : 'Erro: ' + ins.error.message, 'error');
+            return;
+        }
+        setMsg('new-msg', jaTinhaConta
+            ? 'Aluno cadastrado. Esse email já tinha login, a senha dele foi mantida.'
+            : 'Aluno cadastrado. Envie o email e a senha para ele acessar o site.', 'ok');
+        document.getElementById('new-name').value = '';
+        document.getElementById('new-email').value = '';
+        document.getElementById('new-senha').value = '';
+        await loadStudents();
+    }
+
+    async function removeStudent(id, nome) {
+        if (!confirm('Remover ' + nome + '? O treino e as anotações dele serão apagados.')) return;
+        var r = await sb.from('students').delete().eq('id', id);
+        if (r.error) { showErrorPopup('Erro ao remover aluno', r.error.message); return; }
+        await loadStudents();
+    }
+
+    async function openStudentById(id) {
+        var r = await sb.from('students').select('*').eq('id', id).maybeSingle();
+        if (r.error || !r.data) { await showTrainerHome(); return; }
+        await openStudent(r.data);
+    }
+
+    function resetConverter() {
+        fileInput.value = '';
+        convertBtn.disabled = true;
+        convertBtn.style.backgroundColor = '#3a3a5a';
+        convertBtn.style.color = '#888';
+        convertBtn.style.cursor = 'not-allowed';
+        hideStatus();
+    }
+
+    async function openStudent(student) {
+        currentStudent = student;
+        var a = await sb.from('annotations').select('*').eq('student_id', student.id).maybeSingle();
+        if (a.error) { showErrorPopup('Erro ao carregar anotações', a.error.message); }
+        anotacoesCache = a.data
+            ? { semanaAtual: a.data.semana_atual || 1, obs: a.data.obs || {}, pesos: a.data.pesos || {} }
+            : defaultAnotacoes();
+        saveDirty = false;
+
+        var isTrainer = currentRole === 'trainer';
+        showView('student');
+        resetTimer();
+        resetConverter();
+        updateKeepNotesVisibility();
+        document.getElementById('viewing-banner').style.display = isTrainer ? 'flex' : 'none';
+        document.getElementById('viewing-name').textContent = 'Aluno: ' + student.name;
+        var converter = document.getElementById('section-converter');
+        converter.style.display = isTrainer ? '' : 'none';
+        if (isTrainer) history.replaceState(null, '', '#aluno=' + student.id);
+
+        if (student.workout) {
+            renderWorkoutVisual(student.workout);
+            if (isTrainer) showStatus("Treino carregado. Selecione um novo PDF para atualizar.", "ok");
+        } else {
+            visualOutput.innerHTML = isTrainer
+                ? ''
+                : '<p style="text-align:center; color:#aaa; margin-top:30px;">Seu treino ainda não foi cadastrado. Fale com seu treinador.</p>';
+            converter.classList.remove('collapsed');
+            converter.querySelector('.section-body').style.maxHeight = 'none';
+        }
+        window.scrollTo(0, 0);
+    }
+
+    (async function initAuth() {
+        if (!sb) {
+            showErrorPopup('Configuração ausente', 'config.js não encontrado ou incompleto (SUPABASE_URL / SUPABASE_ANON_KEY).');
+            return;
+        }
+        var r = await sb.auth.getSession();
+        if (r.data && r.data.session) {
+            await onLoggedIn(r.data.session.user);
+        } else {
+            showView('login');
+        }
+    })();
+</script>
+
+</body>
+</html>
