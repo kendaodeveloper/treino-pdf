@@ -9,9 +9,8 @@ with c as (
 insert into trainers (company_id, name, email)
 select c.id, t.name, t.email
 from c, (values
-  ('Roberto Oliveira', 'roberto.oliveira@fourfit.exemplo.com'),
-  ('Mariana Costa',    'mariana.costa@fourfit.exemplo.com'),
-  ('Felipe Andrade',   'felipe.andrade@fourfit.exemplo.com'),
-  ('Juliana Ramos',    'juliana.ramos@fourfit.exemplo.com'),
-  ('Thiago Moreira',   'thiago.moreira@fourfit.exemplo.com')
+  ('Roberto Oliveira', 'roberto.oliveira@fourfit.com'),
+  ('Amanda Oliveira', 'amanda.oliveira@fourfit.com'),
+  ('Alisson Silveira', 'alisson.silveira@fourfit.com'),
+  ('Aline Savio', 'aline.savio@fourfit.com')
 ) as t(name, email);
