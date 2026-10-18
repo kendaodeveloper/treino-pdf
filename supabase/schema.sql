@@ -35,7 +35,8 @@ create table annotations (
   updated_at timestamptz default now()
 );
 
-create index idx_students_trainer on students (trainer_id);
+-- lista do treinador: filtra por treinador e ordena por cadastro (mais recentes primeiro)
+create index idx_students_trainer_created on students (trainer_id, created_at desc);
 
 -- id do treinador logado (security definer evita recursao de RLS)
 create or replace function public.my_trainer_id() returns uuid
@@ -50,24 +51,25 @@ alter table annotations enable row level security;
 
 -- Treinador ve o proprio cadastro e a propria empresa
 create policy trainers_select_own on trainers
-  for select using (email = lower(auth.jwt()->>'email'));
+  for select using (email = (select lower(auth.jwt()->>'email')));
 
 create policy companies_select_own on companies
   for select using (id in (select company_id from trainers));
 
 -- Treinador ve/gerencia apenas seus alunos
+-- (select ...) = avaliado uma vez por consulta, nao por linha
 create policy students_select on students
-  for select using (trainer_id = public.my_trainer_id());
+  for select using (trainer_id = (select public.my_trainer_id()));
 
 create policy students_insert on students
-  for insert with check (trainer_id = public.my_trainer_id());
+  for insert with check (trainer_id = (select public.my_trainer_id()));
 
 create policy students_update on students
-  for update using (trainer_id = public.my_trainer_id())
-  with check (trainer_id = public.my_trainer_id());
+  for update using (trainer_id = (select public.my_trainer_id()))
+  with check (trainer_id = (select public.my_trainer_id()));
 
 create policy students_delete on students
-  for delete using (trainer_id = public.my_trainer_id());
+  for delete using (trainer_id = (select public.my_trainer_id()));
 
 -- Treinador le/grava anotacoes dos seus alunos
 create policy annotations_all on annotations

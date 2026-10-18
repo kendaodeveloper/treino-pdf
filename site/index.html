@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Four Fit - Protocolo de Treino</title>
     <link rel="icon" type="image/jpeg" href="logo.jpg">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- PDF.js é carregado sob demanda (loadPdfJs), só para o treinador que vai importar -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
     <style>
         body {
@@ -763,16 +763,27 @@
         document.getElementById('browser-warning').style.display = 'block';
     }
 
-    // Verifica se PDF.js carregou
-    if (typeof pdfjsLib === 'undefined') {
-        statusMsg.textContent = "Erro: biblioteca PDF.js não carregou. Abra no Safari ou no Chrome.";
-        statusMsg.style.display = 'block';
-        statusMsg.style.background = '#3d1515';
-        statusMsg.style.color = '#e74c3c';
-    } else {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-        statusMsg.style.display = 'none';
+    // PDF.js sob demanda: o aluno nunca importa, então não baixa ~320 KB à toa
+    var pdfJsPromise = null;
+    function loadPdfJs() {
+        if (!pdfJsPromise) {
+            pdfJsPromise = new Promise(function(resolve, reject) {
+                var s = document.createElement('script');
+                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+                s.onload = function() {
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+                    resolve();
+                };
+                s.onerror = function() {
+                    pdfJsPromise = null; // permite tentar de novo
+                    reject(new Error('Biblioteca PDF.js não carregou. Verifique a internet ou abra no Safari/Chrome.'));
+                };
+                document.head.appendChild(s);
+            });
+        }
+        return pdfJsPromise;
     }
+    statusMsg.style.display = 'none';
 
     // === SUPABASE / SESSÃO ===
     var sb = (window.supabase && window.SUPABASE_URL && window.SUPABASE_ANON_KEY)
@@ -1064,6 +1075,7 @@
             });
 
             showStatus("Processando " + file.name + "...", "ok");
+            await loadPdfJs();
             var pdfData = new Uint8Array(arrayBuffer);
             await processarPDF(pdfData, keepNotes);
             showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
@@ -2576,7 +2588,10 @@
         updateBannerLink();
         var converter = document.getElementById('section-converter');
         converter.style.display = isTrainer ? '' : 'none';
-        if (isTrainer) history.replaceState(null, '', '#aluno=' + student.id);
+        if (isTrainer) {
+            history.replaceState(null, '', '#aluno=' + student.id);
+            loadPdfJs().catch(function() {}); // pré-carrega para o "Converter" ser imediato
+        }
 
         if (student.workout) {
             renderWorkoutVisual(student.workout);
