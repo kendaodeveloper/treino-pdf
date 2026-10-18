@@ -695,7 +695,7 @@
 
     <div id="student-view" style="display: none;">
     <div id="viewing-banner" class="viewing-banner" style="display: none;">
-        <button class="btn-link" onclick="showTrainerHome()">&larr; Alunos</button>
+        <button class="btn-link" onclick="goToStudentsList()">&larr; Alunos</button>
         <span id="viewing-name"></span>
         <button id="banner-copy-link" class="btn-link" onclick="copyLink(currentStudent.access_token, currentStudent.name)">Copiar link</button>
     </div>
@@ -2730,6 +2730,23 @@
         if (ok) showToast('Novo link gerado. Use "Copiar link" para enviar ao aluno.');
     }
 
+    // "← Alunos": entra no histórico como navegação normal (voltar/avançar do navegador funcionam)
+    function goToStudentsList() {
+        history.pushState(null, '', location.pathname);
+        return showTrainerHome();
+    }
+
+    // Voltar/avançar do navegador no painel do treinador: #aluno=<id> abre o aluno, sem hash = lista
+    window.addEventListener('popstate', function() {
+        if (currentRole !== 'trainer') return;
+        var m = location.hash.match(/^#aluno=([0-9a-f-]+)$/i);
+        if (m) {
+            if (!currentStudent || currentStudent.id !== m[1]) openStudentById(m[1]);
+        } else if (currentStudent) {
+            showTrainerHome();
+        }
+    });
+
     async function showTrainerHome() {
         await flushAnotacoes();
         currentStudent = null;
@@ -2996,7 +3013,8 @@
         var converter = document.getElementById('section-converter');
         converter.style.display = isTrainer ? '' : 'none';
         if (isTrainer) {
-            history.replaceState(null, '', '#aluno=' + student.id);
+            // Nova entrada no histórico: o "voltar" do navegador retorna para a lista
+            if (location.hash !== '#aluno=' + student.id) history.pushState(null, '', '#aluno=' + student.id);
             loadPdfJs().catch(function() {}); // pré-carrega para o "Converter" ser imediato
         }
 
