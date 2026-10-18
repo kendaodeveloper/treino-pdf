@@ -2444,6 +2444,7 @@
         if (ins.error) { setMsg('new-msg', 'Erro: ' + ins.error.message, 'error'); return; }
         setMsg('new-msg', 'Aluno cadastrado com sucesso.', 'ok');
         document.getElementById('new-name').value = '';
+        document.getElementById('search-students').value = '';
         await loadStudents();
     }
 
