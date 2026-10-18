@@ -1,0 +1,4 @@
+build.sh
+config.example.js
+wrangler.jsonc
+.assetsignore

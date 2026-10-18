@@ -1,0 +1,6 @@
+{
+  // Deploy como Worker com arquivos estaticos (Cloudflare Workers Builds)
+  "name": "fourfit",
+  "compatibility_date": "2026-10-01",
+  "assets": { "directory": "." }
+}

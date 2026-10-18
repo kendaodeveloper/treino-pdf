@@ -26,6 +26,18 @@ Workers & Pages > Create > Pages > Connect to Git > este repositorio:
 
 O `build.sh` gera o `config.js` a partir das variaveis. A URL fica `https://<projeto>.pages.dev`.
 
+### Alternativa: fluxo de Workers (tela pede "Deploy command")
+
+| Campo | Valor |
+|-------|-------|
+| Project name | `fourfit` (igual ao `name` do `site/wrangler.jsonc`) |
+| Build command | `sh build.sh` |
+| Deploy command | `npx wrangler deploy` |
+| Path / Root directory | `site` |
+| Build variables (Settings > Build > Variables and secrets) | `SUPABASE_URL`, `SUPABASE_ANON_KEY` |
+
+URL: `https://fourfit.<sua-conta>.workers.dev`.
+
 ## 3. Uso
 
 - **Treinador**: entra com o login criado no passo 1.4 > cadastra aluno (nome, email, senha inicial) > Abrir > importa o PDF.
