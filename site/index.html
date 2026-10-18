@@ -2223,7 +2223,7 @@
         var r = await sb.rpc('student_by_token', { p_token: token });
         if (r.error || !r.data) { showInvalidLink(); return; }
         currentRole = 'student';
-        document.getElementById('topbar-user').textContent = r.data.name;
+        document.getElementById('topbar-user').textContent = 'Aluno: ' + r.data.name;
         document.getElementById('topbar-actions').style.display = 'none';
         await openStudent({
             token: token,
@@ -2301,7 +2301,7 @@
         setMsg('new-msg', 'Cadastrando...');
         var ins = await sb.from('students').insert({ trainer_id: currentTrainer.id, name: nome });
         if (ins.error) { setMsg('new-msg', 'Erro: ' + ins.error.message, 'error'); return; }
-        setMsg('new-msg', 'Aluno cadastrado. Clique em "Importar treino" para importar o PDF; depois o link do aluno fica disponível.', 'ok');
+        setMsg('new-msg', 'Aluno cadastrado com sucesso.', 'ok');
         document.getElementById('new-name').value = '';
         await loadStudents();
     }
