@@ -23,6 +23,7 @@ create table students (
   access_token uuid not null unique default gen_random_uuid(),  -- link do aluno: ?t=<token>
   workout jsonb,                       -- JSON gerado pelo parser do PDF
   workout_updated_at timestamptz,
+  payments jsonb not null default '{}', -- meses pagos: { "2026-10": true, ... }
   created_at timestamptz default now()
 );
 

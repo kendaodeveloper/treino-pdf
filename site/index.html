@@ -484,6 +484,41 @@
         .btn-gray { background-color: #3a3a5a; }
         .btn-gray:hover { background-color: #4a4a6a; }
         .btn-red { background-color: #c0392b; }
+        .year-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 14px;
+        }
+        .year-nav .btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 0;
+        }
+        .payments {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+        }
+        .pay-month {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+            border-radius: 5px;
+            border: 2px solid transparent;
+            background: #2a2a4a;
+            color: #8899a6;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .pay-month input { display: none; }
+        .pay-month.paid { background: #1b5e20; color: #fff; }
+        .pay-month.current { border-color: #ffc107; }
         .btn-red:hover { background-color: #a93226; }
         .student-item:last-child { border-bottom: none; }
         .student-item small { color: #8899a6; }
@@ -530,6 +565,11 @@
         <div class="panel">
             <h3>Meus alunos</h3>
             <input type="search" id="search-students" class="text-input" placeholder="Buscar por nome" oninput="filterStudents()">
+            <div class="year-nav">
+                <button class="btn btn-gray" onclick="changePaymentsYear(-1)">&#9664;</button>
+                <span>Pagamentos <strong id="payments-year"></strong> <small style="color:#8899a6;">(verde = pago)</small></span>
+                <button class="btn btn-gray" onclick="changePaymentsYear(1)">&#9654;</button>
+            </div>
             <div id="students-list"></div>
         </div>
     </div>
@@ -2266,16 +2306,61 @@
         await loadStudents();
     }
 
+    // Pagamentos: students.payments = { "2026-10": true, ... }
+    var studentsData = [];
+    var paymentsYear = new Date().getFullYear();
+    var MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+    function changePaymentsYear(delta) {
+        paymentsYear += delta;
+        renderStudents();
+    }
+
+    function paymentsHtml(s) {
+        var now = new Date();
+        return '<div class="payments">' + MESES.map(function(mes, i) {
+            var key = paymentsYear + '-' + String(i + 1).padStart(2, '0');
+            var paid = !!(s.payments && s.payments[key]);
+            var isCurrent = paymentsYear === now.getFullYear() && i === now.getMonth();
+            return '<label class="pay-month' + (paid ? ' paid' : '') + (isCurrent ? ' current' : '') + '">' +
+                '<input type="checkbox"' + (paid ? ' checked' : '') + ' onchange="togglePayment(\'' + s.id + '\', \'' + key + '\', this)">' +
+                mes + '</label>';
+        }).join('') + '</div>';
+    }
+
+    async function togglePayment(id, key, checkbox) {
+        var s = studentsData.find(function(x) { return x.id === id; });
+        if (!s) return;
+        var payments = Object.assign({}, s.payments || {});
+        if (checkbox.checked) payments[key] = true; else delete payments[key];
+        checkbox.parentNode.classList.toggle('paid', checkbox.checked);
+        var r = await sb.from('students').update({ payments: payments }).eq('id', id);
+        if (r.error) {
+            checkbox.checked = !checkbox.checked;
+            checkbox.parentNode.classList.toggle('paid', checkbox.checked);
+            showErrorPopup('Erro ao salvar pagamento', r.error.message);
+            return;
+        }
+        s.payments = payments;
+    }
+
     async function loadStudents() {
         var list = document.getElementById('students-list');
         list.innerHTML = '<small>Carregando...</small>';
         var r = await sb.from('students')
-            .select('id, name, access_token, workout_updated_at')
+            .select('id, name, access_token, workout_updated_at, payments')
             .eq('trainer_id', currentTrainer.id)
             .order('name');
         if (r.error) { list.innerHTML = ''; showErrorPopup('Erro ao carregar alunos', r.error.message); return; }
-        if (r.data.length === 0) { list.innerHTML = '<small>Nenhum aluno cadastrado.</small>'; return; }
-        list.innerHTML = r.data.map(function(s) {
+        studentsData = r.data;
+        renderStudents();
+    }
+
+    function renderStudents() {
+        var list = document.getElementById('students-list');
+        document.getElementById('payments-year').textContent = paymentsYear;
+        if (studentsData.length === 0) { list.innerHTML = '<small>Nenhum aluno cadastrado.</small>'; return; }
+        list.innerHTML = studentsData.map(function(s) {
             var info = s.workout_updated_at
                 ? 'Treino importado em ' + new Date(s.workout_updated_at).toLocaleDateString('pt-BR')
                 : 'Sem treino importado';
@@ -2292,6 +2377,7 @@
                     linkBtns +
                     '<button class="btn btn-red" onclick="removeStudent(\'' + s.id + '\', \'' + nomeArg + '\')">Remover</button>' +
                 '</div>' +
+                paymentsHtml(s) +
             '</div>';
         }).join('');
         filterStudents();
