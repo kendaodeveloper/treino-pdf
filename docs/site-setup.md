@@ -98,9 +98,9 @@ Tela **sem** Deploy command (Pages):
 ### 4.1 Treinador
 - [ ] Abrir a URL > entrar com email/senha de um treinador
 - [ ] Cadastrar um aluno (so o nome)
-- [ ] **Abrir** > **Importar PDF** > escolher o PDF > **Converter**
+- [ ] **Importar treino** > **Importar PDF** > escolher o PDF > **Converter**
 - [ ] Mudar um peso e uma observacao
-- [ ] **<- Alunos** > **Abrir** de novo: peso/observacao salvos
+- [ ] **<- Alunos** > **Exibir treino**: peso/observacao salvos
 
 ### 4.2 Aluno
 - [ ] Na lista, **Copiar link** do aluno

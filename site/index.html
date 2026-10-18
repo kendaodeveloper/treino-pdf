@@ -2145,6 +2145,7 @@
         applySectionVisibility();
         applyExerciseDimming();
         applyBodyTypeDimming();
+        document.getElementById('stopwatch').style.display = 'flex';
     }
 
     // === LOGIN / TREINADOR / ALUNO ===
@@ -2163,7 +2164,7 @@
         document.getElementById('topbar').style.display = name === 'login' ? 'none' : 'flex';
         document.getElementById('trainer-view').style.display = name === 'trainer' ? 'block' : 'none';
         document.getElementById('student-view').style.display = name === 'student' ? 'block' : 'none';
-        document.getElementById('stopwatch').style.display = name === 'student' ? 'flex' : 'none';
+        document.getElementById('stopwatch').style.display = 'none'; // aparece no renderWorkoutVisual (só com treino importado)
     }
 
     async function doLogin() {
@@ -2286,7 +2287,7 @@
             return '<div class="student-item">' +
                 '<strong>' + escapeHtml(s.name) + '</strong><br><small>' + info + '</small>' +
                 '<div class="student-actions">' +
-                    '<button class="btn" onclick="openStudentById(\'' + s.id + '\')">' + (s.workout_updated_at ? 'Abrir' : 'Importar treino') + '</button>' +
+                    '<button class="btn" onclick="openStudentById(\'' + s.id + '\')">' + (s.workout_updated_at ? 'Exibir treino' : 'Importar treino') + '</button>' +
                     linkBtns +
                     '<button class="btn btn-red" onclick="removeStudent(\'' + s.id + '\', \'' + nomeArg + '\')">Remover</button>' +
                 '</div>' +
