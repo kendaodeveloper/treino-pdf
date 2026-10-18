@@ -348,6 +348,9 @@
             cursor: pointer;
             width: 100%;
         }
+        .success-popup { border-color: #2ecc71; }
+        .success-popup h3 { color: #2ecc71; }
+        .success-popup button { background: #2ecc71; }
         .exercise-dimmed td {
             color: #555 !important;
         }
@@ -713,6 +716,20 @@
         return m ? parseInt(m[1]) : null;
     }
 
+    function showSuccessPopup(title, message) {
+        var existing = document.querySelector('.error-popup-overlay');
+        if (existing) existing.remove();
+        var overlay = document.createElement('div');
+        overlay.className = 'error-popup-overlay';
+        overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+        overlay.innerHTML = '<div class="error-popup success-popup">' +
+            '<h3>' + title + '</h3>' +
+            '<p style="font-size:14px;">' + message + '</p>' +
+            '<button onclick="this.closest(\'.error-popup-overlay\').remove()">OK</button>' +
+            '</div>';
+        document.body.appendChild(overlay);
+    }
+
     function showErrorPopup(title, details) {
         var existing = document.querySelector('.error-popup-overlay');
         if (existing) existing.remove();
@@ -1020,6 +1037,10 @@
             var pdfData = new Uint8Array(arrayBuffer);
             await processarPDF(pdfData, keepNotes);
             showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
+            // Não cobre o popup de páginas com erro (importação parcial)
+            if (!document.querySelector('.error-popup-overlay')) {
+                showSuccessPopup('Treino importado!', 'O treino de ' + escapeHtml(currentStudent.name) + ' foi salvo. Use "Copiar link" na lista de alunos para enviar a ele.');
+            }
 
         } catch (err) {
             // Restaura o treino anterior da tela (que foi limpo antes de processar) se existir
