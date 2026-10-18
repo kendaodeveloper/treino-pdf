@@ -2361,7 +2361,9 @@
     }
 
     function studentLink(token) {
-        return location.origin + location.pathname + '?t=' + token;
+        // Na raiz omite a "/" (fourfit...dev?t=...); o navegador abre igual
+        var path = location.pathname === '/' ? '' : location.pathname;
+        return location.origin + path + '?t=' + token;
     }
 
     async function copyLink(token, nome) {
