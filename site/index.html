@@ -466,6 +466,16 @@
         }
         .viewing-banner .btn-link { justify-self: start; }
         .viewing-banner #banner-copy-link { justify-self: end; }
+        /* piscar suave pra indicar que sao clicaveis */
+        .viewing-banner .btn-link { animation: blink-link 1.6s ease-in-out infinite; }
+        .viewing-banner .btn-link:hover { animation: none; text-decoration: underline; }
+        @keyframes blink-link {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.35; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .viewing-banner .btn-link { animation: none; text-decoration: underline; }
+        }
         .btn-link {
             background: none;
             border: none;
@@ -564,6 +574,19 @@
         .pay-month.upcoming { background: #4a4a6a; color: #d0d0d0; }
         .pay-month.paid { background: #1b5e20; color: #fff; }
         .pay-month.current { border-color: #ffc107; }
+        /* salvando: esconde o mes e mostra um spinner no lugar */
+        .pay-month.loading { position: relative; color: transparent; pointer-events: none; }
+        .pay-month.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #8899a6;
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: pay-spin 0.7s linear infinite;
+        }
+        @keyframes pay-spin { to { transform: rotate(360deg); } }
         .btn-red:hover { background-color: #a93226; }
         .student-item small { color: #8899a6; }
     </style>
@@ -2451,20 +2474,33 @@
         }).join('') + '</div></div>';
     }
 
-    async function togglePayment(id, key, checkbox) {
+    // Saves em fila por aluno: cliques rápidos em meses diferentes não sobrescrevem um ao outro
+    var paymentQueues = {};
+
+    function togglePayment(id, key, checkbox) {
         var s = studentsData.find(function(x) { return x.id === id; });
         if (!s) return;
-        var payments = Object.assign({}, s.payments || {});
-        if (checkbox.checked) payments[key] = true; else delete payments[key];
-        checkbox.parentNode.classList.toggle('paid', checkbox.checked);
-        var r = await sb.from('students').update({ payments: payments }).eq('id', id);
-        if (r.error) {
-            checkbox.checked = !checkbox.checked;
-            checkbox.parentNode.classList.toggle('paid', checkbox.checked);
-            showErrorPopup('Erro ao salvar pagamento', r.error.message);
-            return;
-        }
-        s.payments = payments;
+        var wantPaid = checkbox.checked;
+        var label = checkbox.parentNode;
+        // Só fica verde/desmarcado depois que o banco confirmar
+        checkbox.checked = !wantPaid;
+        label.classList.add('loading');
+        paymentQueues[id] = (paymentQueues[id] || Promise.resolve()).then(async function() {
+            var payments = Object.assign({}, s.payments || {});
+            if (wantPaid) payments[key] = true; else delete payments[key];
+            var r = await sb.from('students').update({ payments: payments }).eq('id', id);
+            label.classList.remove('loading');
+            if (r.error) {
+                showErrorPopup('Erro ao salvar pagamento', r.error.message);
+                return;
+            }
+            s.payments = payments;
+            checkbox.checked = wantPaid;
+            label.classList.toggle('paid', wantPaid);
+        }).catch(function(err) {
+            label.classList.remove('loading');
+            showErrorPopup('Erro ao salvar pagamento', err && err.message ? err.message : String(err));
+        });
     }
 
     async function loadStudents() {
