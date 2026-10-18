@@ -466,9 +466,21 @@
             cursor: pointer;
             padding: 6px 4px;
         }
+        #students-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
         .student-item {
-            padding: 12px 0;
-            border-bottom: 1px solid #2a2a4a;
+            padding: 14px;
+            background: #16213e;
+            border: 1px solid #3a3a5a;
+            border-left: 5px solid #3498db;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .student-item strong:first-child {
+            font-size: 1.1em;
         }
         .student-actions {
             display: grid;
@@ -520,7 +532,6 @@
         .pay-month.paid { background: #1b5e20; color: #fff; }
         .pay-month.current { border-color: #ffc107; }
         .btn-red:hover { background-color: #a93226; }
-        .student-item:last-child { border-bottom: none; }
         .student-item small { color: #8899a6; }
     </style>
 </head>
@@ -565,11 +576,6 @@
         <div class="panel">
             <h3>Meus alunos</h3>
             <input type="search" id="search-students" class="text-input" placeholder="Buscar por nome" oninput="filterStudents()">
-            <div class="year-nav">
-                <button class="btn btn-gray" onclick="changePaymentsYear(-1)">&#9664;</button>
-                <span>Pagamentos <strong id="payments-year"></strong> <small style="color:#8899a6;">(verde = pago)</small></span>
-                <button class="btn btn-gray" onclick="changePaymentsYear(1)">&#9654;</button>
-            </div>
             <div id="students-list"></div>
         </div>
     </div>
@@ -2308,24 +2314,33 @@
 
     // Pagamentos: students.payments = { "2026-10": true, ... }
     var studentsData = [];
-    var paymentsYear = new Date().getFullYear();
+    var paymentsYears = {};  // ano exibido por aluno (default: ano atual)
     var MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
-    function changePaymentsYear(delta) {
-        paymentsYear += delta;
-        renderStudents();
+    function changePaymentsYear(id, delta) {
+        var s = studentsData.find(function(x) { return x.id === id; });
+        if (!s) return;
+        paymentsYears[id] = (paymentsYears[id] || new Date().getFullYear()) + delta;
+        document.getElementById('pay-' + id).outerHTML = paymentsHtml(s);
     }
 
     function paymentsHtml(s) {
         var now = new Date();
-        return '<div class="payments">' + MESES.map(function(mes, i) {
+        var paymentsYear = paymentsYears[s.id] || now.getFullYear();
+        return '<div id="pay-' + s.id + '">' +
+            '<div class="year-nav" style="margin-top:10px;">' +
+                '<button class="btn btn-gray" onclick="changePaymentsYear(\'' + s.id + '\', -1)">&#9664;</button>' +
+                '<span>Pagamentos <strong>' + paymentsYear + '</strong> <small style="color:#8899a6;">(verde = pago)</small></span>' +
+                '<button class="btn btn-gray" onclick="changePaymentsYear(\'' + s.id + '\', 1)">&#9654;</button>' +
+            '</div>' +
+            '<div class="payments">' + MESES.map(function(mes, i) {
             var key = paymentsYear + '-' + String(i + 1).padStart(2, '0');
             var paid = !!(s.payments && s.payments[key]);
             var isCurrent = paymentsYear === now.getFullYear() && i === now.getMonth();
             return '<label class="pay-month' + (paid ? ' paid' : '') + (isCurrent ? ' current' : '') + '">' +
                 '<input type="checkbox"' + (paid ? ' checked' : '') + ' onchange="togglePayment(\'' + s.id + '\', \'' + key + '\', this)">' +
                 mes + '</label>';
-        }).join('') + '</div>';
+        }).join('') + '</div></div>';
     }
 
     async function togglePayment(id, key, checkbox) {
@@ -2358,7 +2373,6 @@
 
     function renderStudents() {
         var list = document.getElementById('students-list');
-        document.getElementById('payments-year').textContent = paymentsYear;
         if (studentsData.length === 0) { list.innerHTML = '<small>Nenhum aluno cadastrado.</small>'; return; }
         list.innerHTML = studentsData.map(function(s) {
             var info = s.workout_updated_at
