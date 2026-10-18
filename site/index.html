@@ -457,7 +457,9 @@
             color: #ffc107;
             padding: 10px 12px;
             border-radius: 6px;
+            grid-template-columns: 1fr auto 1fr;  /* voltar | nome centralizado | espaçador */
         }
+        .viewing-banner .btn-link { justify-self: start; }
         .btn-link {
             background: none;
             border: none;
@@ -597,8 +599,9 @@
 
     <div id="student-view" style="display: none;">
     <div id="viewing-banner" class="viewing-banner" style="display: none;">
-        <span id="viewing-name"></span>
         <button class="btn-link" onclick="showTrainerHome()">&larr; Alunos</button>
+        <span id="viewing-name"></span>
+        <span></span>
     </div>
 
     <div id="section-converter" class="section-card">
@@ -2488,7 +2491,7 @@
         resetTimer();
         resetConverter();
         updateKeepNotesVisibility();
-        document.getElementById('viewing-banner').style.display = isTrainer ? 'flex' : 'none';
+        document.getElementById('viewing-banner').style.display = isTrainer ? 'grid' : 'none';
         document.getElementById('viewing-name').textContent = 'Aluno: ' + student.name;
         var converter = document.getElementById('section-converter');
         converter.style.display = isTrainer ? '' : 'none';
