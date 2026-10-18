@@ -465,6 +465,7 @@
             grid-template-columns: 1fr auto 1fr;  /* voltar | nome centralizado | espaçador */
         }
         .viewing-banner .btn-link { justify-self: start; }
+        .viewing-banner #banner-copy-link { justify-self: end; }
         .btn-link {
             background: none;
             border: none;
@@ -606,7 +607,7 @@
     <div id="viewing-banner" class="viewing-banner" style="display: none;">
         <button class="btn-link" onclick="showTrainerHome()">&larr; Alunos</button>
         <span id="viewing-name"></span>
-        <span></span>
+        <button id="banner-copy-link" class="btn-link" onclick="copyLink(currentStudent.access_token, currentStudent.name)">Copiar link</button>
     </div>
 
     <div id="section-converter" class="section-card">
@@ -1041,7 +1042,7 @@
             showStatus("Treino carregado com sucesso, selecione um novo PDF de treino para atualizar.", "ok");
             // Não cobre o popup de páginas com erro (importação parcial)
             if (!document.querySelector('.error-popup-overlay')) {
-                showSuccessPopup('Treino importado!', 'O treino foi salvo com sucesso.<br>Use a função "Copiar link" na lista de alunos para enviar o treino para o aluno.');
+                showSuccessPopup('Treino importado!', 'O treino foi salvo com sucesso.<br>Use a função "Copiar link" para enviar o treino ao aluno.');
             }
 
         } catch (err) {
@@ -1127,6 +1128,7 @@
             throw new Error('Falha ao salvar o treino: ' + upd.error.message);
         }
         currentStudent.workout = parsedTrainingData;
+        updateBannerLink();
 
         if (!keepNotes) {
             saveAnotacoes(defaultAnotacoes());
@@ -2488,6 +2490,12 @@
         await openStudent(r.data);
     }
 
+    // "Copiar link" no banner do treinador: só depois que o aluno tem treino
+    function updateBannerLink() {
+        var btn = document.getElementById('banner-copy-link');
+        btn.style.visibility = (currentStudent && currentStudent.access_token && currentStudent.workout) ? 'visible' : 'hidden';
+    }
+
     function resetConverter() {
         fileInput.value = '';
         convertBtn.disabled = true;
@@ -2517,6 +2525,7 @@
         updateKeepNotesVisibility();
         document.getElementById('viewing-banner').style.display = isTrainer ? 'grid' : 'none';
         document.getElementById('viewing-name').textContent = 'Aluno: ' + student.name;
+        updateBannerLink();
         var converter = document.getElementById('section-converter');
         converter.style.display = isTrainer ? '' : 'none';
         if (isTrainer) history.replaceState(null, '', '#aluno=' + student.id);
