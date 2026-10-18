@@ -2327,6 +2327,7 @@
         resetTimer();
         if (location.hash) history.replaceState(null, '', location.pathname);
         showView('trainer');
+        setMsg('new-msg', '');  // limpa avisos de cadastro anteriores
         await loadStudents();
     }
 
