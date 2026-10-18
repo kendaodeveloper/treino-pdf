@@ -351,6 +351,35 @@
         .success-popup { border-color: #2ecc71; }
         .success-popup h3 { color: #2ecc71; }
         .success-popup button { background: #2ecc71; }
+        .form-popup { border-color: #3498db; }
+        .form-popup h3 { color: #64b5f6; }
+        .form-popup .text-input { margin-top: 8px; }
+        .form-popup button { background: #3498db; }
+        .form-popup button.btn-cancel { background: #3a3a5a; margin-top: 8px; }
+        .form-popup button.btn-danger { background: #e74c3c; }
+        .form-popup p { font-size: 14px; margin: 0; }
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 24px;
+            transform: translate(-50%, 20px);
+            max-width: calc(100% - 32px);
+            background: #1b5e20;
+            color: #fff;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            opacity: 0;
+            transition: opacity 0.25s, transform 0.25s;
+            z-index: 10000;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translate(-50%, 0); }
+        #load-error { text-align: center; color: #aaa; margin-top: 30px; }
+        #load-error .btn { margin-top: 12px; }
+        .list-error { display: flex; flex-direction: column; align-items: center; gap: 10px; color: #aaa; }
         .exercise-dimmed td {
             color: #555 !important;
         }
@@ -587,6 +616,21 @@
             animation: pay-spin 0.7s linear infinite;
         }
         @keyframes pay-spin { to { transform: rotate(360deg); } }
+        /* botão aguardando o banco: mesmo spinner dos pagamentos */
+        .btn.btn-loading { position: relative; color: transparent; pointer-events: none; }
+        .btn.btn-loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: pay-spin 0.7s linear infinite;
+        }
         .btn-red:hover { background-color: #a93226; }
         .student-item small { color: #8899a6; }
     </style>
@@ -605,12 +649,17 @@
         <span style="text-align: left; line-height: 1.2;">Four Fit<br><span style="font-size: 0.65em; font-weight: normal; color: #aaa;">Protocolo de Treino</span></span>
     </h1>
 
+    <div id="load-error" style="display: none;">
+        <p id="load-error-msg"></p>
+        <button id="load-error-retry" class="btn">Tentar de novo</button>
+    </div>
+
     <div id="login-view" class="panel" style="display: none;">
         <h3>Acesso do treinador</h3>
         <small style="color:#8899a6;">Aluno? Use o link enviado pelo seu treinador.</small>
         <input type="email" id="login-email" class="text-input" placeholder="Email" autocomplete="username">
         <input type="password" id="login-senha" class="text-input" placeholder="Senha" autocomplete="current-password" onkeydown="if (event.key === 'Enter') doLogin()">
-        <button class="btn" onclick="doLogin()">Entrar</button>
+        <button id="login-btn" class="btn" onclick="doLogin()">Entrar</button>
         <div id="login-msg" class="form-msg"></div>
     </div>
 
@@ -628,7 +677,7 @@
         <div class="panel panel-new">
             <h3>Novo aluno</h3>
             <input type="text" id="new-name" class="text-input" placeholder="Nome" onkeydown="if (event.key === 'Enter') createStudent()">
-            <button class="btn btn-success" onclick="createStudent()">Cadastrar</button>
+            <button id="new-btn" class="btn btn-success" onclick="createStudent()">Cadastrar</button>
             <div id="new-msg" class="form-msg"></div>
         </div>
         <div class="panel panel-list">
@@ -677,6 +726,9 @@
         </div>
     </div>
 
+    <div id="offline-banner" style="display: none; background: #3d3200; color: #ffc107; padding: 12px; border-radius: 5px; margin: 10px 0; border: 1px solid #665200; font-size: 14px;">
+        Modo offline: mostrando o último treino salvo neste aparelho. Edições desativadas. Recarregue a página com internet para voltar a editar.
+    </div>
     <div id="visual-output"></div>
     </div>
 </div>
@@ -774,6 +826,39 @@
         document.body.appendChild(overlay);
     }
 
+    // Aviso que some sozinho (substitui alert de sucesso)
+    var toastTimer = null;
+    function showToast(msg) {
+        var el = document.getElementById('toast');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'toast';
+            el.className = 'toast';
+            document.body.appendChild(el);
+        }
+        el.textContent = msg;
+        el.offsetWidth;  // força reflow para a transição rodar de novo
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function() { el.classList.remove('show'); }, 3000);
+    }
+
+    // Falha ao carregar a página (rede): mensagem + "Tentar de novo"
+    function showLoadError(msg, retry) {
+        document.getElementById('load-error-msg').textContent = msg;
+        document.getElementById('load-error').style.display = 'block';
+        var btn = document.getElementById('load-error-retry');
+        btn.onclick = function() {
+            withBtnLoading(btn, async function() {
+                await retry();
+            });
+        };
+    }
+
+    function hideLoadError() {
+        document.getElementById('load-error').style.display = 'none';
+    }
+
     function showErrorPopup(title, details) {
         var existing = document.querySelector('.error-popup-overlay');
         if (existing) existing.remove();
@@ -829,8 +914,31 @@
 
     // Anotações em memória, sincronizadas com a tabela annotations (debounce)
     var anotacoesCache = null;
+    var anotacoesConfirmadas = null;  // último estado gravado com sucesso no banco (rollback em caso de erro)
     var saveTimer = null;
     var saveDirty = false;
+    var flushChain = Promise.resolve();
+    // Edições bloqueadas: aluno abriu do cache local e o banco ainda não respondeu (ou falhou = modo offline)
+    var readOnlyMode = false;
+
+    function cloneAnot(a) { return JSON.parse(JSON.stringify(a)); }
+
+    // Cache local do aluno (por token): mesmo formato do retorno de student_by_token.
+    // Só é escrito com dados confirmados pelo banco.
+    function studentCacheKey(token) { return 'fourfit-aluno-' + token; }
+    function readStudentCache(token) {
+        try {
+            var v = localStorage.getItem(studentCacheKey(token));
+            return v ? JSON.parse(v) : null;
+        } catch (e) { return null; }
+    }
+    function writeStudentCache(token, data) {
+        try { localStorage.setItem(studentCacheKey(token), JSON.stringify(data)); }
+        catch (e) { console.warn('Não foi possível salvar o treino no aparelho', e); }
+    }
+    function removeStudentCache(token) {
+        try { localStorage.removeItem(studentCacheKey(token)); } catch (e) {}
+    }
 
     function defaultAnotacoes() {
         return { semanaAtual: 1, obs: {}, pesos: {} };
@@ -842,36 +950,94 @@
     }
 
     function saveAnotacoes(anotacoes) {
+        if (readOnlyMode) return;
         anotacoesCache = anotacoes;
         saveDirty = true;
         clearTimeout(saveTimer);
-        saveTimer = setTimeout(flushAnotacoes, 600);
+        saveTimer = setTimeout(flushAnotacoes, 1500);  // espera 1,5s sem edição antes de gravar
     }
 
-    async function flushAnotacoes() {
+    // Gravações em fila: o flush do debounce e o de "esconder aba" não correm em paralelo
+    function flushAnotacoes() {
+        flushChain = flushChain.then(doFlushAnotacoes, doFlushAnotacoes);
+        return flushChain;
+    }
+
+    async function doFlushAnotacoes() {
         clearTimeout(saveTimer);
         if (!saveDirty || !currentStudent || !anotacoesCache) return;
         saveDirty = false;
-        var a = anotacoesCache;
-        var res = currentStudent.token
-            // Aluno pelo link: grava via função do banco (sem acesso direto à tabela)
-            ? await sb.rpc('save_annotations_by_token', {
-                p_token: currentStudent.token,
-                p_semana: a.semanaAtual || 1,
-                p_obs: a.obs || {},
-                p_pesos: a.pesos || {}
-            })
-            : await sb.from('annotations').upsert({
-                student_id: currentStudent.id,
-                semana_atual: a.semanaAtual || 1,
-                obs: a.obs || {},
-                pesos: a.pesos || {},
-                updated_at: new Date().toISOString()
-            });
+        var student = currentStudent;
+        var a = cloneAnot(anotacoesCache);
+        var res;
+        try {
+            res = student.token
+                // Aluno pelo link: grava via função do banco (sem acesso direto à tabela)
+                ? await sb.rpc('save_annotations_by_token', {
+                    p_token: student.token,
+                    p_semana: a.semanaAtual || 1,
+                    p_obs: a.obs || {},
+                    p_pesos: a.pesos || {}
+                })
+                : await sb.from('annotations').upsert({
+                    student_id: student.id,
+                    semana_atual: a.semanaAtual || 1,
+                    obs: a.obs || {},
+                    pesos: a.pesos || {},
+                    updated_at: new Date().toISOString()
+                });
+        } catch (e) { res = { error: e }; }
+
         if (res.error) {
-            saveDirty = true;
-            showErrorPopup('Erro ao salvar anotações', res.error.message);
+            // Não grava em lugar nenhum: volta a tela para o último estado salvo
+            if (currentStudent === student && anotacoesConfirmadas) {
+                clearTimeout(saveTimer);
+                saveDirty = false;
+                anotacoesCache = cloneAnot(anotacoesConfirmadas);
+                revertAnotacoesUI();
+            }
+            showErrorPopup('Erro ao salvar anotações', 'A alteração não foi salva e foi desfeita.\n\n' + (res.error.message || res.error));
+            return;
         }
+
+        if (currentStudent === student) anotacoesConfirmadas = a;
+        if (student.token) {
+            var c = readStudentCache(student.token);
+            if (c) {
+                c.semana_atual = a.semanaAtual || 1;
+                c.obs = a.obs || {};
+                c.pesos = a.pesos || {};
+                writeStudentCache(student.token, c);
+            }
+        }
+    }
+
+    // Recoloca na tela os valores de anotacoesCache (após rollback), sem re-renderizar o treino
+    function revertAnotacoesUI() {
+        var a = anotacoesCache;
+        visualOutput.querySelectorAll('textarea.obs-field').forEach(function(t) {
+            var m = (t.getAttribute('oninput') || '').match(/onObsChange\('([^']+)'/);
+            if (m) t.value = (a.obs && a.obs[m[1]]) || '';
+        });
+        visualOutput.querySelectorAll('select.weight-select').forEach(function(sel) {
+            var m = (sel.getAttribute('onchange') || '').match(/onWeightChange\('([^']+)','([^']+)'/);
+            if (!m) return;
+            var v = (a.pesos && a.pesos[m[1]] && a.pesos[m[1]][m[2]]) || '';
+            if (v) fillWeightSelect(sel);
+            sel.value = v;
+        });
+        var week = a.semanaAtual || 1;
+        visualOutput.querySelectorAll('input[name="semana-atual"]').forEach(function(r, i) {
+            r.checked = (i + 1) === week;
+        });
+        applyWeekUI(week, false);
+    }
+
+    // Habilita/desabilita os campos editáveis do treino conforme readOnlyMode
+    function applyEditLock() {
+        visualOutput.querySelectorAll('input[name="semana-atual"], textarea.obs-field, select.weight-select').forEach(function(el) {
+            el.disabled = readOnlyMode;
+        });
     }
 
     document.addEventListener('visibilitychange', function() {
@@ -894,6 +1060,10 @@
         var a = loadAnotacoes();
         a.semanaAtual = weekNum;
         saveAnotacoes(a);
+        applyWeekUI(weekNum, true);
+    }
+
+    function applyWeekUI(weekNum, collapse) {
         applyExerciseDimming();
         applyBodyTypeDimming();
         // Update semanas section title with current week
@@ -902,7 +1072,7 @@
             var titleSpan = semanas.querySelector('.section-header span:first-child');
             if (titleSpan) titleSpan.textContent = 'Semana Atual (' + weekNum + ')';
             // Collapse the section after selecting a week
-            if (!semanas.classList.contains('collapsed')) {
+            if (collapse && !semanas.classList.contains('collapsed')) {
                 toggleSection('section-semanas');
             }
         }
@@ -1195,12 +1365,14 @@
         var upd = await sb.from('students')
             .update({ workout: parsedTrainingData, workout_updated_at: new Date().toISOString() })
             .eq('id', currentStudent.id)
-            .select('id')
+            .select(STUDENT_LIST_COLS)
             .single();
         if (upd.error) {
             throw new Error('Falha ao salvar o treino: ' + upd.error.message);
         }
         currentStudent.workout = parsedTrainingData;
+        currentStudent.workout_updated_at = upd.data.workout_updated_at;
+        upsertStudentInList(upd.data);
         updateBannerLink();
 
         if (!keepNotes) {
@@ -2323,6 +2495,17 @@
         el.className = 'form-msg' + (type ? ' ' + type : '');
     }
 
+    // Desabilita o botão e mostra spinner enquanto fn roda (evita clique duplo / Enter repetido)
+    async function withBtnLoading(btn, fn) {
+        if (btn && btn.disabled) return;
+        if (btn) { btn.disabled = true; btn.classList.add('btn-loading'); }
+        try {
+            return await fn();
+        } finally {
+            if (btn) { btn.disabled = false; btn.classList.remove('btn-loading'); }
+        }
+    }
+
     function showView(name) {
         document.getElementById('login-view').style.display = name === 'login' ? 'flex' : 'none';
         document.getElementById('topbar').style.display = name === 'login' ? 'none' : 'flex';
@@ -2335,11 +2518,12 @@
         var email = document.getElementById('login-email').value.trim().toLowerCase();
         var senha = document.getElementById('login-senha').value;
         if (!email || !senha) { setMsg('login-msg', 'Preencha email e senha.', 'error'); return; }
-        setMsg('login-msg', 'Entrando...');
-        var r = await sb.auth.signInWithPassword({ email: email, password: senha });
-        if (r.error) { setMsg('login-msg', 'Email ou senha inválidos.', 'error'); return; }
-        setMsg('login-msg', '');
-        await onLoggedIn(r.data.user);
+        await withBtnLoading(document.getElementById('login-btn'), async function() {
+            setMsg('login-msg', '');
+            var r = await sb.auth.signInWithPassword({ email: email, password: senha });
+            if (r.error) { setMsg('login-msg', 'Email ou senha inválidos.', 'error'); return; }
+            await onLoggedIn(r.data.user);
+        });
     }
 
     async function doLogout() {
@@ -2349,12 +2533,30 @@
         location.reload();
     }
 
-    async function changePassword() {
-        var nova = prompt('Nova senha (mínimo 6 caracteres):');
-        if (!nova) return;
-        if (nova.length < 6) { alert('A senha precisa ter pelo menos 6 caracteres.'); return; }
-        var r = await sb.auth.updateUser({ password: nova });
-        alert(r.error ? 'Erro ao trocar a senha: ' + r.error.message : 'Senha alterada.');
+    function changePassword() {
+        var overlay = openFormPopup('Trocar senha',
+            '<input type="password" id="pw-new" class="text-input" placeholder="Nova senha (mínimo 6 caracteres)" autocomplete="new-password">' +
+            '<input type="password" id="pw-confirm" class="text-input" placeholder="Confirme a nova senha" autocomplete="new-password">' +
+            '<div id="pw-msg" class="form-msg" style="margin-top:8px;"></div>' +
+            '<button id="pw-save" class="btn">Salvar</button>' +
+            '<button class="btn-cancel" data-close>Cancelar</button>');
+        var btn = overlay.querySelector('#pw-save');
+        var save = function() {
+            var nova = document.getElementById('pw-new').value;
+            var conf = document.getElementById('pw-confirm').value;
+            if (nova.length < 6) { setMsg('pw-msg', 'A senha precisa ter pelo menos 6 caracteres.', 'error'); return; }
+            if (nova !== conf) { setMsg('pw-msg', 'As senhas não conferem.', 'error'); return; }
+            withBtnLoading(btn, async function() {
+                setMsg('pw-msg', '');
+                var r = await sb.auth.updateUser({ password: nova });
+                if (r.error) { setMsg('pw-msg', 'Erro ao trocar a senha: ' + r.error.message, 'error'); return; }
+                overlay.remove();
+                showToast('Senha alterada.');
+            });
+        };
+        btn.onclick = save;
+        document.getElementById('pw-confirm').onkeydown = function(e) { if (e.key === 'Enter') save(); };
+        document.getElementById('pw-new').focus();
     }
 
     async function onLoggedIn(user) {
@@ -2383,23 +2585,71 @@
     }
 
     // Aluno: acesso pelo link ?t=<token>, sem login
-    async function openByToken(token) {
-        var r = await sb.rpc('student_by_token', { p_token: token });
-        if (r.error || !r.data) { showInvalidLink(); return; }
+    // Mostra o treino do aluno a partir do formato de student_by_token (banco ou cache local)
+    async function showStudentData(token, data) {
         currentRole = 'student';
-        document.getElementById('topbar-user').textContent = 'Aluno: ' + r.data.name;
+        document.getElementById('topbar-user').textContent = 'Aluno: ' + data.name;
         document.getElementById('topbar-actions').style.display = 'none';
-        if (r.data.trainer_name) {
-            var trainerEl = document.getElementById('topbar-trainer');
-            trainerEl.textContent = 'Treinador: ' + r.data.trainer_name;
-            trainerEl.style.display = '';
-        }
+        var trainerEl = document.getElementById('topbar-trainer');
+        trainerEl.textContent = data.trainer_name ? 'Treinador: ' + data.trainer_name : '';
+        trainerEl.style.display = data.trainer_name ? '' : 'none';
         await openStudent({
             token: token,
-            name: r.data.name,
-            workout: r.data.workout,
-            annotations: { semana_atual: r.data.semana_atual, obs: r.data.obs, pesos: r.data.pesos }
+            name: data.name,
+            workout: data.workout,
+            annotations: { semana_atual: data.semana_atual, obs: data.obs, pesos: data.pesos }
         });
+    }
+
+    // Aluno: acesso pelo link ?t=<token>, sem login.
+    // Sem cache local: o banco é obrigatório. Com cache: mostra o cache na hora (sem edição),
+    // depois o banco sobrepõe tela e cache; se o banco falhar, fica em modo offline até recarregar.
+    async function openByToken(token) {
+        var cached = readStudentCache(token);
+        if (cached) {
+            readOnlyMode = true;
+            await showStudentData(token, cached);
+        }
+
+        var r;
+        try { r = await sb.rpc('student_by_token', { p_token: token }); }
+        catch (e) { r = { error: e }; }
+
+        // Erro = rede/servidor; data null = token não existe (link inválido de fato)
+        if (r.error) {
+            if (cached) { enterOfflineMode(); return; }
+            showLoadError('Não foi possível carregar seu treino. Verifique a internet e tente de novo.', function() { return openByToken(token); });
+            return;
+        }
+        hideLoadError();
+        if (!r.data) {
+            removeStudentCache(token);
+            readOnlyMode = false;
+            document.getElementById('topbar-user').textContent = '';
+            document.getElementById('topbar-trainer').style.display = 'none';
+            document.getElementById('stopwatch').style.display = 'none';
+            showInvalidLink();
+            return;
+        }
+
+        writeStudentCache(token, r.data);
+        readOnlyMode = false;
+        document.getElementById('offline-banner').style.display = 'none';
+        if (cached && JSON.stringify(cached) === JSON.stringify(r.data)) {
+            applyEditLock();  // cache já estava igual ao banco: só libera a edição
+            return;
+        }
+        await showStudentData(token, r.data);
+    }
+
+    function enterOfflineMode() {
+        readOnlyMode = true;
+        applyEditLock();
+        document.getElementById('offline-banner').style.display = 'block';
+        openFormPopup('Modo offline',
+            '<p>Não foi possível conectar. Mostrando o último treino salvo neste aparelho.</p>' +
+            '<p style="margin-top:8px;">As edições ficam desativadas até você recarregar a página com internet.</p>' +
+            '<button data-close>OK</button>');
     }
 
     function studentLink(token) {
@@ -2412,21 +2662,62 @@
         var url = studentLink(token);
         try {
             await navigator.clipboard.writeText(url);
-            alert('Link de ' + nome + ' copiado. Envie para o aluno.');
+            showToast('Link de ' + nome + ' copiado. Envie para o aluno.');
         } catch (e) {
-            prompt('Copie o link de ' + nome + ':', url);
+            // Sem acesso à área de transferência: mostra o link selecionado para copiar à mão
+            var overlay = openFormPopup('Copie o link de ' + escapeHtml(nome),
+                '<input type="text" class="text-input" readonly value="' + escapeHtml(url) + '">' +
+                '<button class="btn-cancel" data-close>Fechar</button>');
+            var input = overlay.querySelector('input');
+            input.focus();
+            input.select();
         }
     }
 
-    async function regenerateLink(id, nome) {
-        if (!confirm('Gerar um novo link para ' + nome + '? O link atual deixa de funcionar.')) return;
-        // Retorna o token gravado no banco e atualiza a lista local com ele (não depende de recarregar)
-        var r = await sb.from('students').update({ access_token: crypto.randomUUID() }).eq('id', id).select('access_token').single();
-        if (r.error) { showErrorPopup('Erro ao gerar novo link', r.error.message); return; }
-        var s = studentsData.find(function(x) { return x.id === id; });
-        if (s) s.access_token = r.data.access_token;
-        renderStudents();
-        alert('Novo link gerado. Use "Copiar link" para enviar ao aluno.');
+    // Substitui o confirm() nativo: resolve true no "confirmar", false ao cancelar/fechar
+    function confirmPopup(title, message, confirmLabel) {
+        return new Promise(function(resolve) {
+            var overlay = openFormPopup(escapeHtml(title),
+                '<p>' + escapeHtml(message) + '</p>' +
+                '<button class="btn-danger" data-confirm>' + escapeHtml(confirmLabel) + '</button>' +
+                '<button class="btn-cancel" data-close>Cancelar</button>');
+            overlay.querySelector('[data-confirm]').onclick = function() {
+                overlay.remove();
+                resolve(true);
+            };
+            // Cancelar, clique fora ou outro popup abrindo por cima: conta como não
+            new MutationObserver(function(_, obs) {
+                if (!overlay.isConnected) { obs.disconnect(); resolve(false); }
+            }).observe(document.body, { childList: true });
+        });
+    }
+
+    // Popup com formulário (mesmo visual dos popups de erro/sucesso)
+    function openFormPopup(title, bodyHtml) {
+        var existing = document.querySelector('.error-popup-overlay');
+        if (existing) existing.remove();
+        var overlay = document.createElement('div');
+        overlay.className = 'error-popup-overlay';
+        overlay.onclick = function(e) {
+            if (e.target === overlay || e.target.hasAttribute('data-close')) overlay.remove();
+        };
+        overlay.innerHTML = '<div class="error-popup form-popup"><h3>' + title + '</h3>' + bodyHtml + '</div>';
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+
+    async function regenerateLink(id, nome, btn) {
+        if (!await confirmPopup('Gerar novo link', 'Gerar um novo link para ' + nome + '? O link atual deixa de funcionar.', 'Gerar novo link')) return;
+        var ok = await withBtnLoading(btn, async function() {
+            // Retorna o token gravado no banco e atualiza a lista local com ele (não depende de recarregar)
+            var r = await sb.from('students').update({ access_token: crypto.randomUUID() }).eq('id', id).select('access_token').single();
+            if (r.error) { showErrorPopup('Erro ao gerar novo link', r.error.message); return false; }
+            var s = studentsData.find(function(x) { return x.id === id; });
+            if (s) s.access_token = r.data.access_token;
+            renderStudents();
+            return true;
+        });
+        if (ok) showToast('Novo link gerado. Use "Copiar link" para enviar ao aluno.');
     }
 
     async function showTrainerHome() {
@@ -2437,11 +2728,23 @@
         if (location.hash) history.replaceState(null, '', location.pathname);
         showView('trainer');
         setMsg('new-msg', '');  // limpa avisos de cadastro anteriores
-        await loadStudents();
+        // Lista já carregada nesta sessão: só redesenha (alterações já foram aplicadas em studentsData)
+        if (studentsLoaded) renderStudents(); else await loadStudents();
     }
 
     // Pagamentos: students.payments = { "2026-10": true, ... }
+    // Lista de alunos em memória: baixada uma vez por sessão e atualizada localmente a cada ação
+    var STUDENT_LIST_COLS = 'id, name, access_token, workout_updated_at, payments, created_at';
     var studentsData = [];
+    var studentsLoaded = false;
+
+    // Inclui (no topo, como no order by created_at desc) ou atualiza um aluno na lista em memória
+    function upsertStudentInList(row) {
+        var i = studentsData.findIndex(function(x) { return x.id === row.id; });
+        var item = {};
+        STUDENT_LIST_COLS.split(', ').forEach(function(c) { if (c in row) item[c] = row[c]; });
+        if (i >= 0) Object.assign(studentsData[i], item); else studentsData.unshift(item);
+    }
     var paymentsYears = {};  // ano exibido por aluno (default: ano atual)
     var MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -2507,11 +2810,20 @@
         var list = document.getElementById('students-list');
         list.innerHTML = '<small>Carregando...</small>';
         var r = await sb.from('students')
-            .select('id, name, access_token, workout_updated_at, payments, created_at')
+            .select(STUDENT_LIST_COLS)
             .eq('trainer_id', currentTrainer.id)
             .order('created_at', { ascending: false });
-        if (r.error) { list.innerHTML = ''; showErrorPopup('Erro ao carregar alunos', r.error.message); return; }
+        if (r.error) {
+            list.innerHTML = '<div class="list-error">' +
+                '<small>Não foi possível carregar os alunos (' + escapeHtml(r.error.message) + ').</small>' +
+                '<button class="btn" onclick="loadStudents()">Tentar de novo</button>' +
+            '</div>';
+            document.getElementById('search-empty').style.display = 'none';
+            document.getElementById('students-pager').style.display = 'none';
+            return;
+        }
         studentsData = r.data;
+        studentsLoaded = true;
         renderStudents();
     }
 
@@ -2531,7 +2843,7 @@
             // Link só faz sentido depois que o aluno tem treino importado
             var linkBtns = s.workout_updated_at
                 ? '<button class="btn btn-success" onclick="copyLink(\'' + s.access_token + '\', \'' + nomeArg + '\')">Copiar link</button>' +
-                  '<button class="btn btn-orange" onclick="regenerateLink(\'' + s.id + '\', \'' + nomeArg + '\')">Gerar novo link</button>'
+                  '<button class="btn btn-orange" onclick="regenerateLink(\'' + s.id + '\', \'' + nomeArg + '\', this)">Gerar novo link</button>'
                 : '';
             return '<div class="student-item" data-name="' + escapeHtml(normalizeName(s.name)) + '">' +
                 '<div class="student-header">' +
@@ -2542,7 +2854,7 @@
                 '<div class="student-actions">' +
                     '<button class="btn" onclick="openStudentById(\'' + s.id + '\')">' + (s.workout_updated_at ? 'Exibir treino' : 'Importar treino') + '</button>' +
                     linkBtns +
-                    '<button class="btn btn-red" onclick="removeStudent(\'' + s.id + '\', \'' + nomeArg + '\')">Remover aluno</button>' +
+                    '<button class="btn btn-red" onclick="removeStudent(\'' + s.id + '\', \'' + nomeArg + '\', this)">Remover aluno</button>' +
                 '</div>' +
                 (s.workout_updated_at ? paymentsHtml(s) : '') +
             '</div>';
@@ -2588,26 +2900,46 @@
     async function createStudent() {
         var nome = document.getElementById('new-name').value.trim();
         if (!nome) { setMsg('new-msg', 'Preencha o nome.', 'error'); return; }
-        setMsg('new-msg', 'Cadastrando...');
-        var ins = await sb.from('students').insert({ trainer_id: currentTrainer.id, name: nome });
-        if (ins.error) { setMsg('new-msg', 'Erro: ' + ins.error.message, 'error'); return; }
-        setMsg('new-msg', 'Aluno cadastrado com sucesso.', 'ok');
-        document.getElementById('new-name').value = '';
-        document.getElementById('search-students').value = '';
-        studentsPage = 1;
-        await loadStudents();
+        await withBtnLoading(document.getElementById('new-btn'), async function() {
+            setMsg('new-msg', '');
+            var ins = await sb.from('students').insert({ trainer_id: currentTrainer.id, name: nome })
+                .select(STUDENT_LIST_COLS).single();
+            if (ins.error) { setMsg('new-msg', 'Erro: ' + ins.error.message, 'error'); return; }
+            setMsg('new-msg', 'Aluno cadastrado com sucesso.', 'ok');
+            document.getElementById('new-name').value = '';
+            document.getElementById('search-students').value = '';
+            studentsPage = 1;
+            upsertStudentInList(ins.data);
+            renderStudents();
+        });
     }
 
-    async function removeStudent(id, nome) {
-        if (!confirm('Remover ' + nome + '? O treino e as anotações dele serão apagados.')) return;
-        var r = await sb.from('students').delete().eq('id', id);
-        if (r.error) { showErrorPopup('Erro ao remover aluno', r.error.message); return; }
-        await loadStudents();
+    async function removeStudent(id, nome, btn) {
+        if (!await confirmPopup('Remover aluno', 'Remover ' + nome + '? O treino e as anotações dele serão apagados.', 'Remover')) return;
+        await withBtnLoading(btn, async function() {
+            // .select confirma que a linha saiu mesmo (RLS pode bloquear sem retornar erro)
+            var r = await sb.from('students').delete().eq('id', id).select('id');
+            if (r.error) { showErrorPopup('Erro ao remover aluno', r.error.message); return; }
+            if (!r.data.length) { showErrorPopup('Erro ao remover aluno', 'O aluno não foi removido. Recarregue a página e tente de novo.'); return; }
+            studentsData = studentsData.filter(function(x) { return x.id !== id; });
+            renderStudents();
+        });
     }
 
     async function openStudentById(id) {
         var r = await sb.from('students').select('*').eq('id', id).maybeSingle();
-        if (r.error || !r.data) { await showTrainerHome(); return; }
+        if (r.error) {
+            await showTrainerHome();
+            showErrorPopup('Erro ao abrir o aluno', r.error.message);
+            return;
+        }
+        if (!r.data) {
+            studentsData = studentsData.filter(function(x) { return x.id !== id; });
+            await showTrainerHome();
+            showErrorPopup('Aluno não encontrado', 'Ele pode ter sido removido.');
+            return;
+        }
+        if (studentsLoaded) upsertStudentInList(r.data);  // aproveita a leitura para atualizar a lista
         await openStudent(r.data);
     }
 
@@ -2637,6 +2969,7 @@
         anotacoesCache = anot
             ? { semanaAtual: anot.semana_atual || 1, obs: anot.obs || {}, pesos: anot.pesos || {} }
             : defaultAnotacoes();
+        anotacoesConfirmadas = cloneAnot(anotacoesCache);
         saveDirty = false;
 
         var isTrainer = currentRole === 'trainer';
@@ -2656,6 +2989,7 @@
 
         if (student.workout) {
             renderWorkoutVisual(student.workout);
+            applyEditLock();
             if (isTrainer) showStatus("Treino carregado. Selecione um novo PDF para atualizar.", "ok");
         } else {
             visualOutput.innerHTML = isTrainer
@@ -2668,6 +3002,11 @@
     }
 
     (async function initAuth() {
+        if (!window.supabase) {
+            // Biblioteca não baixou (sem internet, CDN bloqueada ou navegador do app)
+            showLoadError('Não foi possível carregar. Verifique a internet ou abra no Safari/Chrome.', function() { location.reload(); });
+            return;
+        }
         if (!sb) {
             showErrorPopup('Configuração ausente', 'config.js não encontrado ou incompleto (SUPABASE_URL / SUPABASE_ANON_KEY).');
             return;
