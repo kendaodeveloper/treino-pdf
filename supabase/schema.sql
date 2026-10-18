@@ -106,6 +106,10 @@ begin
   if v_student_id is null then
     raise exception 'Link invalido';
   end if;
+  -- limite de tamanho (anon pode chamar direto pela API; evita encher o banco)
+  if octet_length(coalesce(p_obs, '{}')::text) + octet_length(coalesce(p_pesos, '{}')::text) > 200000 then
+    raise exception 'Anotacoes muito grandes';
+  end if;
   insert into annotations (student_id, semana_atual, obs, pesos, updated_at)
   values (v_student_id, coalesce(p_semana, 1), coalesce(p_obs, '{}'), coalesce(p_pesos, '{}'), now())
   on conflict (student_id) do update
@@ -120,6 +124,7 @@ $$;
 grant select on companies, trainers to authenticated;
 grant select, insert, update, delete on students to authenticated;
 grant select, insert, update on annotations to authenticated;
+revoke execute on function public.my_trainer_id() from public, anon;
 grant execute on function public.my_trainer_id() to authenticated;
 
 revoke execute on function public.student_by_token(uuid) from public;

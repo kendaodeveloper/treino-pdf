@@ -936,7 +936,8 @@
     }
 
     function isVideoUrl(url) {
-        return /drive\.google\.com|youtube\.com|youtu\.be|vimeo\.com|streamable\.com|loom\.com/i.test(url);
+        // Ancorado em http(s) + domínio: evita links "javascript:" que só contenham o nome do site
+        return /^https?:\/\/([a-z0-9-]+\.)*(drive\.google\.com|youtube\.com|youtu\.be|vimeo\.com|streamable\.com|loom\.com)([\/?#:]|$)/i.test(url);
     }
 
     /**
@@ -1915,7 +1916,9 @@
                 let repsArr = ['15', '12', '10', '8', '6'];
                 let cs = colspan || 3;
                 let repsCols = repsArr.map(r => {
-                    let savedVal = pesos[r] || '';
+                    // Só aceita número inteiro: o valor vem do banco e é inserido no HTML
+                    let savedVal = String(pesos[r] || '');
+                    if (!/^\d{1,3}$/.test(savedVal)) savedVal = '';
                     // Só o valor salvo é renderizado; as 500 opções entram ao tocar no select (fillWeightSelect)
                     let opts = '<option value="">-</option>';
                     if (savedVal) opts += `<option value="${savedVal}" selected>${savedVal}kg</option>`;
