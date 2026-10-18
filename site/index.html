@@ -2345,9 +2345,12 @@
 
     async function regenerateLink(id, nome) {
         if (!confirm('Gerar um novo link para ' + nome + '? O link atual deixa de funcionar.')) return;
-        var r = await sb.from('students').update({ access_token: crypto.randomUUID() }).eq('id', id);
+        // Retorna o token gravado no banco e atualiza a lista local com ele (não depende de recarregar)
+        var r = await sb.from('students').update({ access_token: crypto.randomUUID() }).eq('id', id).select('access_token').single();
         if (r.error) { showErrorPopup('Erro ao gerar novo link', r.error.message); return; }
-        await loadStudents();
+        var s = studentsData.find(function(x) { return x.id === id; });
+        if (s) s.access_token = r.data.access_token;
+        renderStudents();
         alert('Novo link gerado. Use "Copiar link" para enviar ao aluno.');
     }
 
