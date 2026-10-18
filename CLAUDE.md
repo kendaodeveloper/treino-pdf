@@ -4,7 +4,7 @@ Single-page app (index.html, ~1600 linhas) que importa PDFs de treino da consult
 
 ## Versao web com login (`site/`)
 
-`site/index.html` eh uma copia do `index.html` com Supabase: login (email/senha), painel do treinador (cadastra aluno + importa PDF por aluno) e aluno vendo o proprio treino. Treino fica em `students.workout` (jsonb) e anotacoes em `annotations` (no lugar do localStorage). Schema/seed em `supabase/`, setup em `docs/site-setup.md`. Mudancas no parser/renderer devem ser replicadas nos dois arquivos.
+`site/index.html` eh uma copia do `index.html` com Supabase: treinador com login (email/senha) e painel (cadastra aluno, importa PDF, copia/regenera link); aluno sem login, acessa por `?t=<students.access_token>` via funcoes `student_by_token`/`save_annotations_by_token` (anon nao tem acesso a tabelas). Treino fica em `students.workout` (jsonb) e anotacoes em `annotations` (no lugar do localStorage). Schema/seed em `supabase/`, setup em `docs/site-setup.md`. Mudancas no parser/renderer devem ser replicadas nos dois arquivos.
 
 ## Stack
 

@@ -1,5 +1,6 @@
--- Four Fit - schema (rodar no SQL Editor do Supabase)
--- Vinculo usuario <-> treinador/aluno eh pelo email do login (auth.jwt()->>'email').
+-- Four Fit - schema (rodar no SQL Editor do Supabase, projeto limpo)
+-- Treinador: login email/senha (Supabase Auth), vinculado pelo email (auth.jwt()->>'email').
+-- Aluno: sem login, acessa pelo link secreto (students.access_token) via funcoes *_by_token.
 
 create table companies (
   id uuid primary key default gen_random_uuid(),
@@ -19,7 +20,7 @@ create table students (
   id uuid primary key default gen_random_uuid(),
   trainer_id uuid references trainers(id) not null,
   name text not null,
-  email text not null unique,          -- sempre minusculo
+  access_token uuid not null unique default gen_random_uuid(),  -- link do aluno: ?t=<token>
   workout jsonb,                       -- JSON gerado pelo parser do PDF
   workout_updated_at timestamptz,
   created_at timestamptz default now()
@@ -53,11 +54,9 @@ create policy trainers_select_own on trainers
 create policy companies_select_own on companies
   for select using (id in (select company_id from trainers));
 
--- Aluno ve o proprio cadastro (com o treino); treinador ve/gerencia seus alunos
+-- Treinador ve/gerencia apenas seus alunos
 create policy students_select on students
-  for select using (
-    email = lower(auth.jwt()->>'email') or trainer_id = public.my_trainer_id()
-  );
+  for select using (trainer_id = public.my_trainer_id());
 
 create policy students_insert on students
   for insert with check (trainer_id = public.my_trainer_id());
@@ -69,12 +68,58 @@ create policy students_update on students
 create policy students_delete on students
   for delete using (trainer_id = public.my_trainer_id());
 
--- Anotacoes: quem enxerga o aluno (ele mesmo ou o treinador dele) le e grava
+-- Treinador le/grava anotacoes dos seus alunos
 create policy annotations_all on annotations
   for all using (student_id in (select id from students))
   with check (student_id in (select id from students));
 
+-- === Acesso do aluno pelo link (sem login) ===
+-- Unico caminho do anon: nao ha grant de tabela para anon.
+
+-- Treino + anotacoes do aluno dono do token (null se token invalido)
+create or replace function public.student_by_token(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'name', s.name,
+    'workout', s.workout,
+    'semana_atual', coalesce(a.semana_atual, 1),
+    'obs', coalesce(a.obs, '{}'::jsonb),
+    'pesos', coalesce(a.pesos, '{}'::jsonb)
+  )
+  from students s
+  left join annotations a on a.student_id = s.id
+  where s.access_token = p_token
+$$;
+
+-- Salva anotacoes do aluno dono do token
+create or replace function public.save_annotations_by_token(
+  p_token uuid, p_semana integer, p_obs jsonb, p_pesos jsonb
+) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  v_student_id uuid;
+begin
+  select id into v_student_id from students where access_token = p_token;
+  if v_student_id is null then
+    raise exception 'Link invalido';
+  end if;
+  insert into annotations (student_id, semana_atual, obs, pesos, updated_at)
+  values (v_student_id, coalesce(p_semana, 1), coalesce(p_obs, '{}'), coalesce(p_pesos, '{}'), now())
+  on conflict (student_id) do update
+    set semana_atual = excluded.semana_atual,
+        obs = excluded.obs,
+        pesos = excluded.pesos,
+        updated_at = now();
+end;
+$$;
+
+-- Grants
 grant select on companies, trainers to authenticated;
 grant select, insert, update, delete on students to authenticated;
 grant select, insert, update on annotations to authenticated;
 grant execute on function public.my_trainer_id() to authenticated;
+
+revoke execute on function public.student_by_token(uuid) from public;
+revoke execute on function public.save_annotations_by_token(uuid, integer, jsonb, jsonb) from public;
+grant execute on function public.student_by_token(uuid) to anon, authenticated;
+grant execute on function public.save_annotations_by_token(uuid, integer, jsonb, jsonb) to anon, authenticated;

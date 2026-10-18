@@ -1,19 +1,73 @@
-# Site Four Fit - Setup (Supabase + Cloudflare Pages)
+# Passo a passo - Colocar o site Four Fit no ar
 
-Codigo do site em `site/` (mesmo `index.html` de sempre + login, painel do treinador e dados no Supabase).
-SQL em `supabase/`. O `index.html` da raiz continua sendo o do GitHub Pages, sem mudanca.
+Ordem: **Supabase -> GitHub -> Cloudflare -> Teste**. Marque os `[ ]` conforme for fazendo.
 
-## 1. Supabase
+- **Treinador**: entra com email/senha.
+- **Aluno**: nao tem login. Acessa por um link secreto (`.../?t=<codigo>`) que o treinador copia no site e envia (ex: WhatsApp).
 
-1. Criar projeto.
-2. **SQL Editor**: rodar `supabase/schema.sql` e depois `supabase/seed.sql` (troque os emails dos treinadores antes).
-3. **Authentication > Sign In / Providers > Email**: desligar **Confirm email** (o treinador cria o login do aluno direto pelo site). Manter "Allow new users to sign up" ligado.
-4. **Authentication > Users > Add user**: criar um usuario para cada treinador do seed (mesmo email, marcar **Auto Confirm User**).
-5. **Project Settings > API**: copiar **Project URL** e **anon public key**.
+O que vai pro ar eh a pasta `site/`. O `index.html` da raiz (GitHub Pages) continua igual.
 
-## 2. Cloudflare Pages
+---
 
-Workers & Pages > Create > Pages > Connect to Git > este repositorio:
+## Parte 1 - Supabase (banco + login dos treinadores)
+
+### 1.1 Projeto
+- [ ] Ja tem o projeto criado. Se for recomecar do zero: **SQL Editor** > colar `supabase/reset.sql` > **Run** (apaga tabelas, funcoes e TODOS os logins)
+- [ ] Data API: **Enable Data API** ligado, **Automatically expose new tables** desligado, **Enable automatic RLS** ligado
+
+### 1.2 Criar as tabelas
+- [ ] **SQL Editor** > **New query** > colar todo o `supabase/schema.sql` > **Run**
+- [ ] Deve aparecer "Success. No rows returned"
+
+### 1.3 Cadastrar empresa e treinadores
+- [ ] Conferir nomes/emails em `supabase/seed.sql` (emails em minusculo)
+- [ ] **SQL Editor** > **New query** > colar o seed > **Run**
+- [ ] Conferir em **Table Editor > trainers**
+
+### 1.4 Configurar o login
+- [ ] **Authentication** > **Sign In / Providers** (ou **Providers**) > **Email**
+- [ ] **Allow new users to sign up**: DESLIGADO (so voce cria login, pelo painel)
+- [ ] **Confirm email**: tanto faz (os treinadores sao criados ja confirmados)
+- [ ] Salvar
+
+### 1.5 Criar o login de cada treinador
+Para **cada** treinador do seed:
+- [ ] **Authentication** > **Users** > **Add user** > **Create new user**
+- [ ] Email: **exatamente o mesmo** do seed
+- [ ] Senha inicial (o treinador troca depois em "Trocar senha" no site)
+- [ ] Marcar **Auto Confirm User** > **Create user**
+
+### 1.6 Chaves para o Cloudflare
+- [ ] **Project Settings** > **API Keys**
+- [ ] Copiar **Project URL** e a **publishable key** (`sb_publishable_...`)
+- **NAO** usar a secret key / service_role em lugar nenhum
+
+---
+
+## Parte 2 - GitHub
+
+- [ ] Commit + push na `main` com `site/`, `supabase/` e `docs/`
+- [ ] O `site/config.js` **nao** vai pro GitHub (esta no `.gitignore`); ele eh gerado no build
+
+---
+
+## Parte 3 - Cloudflare
+
+### 3.1 Criar o projeto
+- [ ] https://dash.cloudflare.com > **Workers & Pages** > **Create** > **Import a repository** > este repositorio
+
+### 3.2 Build
+Tela com **Deploy command** (Workers):
+
+| Campo | Valor |
+|-------|-------|
+| Project name | `fourfit` (igual ao `name` em `site/wrangler.jsonc`) |
+| Production branch | `main` |
+| Build command | `sh build.sh` |
+| Deploy command | `npx wrangler deploy` |
+| Path / Root directory | `site` |
+
+Tela **sem** Deploy command (Pages):
 
 | Campo | Valor |
 |-------|-------|
@@ -22,30 +76,67 @@ Workers & Pages > Create > Pages > Connect to Git > este repositorio:
 | Build command | `sh build.sh` |
 | Build output directory | `.` |
 | Root directory | `site` |
-| Variaveis de ambiente | `SUPABASE_URL`, `SUPABASE_ANON_KEY` |
 
-O `build.sh` gera o `config.js` a partir das variaveis. A URL fica `https://<projeto>.pages.dev`.
+### 3.3 Variaveis
+| Nome | Valor |
+|------|-------|
+| `SUPABASE_URL` | Project URL |
+| `SUPABASE_ANON_KEY` | publishable key |
 
-### Alternativa: fluxo de Workers (tela pede "Deploy command")
+- Workers: **Settings > Build > Variables and secrets** (variavel **de build**)
+- Pages: **Settings > Variables and Secrets**
+- [ ] Se o primeiro build falhou por falta delas: **Deployments** > **Retry deployment** (ou qualquer push na `main`)
 
-| Campo | Valor |
-|-------|-------|
-| Project name | `fourfit` (igual ao `name` do `site/wrangler.jsonc`) |
-| Build command | `sh build.sh` |
-| Deploy command | `npx wrangler deploy` |
-| Path / Root directory | `site` |
-| Build variables (Settings > Build > Variables and secrets) | `SUPABASE_URL`, `SUPABASE_ANON_KEY` |
+### 3.4 URL
+- Workers: `https://fourfit.<sua-conta>.workers.dev`
+- Pages: `https://<projeto>.pages.dev`
 
-URL: `https://fourfit.<sua-conta>.workers.dev`.
+---
 
-## 3. Uso
+## Parte 4 - Testar
 
-- **Treinador**: entra com o login criado no passo 1.4 > cadastra aluno (nome, email, senha inicial) > Abrir > importa o PDF.
-- **Aluno**: entra com o email/senha que o treinador passou. Pode trocar a senha em "Trocar senha".
+### 4.1 Treinador
+- [ ] Abrir a URL > entrar com email/senha de um treinador
+- [ ] Cadastrar um aluno (so o nome)
+- [ ] **Abrir** > **Importar PDF** > escolher o PDF > **Converter**
+- [ ] Mudar um peso e uma observacao
+- [ ] **<- Alunos** > **Abrir** de novo: peso/observacao salvos
 
-## Rodar localmente
+### 4.2 Aluno
+- [ ] Na lista, **Copiar link** do aluno
+- [ ] Abrir o link no celular (ou aba anonima): deve abrir direto o treino, sem login e sem a parte de importar PDF
+- [ ] Os pesos/obs do 4.1 aparecem; mudar um peso, recarregar a pagina: continua salvo
+- [ ] Salvar o link nos favoritos / tela inicial do celular
+
+### 4.3 Link revogado
+- [ ] No treinador: **Gerar novo link** no aluno
+- [ ] O link antigo deve mostrar "Link invalido ou expirado"
+
+---
+
+## Dia a dia
+
+- **Novo treinador**: inserir em `trainers` (Table Editor ou SQL, email minusculo) + criar o login dele (passo 1.5)
+- **Novo aluno**: treinador cadastra pelo site e envia o link (**Copiar link**)
+- **Treino novo**: treinador abre o aluno e importa o PDF de novo (desmarque "Manter anotacoes" para zerar pesos/obs)
+- **Link vazou / aluno saiu**: **Gerar novo link** (o antigo para de funcionar) ou **Remover** o aluno
+- **Treinador esqueceu a senha**: Supabase > Authentication > Users > clicar no usuario > definir nova senha
+- **Atualizar o site**: qualquer push na `main` publica sozinho
+
+## Rodar no computador (opcional)
 
 ```sh
-cp site/config.example.js site/config.js   # preencher URL e anon key
-cd site && python3 -m http.server 8000
+cp site/config.example.js site/config.js   # preencher URL e publishable key
+cd site && python3 -m http.server 8000     # abrir http://localhost:8000
 ```
+
+## Problemas comuns
+
+| Sintoma | Causa provavel |
+|---------|----------------|
+| Popup "Configuracao ausente" | Variaveis do build nao foram lidas. Conferir nome exato e se sao de **build**, refazer o deploy |
+| Build falha com "defina SUPABASE_URL" | Faltam as variaveis de build |
+| "Email ou senha invalidos" | Login do treinador nao criado (1.5) ou sem "Auto Confirm User" |
+| "Este email nao eh de um treinador cadastrado" | Email do login diferente do email no seed |
+| Link do aluno: "Link invalido ou expirado" | Link antigo (foi gerado um novo), aluno removido, ou link copiado pela metade |
+| Erro "permission denied" | `schema.sql` nao rodou inteiro; rodar `reset.sql` e depois `schema.sql` + `seed.sql` |

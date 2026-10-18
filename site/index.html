@@ -494,7 +494,8 @@
     </h1>
 
     <div id="login-view" class="panel" style="display: none;">
-        <h3>Entrar</h3>
+        <h3>Acesso do treinador</h3>
+        <small style="color:#8899a6;">Aluno? Use o link enviado pelo seu treinador.</small>
         <input type="email" id="login-email" class="text-input" placeholder="Email" autocomplete="username">
         <input type="password" id="login-senha" class="text-input" placeholder="Senha" autocomplete="current-password" onkeydown="if (event.key === 'Enter') doLogin()">
         <button class="btn" onclick="doLogin()">Entrar</button>
@@ -503,7 +504,7 @@
 
     <div id="topbar" class="topbar" style="display: none;">
         <span id="topbar-user"></span>
-        <span>
+        <span id="topbar-actions">
             <button class="btn-link" onclick="changePassword()">Trocar senha</button>
             <button class="btn-link" onclick="doLogout()">Sair</button>
         </span>
@@ -512,9 +513,7 @@
     <div id="trainer-view" style="display: none;">
         <div class="panel">
             <h3>Novo aluno</h3>
-            <input type="text" id="new-name" class="text-input" placeholder="Nome">
-            <input type="email" id="new-email" class="text-input" placeholder="Email (login do aluno)">
-            <input type="text" id="new-senha" class="text-input" placeholder="Senha inicial (mín. 6 caracteres)" autocomplete="off">
+            <input type="text" id="new-name" class="text-input" placeholder="Nome" onkeydown="if (event.key === 'Enter') createStudent()">
             <button class="btn" onclick="createStudent()">Cadastrar</button>
             <div id="new-msg" class="form-msg"></div>
         </div>
@@ -707,13 +706,21 @@
         if (!saveDirty || !currentStudent || !anotacoesCache) return;
         saveDirty = false;
         var a = anotacoesCache;
-        var res = await sb.from('annotations').upsert({
-            student_id: currentStudent.id,
-            semana_atual: a.semanaAtual || 1,
-            obs: a.obs || {},
-            pesos: a.pesos || {},
-            updated_at: new Date().toISOString()
-        });
+        var res = currentStudent.token
+            // Aluno pelo link: grava via função do banco (sem acesso direto à tabela)
+            ? await sb.rpc('save_annotations_by_token', {
+                p_token: currentStudent.token,
+                p_semana: a.semanaAtual || 1,
+                p_obs: a.obs || {},
+                p_pesos: a.pesos || {}
+            })
+            : await sb.from('annotations').upsert({
+                student_id: currentStudent.id,
+                semana_atual: a.semanaAtual || 1,
+                obs: a.obs || {},
+                pesos: a.pesos || {},
+                updated_at: new Date().toISOString()
+            });
         if (res.error) {
             saveDirty = true;
             showErrorPopup('Erro ao salvar anotações', res.error.message);
@@ -2189,18 +2196,52 @@
             return;
         }
 
-        var s = await sb.from('students').select('*').eq('email', email).maybeSingle();
-        if (s.error) { showErrorPopup('Erro ao carregar o cadastro', s.error.message); return; }
-        if (s.data) {
-            currentRole = 'student';
-            document.getElementById('topbar-user').textContent = s.data.name;
-            await openStudent(s.data);
-            return;
-        }
-
         await sb.auth.signOut();
         showView('login');
-        setMsg('login-msg', 'Este email não está cadastrado. Fale com seu treinador.', 'error');
+        setMsg('login-msg', 'Este email não é de um treinador cadastrado.', 'error');
+    }
+
+    function showInvalidLink() {
+        document.getElementById('student-view').style.display = 'block';
+        document.getElementById('section-converter').style.display = 'none';
+        visualOutput.innerHTML = '<p style="text-align:center; color:#aaa; margin-top:30px;">Link inválido ou expirado. Peça um novo link ao seu treinador.</p>';
+    }
+
+    // Aluno: acesso pelo link ?t=<token>, sem login
+    async function openByToken(token) {
+        var r = await sb.rpc('student_by_token', { p_token: token });
+        if (r.error || !r.data) { showInvalidLink(); return; }
+        currentRole = 'student';
+        document.getElementById('topbar-user').textContent = r.data.name;
+        document.getElementById('topbar-actions').style.display = 'none';
+        await openStudent({
+            token: token,
+            name: r.data.name,
+            workout: r.data.workout,
+            annotations: { semana_atual: r.data.semana_atual, obs: r.data.obs, pesos: r.data.pesos }
+        });
+    }
+
+    function studentLink(token) {
+        return location.origin + location.pathname + '?t=' + token;
+    }
+
+    async function copyLink(token, nome) {
+        var url = studentLink(token);
+        try {
+            await navigator.clipboard.writeText(url);
+            alert('Link de ' + nome + ' copiado. Envie para o aluno.');
+        } catch (e) {
+            prompt('Copie o link de ' + nome + ':', url);
+        }
+    }
+
+    async function regenerateLink(id, nome) {
+        if (!confirm('Gerar um novo link para ' + nome + '? O link atual deixa de funcionar.')) return;
+        var r = await sb.from('students').update({ access_token: crypto.randomUUID() }).eq('id', id);
+        if (r.error) { showErrorPopup('Erro ao gerar novo link', r.error.message); return; }
+        await loadStudents();
+        alert('Novo link gerado. Use "Copiar link" para enviar ao aluno.');
     }
 
     async function showTrainerHome() {
@@ -2217,7 +2258,7 @@
         var list = document.getElementById('students-list');
         list.innerHTML = '<small>Carregando...</small>';
         var r = await sb.from('students')
-            .select('id, name, email, workout_updated_at')
+            .select('id, name, access_token, workout_updated_at')
             .eq('trainer_id', currentTrainer.id)
             .order('name');
         if (r.error) { list.innerHTML = ''; showErrorPopup('Erro ao carregar alunos', r.error.message); return; }
@@ -2226,11 +2267,14 @@
             var info = s.workout_updated_at
                 ? 'Treino importado em ' + new Date(s.workout_updated_at).toLocaleDateString('pt-BR')
                 : 'Sem treino importado';
+            var nomeArg = escapeHtml(s.name).replace(/'/g, '');
             return '<div class="student-item">' +
-                '<div><strong>' + escapeHtml(s.name) + '</strong><br><small>' + escapeHtml(s.email) + '</small><br><small>' + info + '</small></div>' +
+                '<div><strong>' + escapeHtml(s.name) + '</strong><br><small>' + info + '</small></div>' +
                 '<div style="display:flex; flex-direction:column; align-items:flex-end;">' +
                     '<button class="btn" onclick="openStudentById(\'' + s.id + '\')">Abrir</button>' +
-                    '<button class="btn-link btn-danger" onclick="removeStudent(\'' + s.id + '\', \'' + escapeHtml(s.name).replace(/'/g, '') + '\')">Remover</button>' +
+                    '<button class="btn-link" onclick="copyLink(\'' + s.access_token + '\', \'' + nomeArg + '\')">Copiar link</button>' +
+                    '<button class="btn-link" onclick="regenerateLink(\'' + s.id + '\', \'' + nomeArg + '\')">Gerar novo link</button>' +
+                    '<button class="btn-link btn-danger" onclick="removeStudent(\'' + s.id + '\', \'' + nomeArg + '\')">Remover</button>' +
                 '</div>' +
             '</div>';
         }).join('');
@@ -2238,31 +2282,12 @@
 
     async function createStudent() {
         var nome = document.getElementById('new-name').value.trim();
-        var email = document.getElementById('new-email').value.trim().toLowerCase();
-        var senha = document.getElementById('new-senha').value;
-        if (!nome || !email || !senha) { setMsg('new-msg', 'Preencha nome, email e senha.', 'error'); return; }
-        if (senha.length < 6) { setMsg('new-msg', 'A senha precisa ter pelo menos 6 caracteres.', 'error'); return; }
+        if (!nome) { setMsg('new-msg', 'Preencha o nome.', 'error'); return; }
         setMsg('new-msg', 'Cadastrando...');
-
-        // Cria o login do aluno num client separado (não troca a sessão do treinador)
-        var tmp = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
-            auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'fourfit-signup' }
-        });
-        var su = await tmp.auth.signUp({ email: email, password: senha });
-        var jaTinhaConta = su.error && /already|registered|exists/i.test(su.error.message);
-        if (su.error && !jaTinhaConta) { setMsg('new-msg', 'Erro ao criar o login: ' + su.error.message, 'error'); return; }
-
-        var ins = await sb.from('students').insert({ trainer_id: currentTrainer.id, name: nome, email: email });
-        if (ins.error) {
-            setMsg('new-msg', ins.error.code === '23505' ? 'Já existe um aluno com esse email.' : 'Erro: ' + ins.error.message, 'error');
-            return;
-        }
-        setMsg('new-msg', jaTinhaConta
-            ? 'Aluno cadastrado. Esse email já tinha login, a senha dele foi mantida.'
-            : 'Aluno cadastrado. Envie o email e a senha para ele acessar o site.', 'ok');
+        var ins = await sb.from('students').insert({ trainer_id: currentTrainer.id, name: nome });
+        if (ins.error) { setMsg('new-msg', 'Erro: ' + ins.error.message, 'error'); return; }
+        setMsg('new-msg', 'Aluno cadastrado. Clique em "Abrir" para importar o PDF e em "Copiar link" para enviar ao aluno.', 'ok');
         document.getElementById('new-name').value = '';
-        document.getElementById('new-email').value = '';
-        document.getElementById('new-senha').value = '';
         await loadStudents();
     }
 
@@ -2290,10 +2315,14 @@
 
     async function openStudent(student) {
         currentStudent = student;
-        var a = await sb.from('annotations').select('*').eq('student_id', student.id).maybeSingle();
-        if (a.error) { showErrorPopup('Erro ao carregar anotações', a.error.message); }
-        anotacoesCache = a.data
-            ? { semanaAtual: a.data.semana_atual || 1, obs: a.data.obs || {}, pesos: a.data.pesos || {} }
+        var anot = student.annotations;  // já vem preenchido no acesso pelo link
+        if (!anot) {
+            var a = await sb.from('annotations').select('*').eq('student_id', student.id).maybeSingle();
+            if (a.error) { showErrorPopup('Erro ao carregar anotações', a.error.message); }
+            anot = a.data;
+        }
+        anotacoesCache = anot
+            ? { semanaAtual: anot.semana_atual || 1, obs: anot.obs || {}, pesos: anot.pesos || {} }
             : defaultAnotacoes();
         saveDirty = false;
 
@@ -2324,6 +2353,15 @@
     (async function initAuth() {
         if (!sb) {
             showErrorPopup('Configuração ausente', 'config.js não encontrado ou incompleto (SUPABASE_URL / SUPABASE_ANON_KEY).');
+            return;
+        }
+        var token = new URLSearchParams(location.search).get('t');
+        if (token) {
+            if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) {
+                await openByToken(token);
+            } else {
+                showInvalidLink();
+            }
             return;
         }
         var r = await sb.auth.getSession();
