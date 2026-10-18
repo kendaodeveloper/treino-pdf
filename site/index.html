@@ -508,6 +508,7 @@
         }
         .btn-gray { background-color: #3a3a5a; }
         .btn-gray:hover { background-color: #4a4a6a; }
+        #students-pager .btn:disabled { opacity: 0.35; cursor: default; }
         .btn-red { background-color: #c0392b; }
         .btn-orange { background-color: #e67e22; color: #fff; }
         .btn-orange:hover { background-color: #ca6f1e; }
@@ -602,9 +603,9 @@
             <div id="students-list"></div>
             <small id="search-empty" style="display: none; color: #8899a6; text-align: center;">Nenhum aluno encontrado.</small>
             <div id="students-pager" class="year-nav" style="display: none;">
-                <button class="btn btn-gray" onclick="changeStudentsPage(-1)">&#9664;</button>
+                <button id="students-prev" class="btn btn-gray" onclick="changeStudentsPage(-1)">&#9664;</button>
                 <span id="students-page-info"></span>
-                <button class="btn btn-gray" onclick="changeStudentsPage(1)">&#9654;</button>
+                <button id="students-next" class="btn btn-gray" onclick="changeStudentsPage(1)">&#9654;</button>
             </div>
         </div>
     </div>
@@ -2464,7 +2465,7 @@
 
     // Filtro local por nome (ignora maiúsculas e acentos)
     // Paginação local (sobre o resultado da busca)
-    var STUDENTS_PAGE_SIZE = 3;
+    var STUDENTS_PAGE_SIZE = 25;
     var studentsPage = 1;
 
     function changeStudentsPage(delta) {
@@ -2487,8 +2488,10 @@
         matches.slice(start, start + STUDENTS_PAGE_SIZE).forEach(function(item) { item.style.display = ''; });
 
         document.getElementById('search-empty').style.display = (items.length > 0 && matches.length === 0) ? 'block' : 'none';
-        document.getElementById('students-pager').style.display = totalPages > 1 ? 'flex' : 'none';
+        document.getElementById('students-pager').style.display = matches.length > 0 ? 'flex' : 'none';
         document.getElementById('students-page-info').textContent = 'Página ' + studentsPage + ' de ' + totalPages;
+        document.getElementById('students-prev').disabled = studentsPage <= 1;
+        document.getElementById('students-next').disabled = studentsPage >= totalPages;
     }
 
     async function createStudent() {
