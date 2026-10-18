@@ -535,6 +535,7 @@
             -webkit-user-select: none;
         }
         .pay-month input { display: none; }
+        .pay-month.upcoming { background: #4a4a6a; color: #d0d0d0; }
         .pay-month.paid { background: #1b5e20; color: #fff; }
         .pay-month.current { border-color: #ffc107; }
         .btn-red:hover { background-color: #a93226; }
@@ -2343,7 +2344,10 @@
             var key = paymentsYear + '-' + String(i + 1).padStart(2, '0');
             var paid = !!(s.payments && s.payments[key]);
             var isCurrent = paymentsYear === now.getFullYear() && i === now.getMonth();
-            return '<label class="pay-month' + (paid ? ' paid' : '') + (isCurrent ? ' current' : '') + '">' +
+            // Mês atual em diante: cinza mais claro (ainda não venceu / a informar)
+            var currentKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+            var upcoming = key >= currentKey;
+            return '<label class="pay-month' + (paid ? ' paid' : '') + (upcoming ? ' upcoming' : '') + (isCurrent ? ' current' : '') + '">' +
                 '<input type="checkbox"' + (paid ? ' checked' : '') + ' onchange="togglePayment(\'' + s.id + '\', \'' + key + '\', this)">' +
                 mes + '</label>';
         }).join('') + '</div></div>';
