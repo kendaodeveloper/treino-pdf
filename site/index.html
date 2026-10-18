@@ -479,8 +479,19 @@
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
-        .student-item strong:first-child {
+        .student-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 4px 10px;
+        }
+        .student-header strong {
             font-size: 1.1em;
+        }
+        .student-header small {
+            margin-left: auto;
+            text-align: right;
         }
         .student-actions {
             display: grid;
@@ -496,6 +507,8 @@
         .btn-gray { background-color: #3a3a5a; }
         .btn-gray:hover { background-color: #4a4a6a; }
         .btn-red { background-color: #c0392b; }
+        .btn-yellow { background-color: #f1c40f; color: #1a1a2e; }
+        .btn-yellow:hover { background-color: #d4ac0d; }
         .year-nav {
             display: flex;
             align-items: center;
@@ -2375,7 +2388,7 @@
         var r = await sb.from('students')
             .select('id, name, access_token, workout_updated_at, payments')
             .eq('trainer_id', currentTrainer.id)
-            .order('name');
+            .order('created_at', { ascending: false });
         if (r.error) { list.innerHTML = ''; showErrorPopup('Erro ao carregar alunos', r.error.message); return; }
         studentsData = r.data;
         renderStudents();
@@ -2386,22 +2399,22 @@
         if (studentsData.length === 0) { list.innerHTML = '<small>Nenhum aluno cadastrado.</small>'; return; }
         list.innerHTML = studentsData.map(function(s) {
             var info = s.workout_updated_at
-                ? 'Treino importado em ' + new Date(s.workout_updated_at).toLocaleDateString('pt-BR')
+                ? 'Treino importado em ' + new Date(s.workout_updated_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', ' às')
                 : 'Sem treino importado';
             var nomeArg = escapeHtml(s.name).replace(/'/g, '');
             // Link só faz sentido depois que o aluno tem treino importado
             var linkBtns = s.workout_updated_at
                 ? '<button class="btn btn-success" onclick="copyLink(\'' + s.access_token + '\', \'' + nomeArg + '\')">Copiar link</button>' +
-                  '<button class="btn btn-gray" onclick="regenerateLink(\'' + s.id + '\', \'' + nomeArg + '\')">Gerar novo link</button>'
+                  '<button class="btn btn-yellow" onclick="regenerateLink(\'' + s.id + '\', \'' + nomeArg + '\')">Gerar novo link</button>'
                 : '';
             return '<div class="student-item" data-name="' + escapeHtml(normalizeName(s.name)) + '">' +
-                '<strong>' + escapeHtml(s.name) + '</strong><br><small>' + info + '</small>' +
+                '<div class="student-header"><strong>' + escapeHtml(s.name) + '</strong><small>' + info + '</small></div>' +
                 '<div class="student-actions">' +
                     '<button class="btn" onclick="openStudentById(\'' + s.id + '\')">' + (s.workout_updated_at ? 'Exibir treino' : 'Importar treino') + '</button>' +
                     linkBtns +
-                    '<button class="btn btn-red" onclick="removeStudent(\'' + s.id + '\', \'' + nomeArg + '\')">Remover</button>' +
+                    '<button class="btn btn-red" onclick="removeStudent(\'' + s.id + '\', \'' + nomeArg + '\')">Remover aluno</button>' +
                 '</div>' +
-                paymentsHtml(s) +
+                (s.workout_updated_at ? paymentsHtml(s) : '') +
             '</div>';
         }).join('');
         filterStudents();
