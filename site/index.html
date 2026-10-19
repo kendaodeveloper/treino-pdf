@@ -484,8 +484,18 @@
             display: grid;
             grid-template-columns: 120px 1fr auto;
             gap: 8px;
+        }
+        /* subtítulos da agenda (Horários / Novo horário) com traço separando as partes */
+        .agenda-subtitle {
+            margin: 4px 0 0;
             padding-top: 12px;
             border-top: 1px solid #4d3f6e;
+            color: #b7a6d9;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            text-align: center;
         }
         .agenda-form .btn { padding: 0 18px; }
         .agenda-form > * { min-width: 0; }
@@ -522,6 +532,7 @@
         .panel h3 {
             margin: 0 0 4px;
             font-size: 1.05em;
+            text-align: center;
         }
         .text-input {
             width: 100%;
@@ -718,7 +729,7 @@
 
     <div id="login-view" class="panel" style="display: none;">
         <h3>Acesso do treinador</h3>
-        <small style="color:#8899a6;">Aluno? Use o link enviado pelo seu treinador.</small>
+        <small style="color:#8899a6; text-align: center;">Aluno? Use o link enviado pelo seu treinador.</small>
         <input type="email" id="login-email" class="text-input" placeholder="Email" autocomplete="username">
         <input type="password" id="login-senha" class="text-input" placeholder="Senha" autocomplete="current-password" onkeydown="if (event.key === 'Enter') doLogin()">
         <button id="login-btn" class="btn" onclick="doLogin()">Entrar</button>
@@ -746,7 +757,9 @@
                 </div>
                 <button class="btn btn-ghost" onclick="changeAgendaDay(1)">&#9654;</button>
             </div>
+            <h4 class="agenda-subtitle">Horários</h4>
             <div id="agenda-list"></div>
+            <h4 class="agenda-subtitle">Novo horário</h4>
             <div class="agenda-form">
                 <input type="time" id="agenda-time" class="text-input">
                 <select id="agenda-student" class="text-input"></select>
