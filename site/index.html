@@ -506,6 +506,16 @@
             letter-spacing: 0.06em;
             text-align: center;
         }
+        .agenda-subtitle:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+        /* seta própria no select: a nativa fica colada na borda direita */
+        .panel-agenda select.text-input {
+            appearance: none;
+            -webkit-appearance: none;
+            padding-right: 40px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23b7a6d9' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+        }
         .agenda-form .btn { padding: 0 18px; }
         .agenda-form > * { min-width: 0; }
         @media (max-width: 520px) {
@@ -762,6 +772,7 @@
                 <span class="chevron">❯</span>
             </div>
             <div class="section-body home-body panel-agenda">
+                <h4 class="agenda-subtitle">Filtrar data</h4>
                 <div class="agenda-nav">
                     <button class="btn btn-ghost" onclick="changeAgendaDay(-1)">&#9664;</button>
                     <div class="agenda-nav-day">
@@ -2924,7 +2935,7 @@
 
     function renderAgenda() {
         var list = document.getElementById('agenda-list');
-        if (agendaData.length === 0) { list.innerHTML = '<small>Nenhum horário marcado.</small>'; return; }
+        if (agendaData.length === 0) { list.innerHTML = '<small>Nenhum horário marcado para essa data.</small>'; return; }
         list.innerHTML = agendaData.map(function(a) {
             var s = studentsData.find(function(x) { return x.id === a.student_id; });
             var hora = new Date(a.starts_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
