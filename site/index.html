@@ -455,8 +455,6 @@
             flex-direction: column;
             gap: 10px;
         }
-        .panel-new { background: #1d3a34; }   /* cadastrar aluno: verde escuro */
-        .panel-list { background: #252f55; }  /* meus alunos: azul um pouco mais claro */
         /* painel do treinador: seções Agendamentos / Alunos (abre e fecha como os treinos) */
         .home-body {
             display: flex;
@@ -467,6 +465,9 @@
         }
         .home-body > .panel { margin-top: 0; }
         .panel-agenda { background: #352a4f; } /* agenda: roxo escuro */
+        .panel-alunos { background: #252f55; } /* alunos: azul, mesmo molde da agenda */
+        .panel-alunos .text-input { background: rgba(0, 0, 0, 0.18); border-color: #3d4c85; }
+        .panel-alunos .agenda-subtitle { border-top-color: #3d4c85; color: #a9b8e8; }
         /* botões e campos da agenda: fundo do painel + borda roxa */
         .panel-agenda .text-input {
             background: rgba(0, 0, 0, 0.18);
@@ -479,6 +480,8 @@
             color: #d9c8f5;
         }
         .btn-ghost:hover { background: rgba(155, 89, 182, 0.18); }
+        .btn-purple { background: #8e44ad; color: #fff; }  /* ação principal da agenda */
+        .btn-purple:hover { background: #7d3c98; }
         .agenda-nav {
             display: grid;
             grid-template-columns: 44px 1fr 44px;
@@ -787,7 +790,7 @@
                 <div class="agenda-form">
                     <input type="time" id="agenda-time" class="text-input">
                     <select id="agenda-student" class="text-input"></select>
-                    <button id="agenda-btn" class="btn btn-ghost" onclick="addAppointment()">Agendar</button>
+                    <button id="agenda-btn" class="btn btn-purple" onclick="addAppointment()">Agendar</button>
                 </div>
                 <div id="agenda-msg" class="form-msg"></div>
             </div>
@@ -797,23 +800,19 @@
                 <span>Alunos</span>
                 <span class="chevron">❯</span>
             </div>
-            <div class="section-body home-body">
-                <div class="panel panel-new">
-                    <h3>Novo aluno</h3>
-                    <input type="text" id="new-name" class="text-input" placeholder="Nome" onkeydown="if (event.key === 'Enter') createStudent()">
-                    <button id="new-btn" class="btn btn-success" onclick="createStudent()">Cadastrar</button>
-                    <div id="new-msg" class="form-msg"></div>
-                </div>
-                <div class="panel panel-list">
-                    <h3>Meus alunos</h3>
-                    <input type="search" id="search-students" class="text-input" placeholder="Buscar por nome" oninput="studentsPage = 1; filterStudents()">
-                    <div id="students-list"></div>
-                    <small id="search-empty" style="display: none; color: #8899a6; text-align: center;">Nenhum aluno encontrado.</small>
-                    <div id="students-pager" class="year-nav" style="display: none;">
-                        <button id="students-prev" class="btn btn-gray" onclick="changeStudentsPage(-1)">&#9664;</button>
-                        <span id="students-page-info"></span>
-                        <button id="students-next" class="btn btn-gray" onclick="changeStudentsPage(1)">&#9654;</button>
-                    </div>
+            <div class="section-body home-body panel-alunos">
+                <h4 class="agenda-subtitle">Novo aluno</h4>
+                <input type="text" id="new-name" class="text-input" placeholder="Nome" onkeydown="if (event.key === 'Enter') createStudent()">
+                <button id="new-btn" class="btn btn-success" onclick="createStudent()">Cadastrar</button>
+                <div id="new-msg" class="form-msg"></div>
+                <h4 id="students-title" class="agenda-subtitle">Meus alunos</h4>
+                <input type="search" id="search-students" class="text-input" placeholder="Buscar por nome" oninput="studentsPage = 1; filterStudents()">
+                <div id="students-list"></div>
+                <small id="search-empty" style="display: none; color: #8899a6; text-align: center;">Nenhum aluno encontrado.</small>
+                <div id="students-pager" class="year-nav" style="display: none;">
+                    <button id="students-prev" class="btn btn-gray" onclick="changeStudentsPage(-1)">&#9664;</button>
+                    <span id="students-page-info"></span>
+                    <button id="students-next" class="btn btn-gray" onclick="changeStudentsPage(1)">&#9654;</button>
                 </div>
             </div>
         </div>
@@ -3133,7 +3132,7 @@
     function changeStudentsPage(delta) {
         studentsPage += delta;
         filterStudents();
-        document.querySelector('.panel-list').scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('students-title').scrollIntoView({ behavior: 'smooth' });
     }
 
     function filterStudents() {
