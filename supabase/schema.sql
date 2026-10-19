@@ -35,8 +35,20 @@ create table annotations (
   updated_at timestamptz default now()
 );
 
+-- Agenda do treinador: um horario marcado com um aluno (sem recorrencia)
+create table appointments (
+  id uuid primary key default gen_random_uuid(),
+  trainer_id uuid references trainers(id) not null,
+  student_id uuid references students(id) on delete cascade not null,
+  starts_at timestamptz not null,
+  note text,
+  created_at timestamptz default now()
+);
+
 -- lista do treinador: filtra por treinador e ordena por cadastro (mais recentes primeiro)
 create index idx_students_trainer_created on students (trainer_id, created_at desc);
+-- agenda: horarios do treinador por dia
+create index idx_appointments_trainer_starts on appointments (trainer_id, starts_at);
 
 -- id do treinador logado (security definer evita recursao de RLS)
 create or replace function public.my_trainer_id() returns uuid
@@ -48,6 +60,7 @@ alter table companies enable row level security;
 alter table trainers enable row level security;
 alter table students enable row level security;
 alter table annotations enable row level security;
+alter table appointments enable row level security;
 
 -- Treinador ve o proprio cadastro e a propria empresa
 create policy trainers_select_own on trainers
@@ -75,6 +88,11 @@ create policy students_delete on students
 create policy annotations_all on annotations
   for all using (student_id in (select id from students))
   with check (student_id in (select id from students));
+
+-- Treinador gerencia a propria agenda (so com alunos dele)
+create policy appointments_all on appointments
+  for all using (trainer_id = (select public.my_trainer_id()))
+  with check (trainer_id = (select public.my_trainer_id()) and student_id in (select id from students));
 
 -- === Acesso do aluno pelo link (sem login) ===
 -- Unico caminho do anon: nao ha grant de tabela para anon.
@@ -126,6 +144,7 @@ $$;
 grant select on companies, trainers to authenticated;
 grant select, insert, update, delete on students to authenticated;
 grant select, insert, update on annotations to authenticated;
+grant select, insert, delete on appointments to authenticated;
 revoke execute on function public.my_trainer_id() from public, anon;
 grant execute on function public.my_trainer_id() to authenticated;
 

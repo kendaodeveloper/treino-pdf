@@ -11,6 +11,7 @@ Single-page app (index.html, ~2000 linhas) que importa PDFs de treino da consult
 - Cache do aluno: `localStorage['fourfit-aluno-<token>']` (formato do retorno de `student_by_token`), escrito so com dados confirmados pelo banco. Sem cache: banco obrigatorio. Com cache: renderiza na hora com edicao bloqueada (`readOnlyMode`), banco sobrepoe tela e cache; se o banco falhar, modo offline (banner + popup, edicao bloqueada ate recarregar com sucesso). Token invalido remove o cache
 - `student_by_token` retorna tambem `trainer_name` (exibido no topo para o aluno)
 - Painel do treinador: busca por nome (ignora acentos) e paginacao local (25 por pagina), "Trocar senha", "Gerar novo link" (novo `access_token`), "Remover aluno", e pagamentos por mes em `students.payments` (`{ "2026-10": true }`). Copiar/gerar link e pagamentos so aparecem depois que o aluno tem treino importado
+- Agenda no topo do painel do treinador: tabela `appointments` (trainer_id, student_id, starts_at, note; sem recorrencia, `on delete cascade` do aluno). Navega por dia (◀ data ▶, fuso do navegador), agenda (horario + aluno + obs) e desmarca
 - Deploy: Cloudflare (Workers ou Pages, raiz `site/`). `site/build.sh` gera `site/config.js` a partir de `SUPABASE_URL`/`SUPABASE_ANON_KEY` (publishable key); `config.js` fica no `.gitignore` (local: copiar `config.example.js`)
 
 ## Stack

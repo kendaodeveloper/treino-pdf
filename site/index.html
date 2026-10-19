@@ -457,6 +457,31 @@
         }
         .panel-new { background: #1d3a34; }   /* cadastrar aluno: verde escuro */
         .panel-list { background: #252f55; }  /* meus alunos: azul um pouco mais claro */
+        .panel-agenda { background: #352a4f; } /* agenda: roxo escuro */
+        .agenda-form {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 8px;
+        }
+        .agenda-form .text-input:nth-child(3), .agenda-form .btn { grid-column: 1 / -1; }
+        #agenda-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .agenda-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 10px;
+            background: #16213e;
+            border: 1px solid #3a3a5a;
+            border-left: 5px solid #9b59b6;
+            border-radius: 6px;
+        }
+        .agenda-item > span { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .agenda-item small { color: #8899a6; overflow-wrap: anywhere; }
+        .agenda-item .btn { min-width: 44px; min-height: 44px; padding: 0; }
         .panel h3 {
             margin: 0 0 4px;
             font-size: 1.05em;
@@ -674,6 +699,22 @@
     </div>
 
     <div id="trainer-view" style="display: none;">
+        <div class="panel panel-agenda">
+            <h3>Agenda</h3>
+            <div class="year-nav">
+                <button class="btn btn-gray" onclick="changeAgendaDay(-1)">&#9664;</button>
+                <input type="date" id="agenda-day" class="text-input" style="width: auto;" onchange="setAgendaDay(this.value)">
+                <button class="btn btn-gray" onclick="changeAgendaDay(1)">&#9654;</button>
+            </div>
+            <div id="agenda-list"></div>
+            <div class="agenda-form">
+                <input type="time" id="agenda-time" class="text-input">
+                <select id="agenda-student" class="text-input"></select>
+                <input type="text" id="agenda-note" class="text-input" placeholder="Observação (opcional)" onkeydown="if (event.key === 'Enter') addAppointment()">
+                <button id="agenda-btn" class="btn btn-success" onclick="addAppointment()">Agendar</button>
+            </div>
+            <div id="agenda-msg" class="form-msg"></div>
+        </div>
         <div class="panel panel-new">
             <h3>Novo aluno</h3>
             <input type="text" id="new-name" class="text-input" placeholder="Nome" onkeydown="if (event.key === 'Enter') createStudent()">
@@ -2755,8 +2796,114 @@
         if (location.hash) history.replaceState(null, '', location.pathname);
         showView('trainer');
         setMsg('new-msg', '');  // limpa avisos de cadastro anteriores
+        setMsg('agenda-msg', '');
         // Lista já carregada nesta sessão: só redesenha (alterações já foram aplicadas em studentsData)
         if (studentsLoaded) renderStudents(); else await loadStudents();
+        await loadAgenda();
+    }
+
+    // Agenda: appointments = horários do treinador com alunos (dia no fuso do navegador)
+    function dateKey(d) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    var agendaDay = dateKey(new Date());
+    var agendaData = [];
+
+    function setAgendaDay(day) {
+        agendaDay = day || dateKey(new Date());
+        loadAgenda();
+    }
+
+    function changeAgendaDay(delta) {
+        var d = new Date(agendaDay + 'T00:00');
+        d.setDate(d.getDate() + delta);
+        setAgendaDay(dateKey(d));
+    }
+
+    async function loadAgenda() {
+        var list = document.getElementById('agenda-list');
+        var day = agendaDay;
+        document.getElementById('agenda-day').value = day;
+        list.innerHTML = '<small>Carregando...</small>';
+        var start = new Date(day + 'T00:00');
+        var end = new Date(start);
+        end.setDate(end.getDate() + 1);
+        var r = await sb.from('appointments')
+            .select('id, student_id, starts_at, note')
+            .eq('trainer_id', currentTrainer.id)
+            .gte('starts_at', start.toISOString())
+            .lt('starts_at', end.toISOString())
+            .order('starts_at');
+        if (day !== agendaDay) return;  // trocou de dia enquanto carregava
+        if (r.error) {
+            list.innerHTML = '<div class="list-error">' +
+                '<small>Não foi possível carregar a agenda (' + escapeHtml(r.error.message) + ').</small>' +
+                '<button class="btn" onclick="loadAgenda()">Tentar de novo</button>' +
+            '</div>';
+            return;
+        }
+        agendaData = r.data;
+        renderAgenda();
+    }
+
+    function renderAgenda() {
+        var list = document.getElementById('agenda-list');
+        if (agendaData.length === 0) { list.innerHTML = '<small>Nenhum horário marcado.</small>'; return; }
+        list.innerHTML = agendaData.map(function(a) {
+            var s = studentsData.find(function(x) { return x.id === a.student_id; });
+            var hora = new Date(a.starts_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            return '<div class="agenda-item">' +
+                '<strong>' + hora + '</strong>' +
+                '<span>' + escapeHtml(s ? s.name : 'Aluno') + (a.note ? '<small>' + escapeHtml(a.note) + '</small>' : '') + '</span>' +
+                '<button class="btn btn-red" title="Desmarcar" onclick="removeAppointment(\'' + a.id + '\', this)">&#10005;</button>' +
+            '</div>';
+        }).join('');
+    }
+
+    // Opções do select de aluno (ordem alfabética), mantendo a escolha atual
+    function fillAgendaStudents() {
+        var sel = document.getElementById('agenda-student');
+        var current = sel.value;
+        sel.innerHTML = '<option value="">Aluno</option>' + studentsData.slice()
+            .sort(function(a, b) { return a.name.localeCompare(b.name, 'pt-BR'); })
+            .map(function(s) { return '<option value="' + s.id + '">' + escapeHtml(s.name) + '</option>'; }).join('');
+        sel.value = current;
+        if (sel.selectedIndex < 0) sel.value = '';
+    }
+
+    async function addAppointment() {
+        var studentId = document.getElementById('agenda-student').value;
+        var hora = document.getElementById('agenda-time').value;
+        var note = document.getElementById('agenda-note').value.trim();
+        if (!hora || !studentId) { setMsg('agenda-msg', 'Escolha o horário e o aluno.', 'error'); return; }
+        var day = agendaDay;
+        await withBtnLoading(document.getElementById('agenda-btn'), async function() {
+            setMsg('agenda-msg', '');
+            var r = await sb.from('appointments').insert({
+                trainer_id: currentTrainer.id,
+                student_id: studentId,
+                starts_at: new Date(day + 'T' + hora).toISOString(),
+                note: note || null
+            }).select('id, student_id, starts_at, note').single();
+            if (r.error) { setMsg('agenda-msg', 'Erro: ' + r.error.message, 'error'); return; }
+            document.getElementById('agenda-time').value = '';
+            document.getElementById('agenda-note').value = '';
+            if (day !== agendaDay) return;
+            agendaData.push(r.data);
+            agendaData.sort(function(a, b) { return new Date(a.starts_at) - new Date(b.starts_at); });
+            renderAgenda();
+        });
+    }
+
+    async function removeAppointment(id, btn) {
+        if (!await confirmPopup('Desmarcar', 'Desmarcar este horário?', 'Desmarcar')) return;
+        await withBtnLoading(btn, async function() {
+            var r = await sb.from('appointments').delete().eq('id', id).select('id');
+            if (r.error) { showErrorPopup('Erro ao desmarcar', r.error.message); return; }
+            if (!r.data.length) { showErrorPopup('Erro ao desmarcar', 'O horário não foi removido. Recarregue a página e tente de novo.'); return; }
+            agendaData = agendaData.filter(function(x) { return x.id !== id; });
+            renderAgenda();
+        });
     }
 
     // Pagamentos: students.payments = { "2026-10": true, ... }
@@ -2856,6 +3003,7 @@
 
     function renderStudents() {
         var list = document.getElementById('students-list');
+        fillAgendaStudents();
         if (studentsData.length === 0) {
             list.innerHTML = '<small>Nenhum aluno cadastrado.</small>';
             document.getElementById('search-empty').style.display = 'none';
@@ -2949,7 +3097,9 @@
             if (r.error) { showErrorPopup('Erro ao remover aluno', r.error.message); return; }
             if (!r.data.length) { showErrorPopup('Erro ao remover aluno', 'O aluno não foi removido. Recarregue a página e tente de novo.'); return; }
             studentsData = studentsData.filter(function(x) { return x.id !== id; });
+            agendaData = agendaData.filter(function(x) { return x.student_id !== id; });  // on delete cascade
             renderStudents();
+            renderAgenda();
             showToast(nome + ' removido com sucesso.');
         });
     }
