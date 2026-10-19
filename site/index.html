@@ -458,30 +458,67 @@
         .panel-new { background: #1d3a34; }   /* cadastrar aluno: verde escuro */
         .panel-list { background: #252f55; }  /* meus alunos: azul um pouco mais claro */
         .panel-agenda { background: #352a4f; } /* agenda: roxo escuro */
-        .agenda-form {
+        /* botões e campos da agenda: fundo do painel + borda roxa */
+        .panel-agenda .text-input {
+            background: rgba(0, 0, 0, 0.18);
+            border-color: #54457a;
+            color-scheme: dark;  /* ícones do relógio/calendário visíveis */
+        }
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid #6c5a99;
+            color: #d9c8f5;
+        }
+        .btn-ghost:hover { background: rgba(155, 89, 182, 0.18); }
+        .agenda-nav {
             display: grid;
-            grid-template-columns: 1fr 2fr;
+            grid-template-columns: 44px 1fr 44px;
+            align-items: center;
             gap: 8px;
         }
-        .agenda-form .text-input:nth-child(3), .agenda-form .btn { grid-column: 1 / -1; }
+        .agenda-nav .btn { min-height: 44px; padding: 0; }
+        .agenda-nav-day { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .agenda-nav-day small { color: #b7a6d9; font-size: 13px; text-transform: capitalize; }
+        .agenda-nav-day .text-input { width: auto; padding: 6px 10px; text-align: center; }
+        .agenda-form {
+            display: grid;
+            grid-template-columns: 120px 1fr auto;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px solid #4d3f6e;
+        }
+        .agenda-form .btn { padding: 0 18px; }
+        .agenda-form > * { min-width: 0; }
+        @media (max-width: 520px) {
+            .agenda-form { grid-template-columns: 110px 1fr; }
+            .agenda-form .btn { grid-column: 1 / -1; min-height: 44px; }
+        }
         #agenda-list {
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
+        #agenda-list > small { color: #b7a6d9; text-align: center; padding: 10px 0; }
         .agenda-item {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 8px 10px;
-            background: #16213e;
-            border: 1px solid #3a3a5a;
-            border-left: 5px solid #9b59b6;
-            border-radius: 6px;
+            padding: 6px 6px 6px 8px;
+            background: rgba(0, 0, 0, 0.18);
+            border: 1px solid #4d3f6e;
+            border-radius: 8px;
         }
-        .agenda-item > span { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-        .agenda-item small { color: #8899a6; overflow-wrap: anywhere; }
-        .agenda-item .btn { min-width: 44px; min-height: 44px; padding: 0; }
+        .agenda-time {
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(155, 89, 182, 0.25);
+            color: #e6d6ff;
+            font-weight: bold;
+            font-variant-numeric: tabular-nums;
+        }
+        .agenda-item > span:not(.agenda-time) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+        .agenda-item .btn { min-width: 40px; min-height: 40px; padding: 0; border-color: transparent; color: #b7a6d9; }
+        .agenda-item .btn:hover { background: rgba(192, 57, 43, 0.25); color: #ff8a80; }
         .panel h3 {
             margin: 0 0 4px;
             font-size: 1.05em;
@@ -701,17 +738,19 @@
     <div id="trainer-view" style="display: none;">
         <div class="panel panel-agenda">
             <h3>Agenda</h3>
-            <div class="year-nav">
-                <button class="btn btn-gray" onclick="changeAgendaDay(-1)">&#9664;</button>
-                <input type="date" id="agenda-day" class="text-input" style="width: auto;" onchange="setAgendaDay(this.value)">
-                <button class="btn btn-gray" onclick="changeAgendaDay(1)">&#9654;</button>
+            <div class="agenda-nav">
+                <button class="btn btn-ghost" onclick="changeAgendaDay(-1)">&#9664;</button>
+                <div class="agenda-nav-day">
+                    <small id="agenda-weekday"></small>
+                    <input type="date" id="agenda-day" class="text-input" onchange="setAgendaDay(this.value)">
+                </div>
+                <button class="btn btn-ghost" onclick="changeAgendaDay(1)">&#9654;</button>
             </div>
             <div id="agenda-list"></div>
             <div class="agenda-form">
                 <input type="time" id="agenda-time" class="text-input">
                 <select id="agenda-student" class="text-input"></select>
-                <input type="text" id="agenda-note" class="text-input" placeholder="Observação (opcional)" onkeydown="if (event.key === 'Enter') addAppointment()">
-                <button id="agenda-btn" class="btn btn-success" onclick="addAppointment()">Agendar</button>
+                <button id="agenda-btn" class="btn btn-ghost" onclick="addAppointment()">Agendar</button>
             </div>
             <div id="agenda-msg" class="form-msg"></div>
         </div>
@@ -2824,12 +2863,14 @@
         var list = document.getElementById('agenda-list');
         var day = agendaDay;
         document.getElementById('agenda-day').value = day;
+        var weekday = new Date(day + 'T00:00').toLocaleDateString('pt-BR', { weekday: 'long' });
+        document.getElementById('agenda-weekday').textContent = (day === dateKey(new Date()) ? 'Hoje · ' : '') + weekday;
         list.innerHTML = '<small>Carregando...</small>';
         var start = new Date(day + 'T00:00');
         var end = new Date(start);
         end.setDate(end.getDate() + 1);
         var r = await sb.from('appointments')
-            .select('id, student_id, starts_at, note')
+            .select('id, student_id, starts_at')
             .eq('trainer_id', currentTrainer.id)
             .gte('starts_at', start.toISOString())
             .lt('starts_at', end.toISOString())
@@ -2853,9 +2894,9 @@
             var s = studentsData.find(function(x) { return x.id === a.student_id; });
             var hora = new Date(a.starts_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             return '<div class="agenda-item">' +
-                '<strong>' + hora + '</strong>' +
-                '<span>' + escapeHtml(s ? s.name : 'Aluno') + (a.note ? '<small>' + escapeHtml(a.note) + '</small>' : '') + '</span>' +
-                '<button class="btn btn-red" title="Desmarcar" onclick="removeAppointment(\'' + a.id + '\', this)">&#10005;</button>' +
+                '<span class="agenda-time">' + hora + '</span>' +
+                '<span>' + escapeHtml(s ? s.name : 'Aluno') + '</span>' +
+                '<button class="btn btn-ghost" title="Desmarcar" onclick="removeAppointment(\'' + a.id + '\', this)">&#10005;</button>' +
             '</div>';
         }).join('');
     }
@@ -2874,7 +2915,6 @@
     async function addAppointment() {
         var studentId = document.getElementById('agenda-student').value;
         var hora = document.getElementById('agenda-time').value;
-        var note = document.getElementById('agenda-note').value.trim();
         if (!hora || !studentId) { setMsg('agenda-msg', 'Escolha o horário e o aluno.', 'error'); return; }
         var day = agendaDay;
         await withBtnLoading(document.getElementById('agenda-btn'), async function() {
@@ -2882,12 +2922,10 @@
             var r = await sb.from('appointments').insert({
                 trainer_id: currentTrainer.id,
                 student_id: studentId,
-                starts_at: new Date(day + 'T' + hora).toISOString(),
-                note: note || null
-            }).select('id, student_id, starts_at, note').single();
+                starts_at: new Date(day + 'T' + hora).toISOString()
+            }).select('id, student_id, starts_at').single();
             if (r.error) { setMsg('agenda-msg', 'Erro: ' + r.error.message, 'error'); return; }
             document.getElementById('agenda-time').value = '';
-            document.getElementById('agenda-note').value = '';
             if (day !== agendaDay) return;
             agendaData.push(r.data);
             agendaData.sort(function(a, b) { return new Date(a.starts_at) - new Date(b.starts_at); });

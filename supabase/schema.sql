@@ -41,7 +41,6 @@ create table appointments (
   trainer_id uuid references trainers(id) not null,
   student_id uuid references students(id) on delete cascade not null,
   starts_at timestamptz not null,
-  note text,
   created_at timestamptz default now()
 );
 
